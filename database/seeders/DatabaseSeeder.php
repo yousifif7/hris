@@ -105,13 +105,25 @@ class DatabaseSeeder extends Seeder
 
         // ── Sample Employees ──
         $sampleEmps = [
-            ['first_name'=>'Janet','last_name'=>'Williams','email'=>'jwilliams@wbh.com','role'=>'Licensed Clinician','employment_type'=>'Full-Time','department'=>'Clinical','start_date'=>'2024-06-15','pay_rate'=>35,'location'=>'Main Office'],
-            ['first_name'=>'Kevin','last_name'=>'Brown','email'=>'kbrown@wbh.com','role'=>'Supports Coordinator','employment_type'=>'Full-Time','department'=>'Coordination','start_date'=>'2024-09-01','pay_rate'=>22,'location'=>'Main Office'],
-            ['first_name'=>'Ashley','last_name'=>'Martinez','email'=>'amartinez@wbh.com','role'=>'Admin Assistant','employment_type'=>'Full-Time','department'=>'Admin','start_date'=>'2025-01-10','pay_rate'=>18,'location'=>'Main Office'],
-            ['first_name'=>'Monica','last_name'=>'Jackson','email'=>'mjackson@wbh.com','role'=>'Masters Clinician','employment_type'=>'Full-Time','department'=>'Clinical','start_date'=>'2024-11-01','pay_rate'=>30,'location'=>'Southfield'],
+            ['first_name'=>'Janet', 'last_name'=>'Williams','email'=>'jwilliams@wbh.com','role'=>'Licensed Clinician','employment_type'=>'Full-Time','department'=>'Clinical',    'start_date'=>'2024-06-15','pay_rate'=>35,'location'=>'Main Office'],
+            ['first_name'=>'Kevin', 'last_name'=>'Brown',   'email'=>'kbrown@wbh.com',   'role'=>'Supports Coordinator','employment_type'=>'Full-Time','department'=>'Coordination','start_date'=>'2024-09-01','pay_rate'=>22,'location'=>'Main Office'],
+            ['first_name'=>'Ashley','last_name'=>'Martinez','email'=>'amartinez@wbh.com','role'=>'Admin Assistant',   'employment_type'=>'Full-Time','department'=>'Admin',      'start_date'=>'2025-01-10','pay_rate'=>18,'location'=>'Main Office'],
+            ['first_name'=>'Monica','last_name'=>'Jackson', 'email'=>'mjackson@wbh.com', 'role'=>'Masters Clinician', 'employment_type'=>'Full-Time','department'=>'Clinical',    'start_date'=>'2024-11-01','pay_rate'=>30,'location'=>'Southfield'],
         ];
         foreach ($sampleEmps as $e) {
-            $emp = Employee::create(array_merge($e, ['is_active' => true]));
+            // Create a user account for the employee
+            $user = User::create([
+                'first_name' => $e['first_name'],
+                'last_name'  => $e['last_name'],
+                'email'      => $e['email'],
+                'password'   => Hash::make('password'),
+                'role'       => 'employee',
+                'department' => $e['department'],
+                'is_active'  => true,
+            ]);
+
+            $emp = Employee::create(array_merge($e, ['is_active' => true, 'user_id' => $user->id]));
+
             // Add sample trainings
             Training::create(['employee_id' => $emp->id, 'name' => 'HIPAA Compliance', 'due_date' => now()->addMonths(6), 'is_completed' => true, 'completed_date' => now()->subMonths(6)]);
             Training::create(['employee_id' => $emp->id, 'name' => 'CPR/First Aid',    'due_date' => now()->addMonths(3), 'is_completed' => false]);

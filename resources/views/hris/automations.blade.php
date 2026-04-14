@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Automations & Rules')
+@section('title','McCrory Center — Automations & Rules')
 @section('content')
 <div class="animate-in">
 

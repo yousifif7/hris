@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Dashboard')
+@section('title','McCrory Center — Dashboard')
 @section('content')
 <div class="stats-grid animate-in" id="statsGrid">
   <div class="stat-card yellow"><div class="stat-label">Needs Review</div><div class="stat-value" id="sNeedsReview">—</div><div class="stat-change down">Action required</div></div>

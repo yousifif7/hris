@@ -1,10 +1,16 @@
 <style>
    a{
         text-decoration:none !important;
-   } 
+   }
+   .sidebar-logo{ padding:12px 16px; display:flex; align-items:center; }
+   .sidebar-logo img{ max-width:180px; height:40px; display:block; }
 </style>
 <aside class="sidebar">
-  <div class="sidebar-logo"><div class="icon">TF</div><h1>TalentFlow</h1></div>
+  <div class="sidebar-logo">
+    <a href="{{ route('hris.dashboard') }}" aria-label="Home">
+      <img src="https://login.mccrorycenter.com/?entryPoint=LogoImage&id=68136eae0e1afd0b7" alt="McCrory Center logo">
+    </a>
+  </div>
   <nav class="sidebar-nav">
     <div class="nav-section"><div class="nav-section-title">Overview</div>
       <a href="{{ route('hris.dashboard') }}" class="nav-item {{ request()->routeIs('hris.dashboard') ? 'active' : '' }}" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
