@@ -24,9 +24,16 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => ['Invalid credentials.']]);
         }
 
+        if (! $user->is_active) {
+            throw ValidationException::withMessages(['email' => ['This account has been deactivated.']]);
+        }
+
+        $user->load('employee');
+
         return response()->json([
-            'user'  => $user,
-            'token' => $user->createToken('hris')->plainTextToken,
+            'user'     => $user,
+            'token'    => $user->createToken('hris')->plainTextToken,
+            'redirect' => in_array($user->role, ['admin', 'hr_staff']) ? '/hris' : '/portal',
         ]);
     }
 

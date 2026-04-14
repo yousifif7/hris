@@ -295,11 +295,11 @@ var SL={needs_review:'Needs Review',invite_sent:'Invite Sent',no_response:'No Re
 var SB={needs_review:'needs-review',invite_sent:'invite-sent',no_response:'queue',interview_scheduled:'interview',post_interview_review:'post-interview',pre_screening_passed:'prescreening',awaiting_background_check:'bg-check',offer_sent:'offer-sent',offer_accepted:'offer-accepted',rejected:'rejected',applicant_declined:'declined',queue:'queue',onboarding:'onboarding',hired:'offer-accepted'};
 function B(s){ var lbl=SL[s]||s; return '<span class="badge badge-'+(SB[s]||'queue')+'">'+esc(lbl)+'</span>'; }
 
-function toast(m,type){
-    var bg=type==='error'?'var(--red)':'var(--green)';
+function toast(m,type,duration){
+    var bg = type==='error' ? 'var(--red)' : type==='info' ? 'var(--primary)' : 'var(--green)';
     var e=document.createElement('div');
-    e.style.cssText='position:fixed;bottom:24px;right:24px;background:'+bg+';color:#fff;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:13px;z-index:2000;animation:fadeIn .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:320px';
-    e.textContent=m; document.body.appendChild(e); setTimeout(function(){ e.remove(); },2800);
+    e.style.cssText='position:fixed;bottom:24px;right:24px;background:'+bg+';color:#fff;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:13px;z-index:2000;animation:fadeIn .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:380px';
+    e.textContent=m; document.body.appendChild(e); setTimeout(function(){ e.remove(); }, duration||2800);
 }
 
 function loading(id){ var el=document.getElementById(id); if(el) el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">â³</div><p>Loadingâ€¦</p></div>'; }

@@ -2,8 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect('/hris'));
+// Root: redirect based on auth state (JS handles role-based redirect after /me)
+Route::get('/', fn() => redirect('/login'));
 Route::view('/login', 'auth.login')->name('login');
+
+// Employee portal (employees land here after login)
+Route::view('/portal', 'hris.portal')->name('portal');
 
 Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/', 'hris.dashboard')->name('dashboard');
@@ -14,8 +18,7 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/screening', 'hris.screening')->name('screening');
     Route::view('/offers', 'hris.offers')->name('offers');
     Route::view('/onboarding', 'hris.onboarding')->name('onboarding');
-    Route::view('/employees', 'hris.employees')->name('employees');
-    Route::view('/portal', 'hris.portal')->name('portal');
+    Route::view('/employee', 'hris.employees')->name('employees');
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');

@@ -40,6 +40,18 @@ class DocumentController extends Controller
         return response()->json($doc, 201);
     }
 
+    /** Employee portal — own documents only */
+    public function portalIndex(): JsonResponse
+    {
+        $emp = auth()->user()->employee;
+        if (! $emp) return response()->json([]);
+        return response()->json(
+            Document::where('documentable_type', \App\Models\Employee::class)
+                ->where('documentable_id', $emp->id)
+                ->orderByDesc('created_at')->get()
+        );
+    }
+
     public function download(Document $document)
     {
         return Storage::disk('private')->download($document->file_path, $document->name);

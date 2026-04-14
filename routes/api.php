@@ -128,3 +128,25 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
         return response()->json(['ok' => true]);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Employee portal (role = employee, hr_staff, admin)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'employee'])->prefix('portal')->group(function () {
+
+    // Own profile
+    Route::get('/me', [AuthController::class, 'me']);
+
+    // Own time-off requests
+    Route::get('/time-off',  [TimeOffController::class, 'portalIndex']);
+    Route::post('/time-off', [TimeOffController::class, 'portalStore']);
+
+    // Own trainings
+    Route::get('/trainings', [TrainingController::class, 'portalIndex']);
+
+    // Own documents
+    Route::get('/documents',  [DocumentController::class, 'portalIndex']);
+    Route::post('/documents', [DocumentController::class, 'upload']);
+});

@@ -57,7 +57,7 @@ async function doLogin() {
         var data = await r.json();
         if (!r.ok) { showErr(data.message || 'Invalid credentials.'); btn.disabled=false; btn.textContent='Sign In'; return; }
         localStorage.setItem('hris_token', data.token);
-        window.location.href = '/hris';
+        window.location.href = data.redirect || '/hris';
     } catch(e) { showErr('Network error. Please try again.'); btn.disabled=false; btn.textContent='Sign In'; }
 }
 function showErr(m){ var e=document.getElementById('errMsg'); e.textContent=m; e.style.display='block'; }

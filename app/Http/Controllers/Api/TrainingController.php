@@ -21,6 +21,17 @@ class TrainingController extends Controller
         return response()->json($query->orderBy('due_date')->paginate($request->get('per_page', 50)));
     }
 
+    /** Employee portal — own trainings only */
+    public function portalIndex(): JsonResponse
+    {
+        $emp = auth()->user()->employee;
+        if (! $emp) return response()->json([]);
+        return response()->json(
+            Training::where('employee_id', $emp->id)
+                ->orderBy('due_date')->get()
+        );
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
