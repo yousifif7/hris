@@ -50,14 +50,18 @@
 <script>
 async function pageRefresh(){ await loadTrainings('all'); }
 
+var _myEmployeeId = null;
+
 document.addEventListener('DOMContentLoaded', async function(){
-    // Set banner from cached user info
+    // Load current user info for banner
     var meR = await apiFetch('/api/me');
     if(meR){
         var me = await meR.json();
-        document.getElementById('portalName').textContent = me.name||'';
+        var fullName = (me.first_name||'')+' '+(me.last_name||'');
+        document.getElementById('portalName').textContent = fullName.trim()||me.name||'';
         document.getElementById('portalRole').textContent = me.role||'';
-        document.getElementById('portalAvatar').textContent = (me.name||'?')[0].toUpperCase();
+        document.getElementById('portalAvatar').textContent = ((me.first_name||me.name||'?')[0]||'?').toUpperCase();
+        _myEmployeeId = me.employee ? me.employee.id : null;
     }
     loadTrainings('all');
 });
@@ -107,12 +111,16 @@ function openDocUpload(){
 async function uploadDoc(){
     var file = document.getElementById('docFile').files[0];
     if(!file){ toast('Select a file first.','error'); return; }
+    if(!_myEmployeeId){ toast('No employee profile linked to your account.','error'); return; }
     var form = new FormData();
-    form.append('document', file);
+    form.append('file', file);
+    form.append('documentable_type', 'employee');
+    form.append('documentable_id', _myEmployeeId);
     var r = await apiFetch('/api/documents', {method:'POST', body:form});
     if(!r) return;
     toast('Document uploaded!');
     document.getElementById('docUploadArea').style.display='none';
+    document.getElementById('docFile').value='';
 }
 </script>
 @endpush

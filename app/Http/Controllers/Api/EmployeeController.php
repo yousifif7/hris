@@ -27,6 +27,29 @@ class EmployeeController extends Controller
         return response()->json($query->orderBy('last_name')->paginate(25));
     }
 
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'first_name'      => 'required|string|max:255',
+            'last_name'       => 'required|string|max:255',
+            'email'           => 'required|email|unique:employees,email',
+            'phone'           => 'nullable|string|max:50',
+            'role'            => 'required|string|max:255',
+            'employment_type' => 'required|in:full_time,part_time,contract',
+            'department'      => 'nullable|string|max:255',
+            'start_date'      => 'nullable|date',
+            'pay_rate'        => 'nullable|numeric|min:0',
+            'pay_type'        => 'nullable|in:hourly,salary',
+            'location'        => 'nullable|string|max:255',
+        ]);
+
+        $data['is_active'] = true;
+
+        $employee = Employee::create($data);
+
+        return response()->json($employee->load('trainings'), 201);
+    }
+
     public function show(Employee $employee): JsonResponse
     {
         return response()->json($employee->load(['trainings', 'timeOffRequests', 'documents']));
@@ -35,15 +58,26 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee): JsonResponse
     {
         $employee->update($request->validate([
-            'first_name'      => 'sometimes|string',
-            'last_name'       => 'sometimes|string',
-            'phone'           => 'sometimes|nullable|string',
-            'role'            => 'sometimes|string',
-            'employment_type' => 'sometimes|string',
-            'department'      => 'sometimes|nullable|string',
-            'location'        => 'sometimes|nullable|string',
+            'first_name'      => 'sometimes|string|max:255',
+            'last_name'       => 'sometimes|string|max:255',
+            'email'           => 'sometimes|email|unique:employees,email,'.$employee->id,
+            'phone'           => 'sometimes|nullable|string|max:50',
+            'role'            => 'sometimes|string|max:255',
+            'employment_type' => 'sometimes|in:full_time,part_time,contract',
+            'department'      => 'sometimes|nullable|string|max:255',
+            'start_date'      => 'sometimes|nullable|date',
+            'pay_rate'        => 'sometimes|nullable|numeric|min:0',
+            'pay_type'        => 'sometimes|nullable|in:hourly,salary',
+            'location'        => 'sometimes|nullable|string|max:255',
             'is_active'       => 'sometimes|boolean',
         ]));
-        return response()->json($employee->fresh());
+        return response()->json($employee->fresh('trainings'));
+    }
+
+    public function destroy(Employee $employee): JsonResponse
+    {
+        // $employee->update(['is_active' => false]);
+        $employee->delete();
+        return response()->json(['message' => 'Employee removed']);
     }
 }

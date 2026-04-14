@@ -32,7 +32,7 @@ class InterviewController extends Controller
         $data = $request->validate([
             'candidate_id'     => 'required|exists:candidates,id',
             'interviewer_id'   => 'nullable|exists:users,id',
-            'scheduled_at'     => 'required|date|after:now',
+            'scheduled_at'     => 'required|date',
             'duration_minutes' => 'nullable|integer|min:5|max:120',
             'type'             => 'nullable|in:zoom,in_person,phone',
             'meeting_link'     => 'nullable|url',

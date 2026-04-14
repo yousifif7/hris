@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     var me = await r.json();
     var av = document.getElementById('sidebarUserAvatar');  if(av) av.textContent = In(me.first_name, me.last_name);
     var nm = document.getElementById('sidebarUserName');    if(nm) nm.textContent = me.first_name+' '+me.last_name;
-    var rl = document.getElementById('sidebarUserRole');    if(rl) rl.textContent = me.role === 'admin' ? 'HR Director' : 'HR Staff';
+    var rl = document.getElementById('sidebarUserRole');    if(rl) rl.textContent = me.role === 'admin' ? 'Admin' : 'HR Staff';
 
     loadNotifications();
     updateReviewBadge();

@@ -7,6 +7,7 @@
       <button class="tab active" id="tabUp" onclick="switchTab('upcoming')">Upcoming</button>
       <button class="tab" id="tabPast" onclick="switchTab('past')">Past</button>
     </div>
+    <button class="btn btn-primary btn-sm" onclick="openScheduleInterviewPick()">+ Schedule Interview</button>
   </div>
 
   <div id="interviewList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading…</div></div>
@@ -35,7 +36,7 @@ async function loadInterviews(tab){
 
     if(tab==='upcoming'){
         if(!items.length){
-            list.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📅</div><p>No upcoming interviews scheduled.</p><button class="btn btn-primary" style="margin-top:12px" onclick="openScheduleInterview(\'\',\'select\',true)">+ Schedule Interview</button></div>';
+            list.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📅</div><p>No upcoming interviews scheduled.</p><button class="btn btn-primary" style="margin-top:12px" onclick="openScheduleInterviewPick()">+ Schedule Interview</button></div>';
         } else {
             list.innerHTML = '<div class="section-title">📅 Upcoming Interviews (Zoom · 15-20 min)</div>'
             +items.map(function(i){
@@ -84,25 +85,6 @@ async function completeInterview(id){
     if(!r) return;
     toast('Interview marked complete — candidate moved to Post-Interview Review');
     loadInterviews(_currentTab);
-}
-
-// Override openScheduleInterview to optionally support selecting candidate from dropdown
-window._origOpenSchedule = openScheduleInterview;
-function openScheduleInterview(candId, candName, pickMode){
-    if(pickMode){
-        document.getElementById('iCandId').value='';
-        document.getElementById('iCandName').value='';
-        // Enable the name field for manual entry
-        document.getElementById('iCandName').disabled=false;
-        document.getElementById('iCandName').placeholder='Type candidate name or leave blank to pick by ID';
-    } else {
-        document.getElementById('iCandId').value=candId;
-        document.getElementById('iCandName').value=candName;
-        document.getElementById('iCandName').disabled=true;
-    }
-    document.getElementById('iDate').value='';
-    document.getElementById('iLink').value='';
-    openModal('scheduleInterview');
 }
 
 document.addEventListener('DOMContentLoaded', function(){ loadInterviews('upcoming'); });

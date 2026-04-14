@@ -12,20 +12,10 @@
 async function pageRefresh(){ await loadScreening(); }
 
 async function loadScreening(){
-    var r = await apiFetch('/api/candidates?status=pre_screening_passed,awaiting_background_check&per_page=50');
+    var r = await apiFetch('/api/candidates?status=pre_screening_passed,awaiting_background_check&include=backgroundChecks,references&per_page=50');
     if(!r) return;
     var data = await r.json();
-
-    // Also load awaiting_background_check
-    var r2 = await apiFetch('/api/candidates?status=awaiting_background_check&per_page=50');
-    var d2 = r2 ? await r2.json() : {data:[]};
-
-    // Combine uniquely
-    var seen = {};
-    var items = [];
-    (data.data||[]).concat(d2.data||[]).forEach(function(c){
-        if(!seen[c.id]){ seen[c.id]=true; items.push(c); }
-    });
+    var items = data.data || [];
 
     var el = document.getElementById('screeningList');
     if(!items.length){

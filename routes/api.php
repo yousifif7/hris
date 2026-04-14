@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
+use App\Http\Controllers\Api\JobCategoryController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PreScreeningController;
@@ -53,6 +54,9 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Job categories
+    Route::get('/job-categories', [JobCategoryController::class, 'index']);
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
@@ -92,7 +96,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::post('/onboarding-templates', [OnboardingController::class, 'storeTemplate']);
 
     // Employees
-    Route::apiResource('employees', EmployeeController::class)->only(['index', 'show', 'update']);
+    Route::apiResource('employees', EmployeeController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
     // Time Off
     Route::apiResource('time-off', TimeOffController::class)->only(['index', 'store']);

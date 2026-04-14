@@ -8,7 +8,12 @@
   <div class="modal-header"><h3>Schedule Interview</h3><button onclick="closeModal('scheduleInterview')">✕</button></div>
   <div class="modal-body">
     <input type="hidden" id="iCandId">
-    <div class="form-group"><label>Candidate</label><input id="iCandName" disabled></div>
+    <div class="form-group" id="iCandNameGroup"><label>Candidate</label><input id="iCandName" disabled></div>
+    <div class="form-group" id="iCandSelectGroup" style="display:none"><label>Candidate</label>
+      <select id="iCandSelect" style="width:100%" onchange="document.getElementById('iCandId').value=this.value">
+        <option value="">— Select a candidate —</option>
+      </select>
+    </div>
     <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="iDate"></div>
     <div class="form-row">
       <div class="form-group"><label>Duration (min)</label><input type="number" id="iDur" value="20" min="5" max="120"></div>
@@ -42,6 +47,9 @@
 <script>
 /* Modal action handlers used across multiple pages */
 function openScheduleInterview(candId, candName){
+    // Show fixed name input, hide select
+    document.getElementById('iCandNameGroup').style.display = '';
+    document.getElementById('iCandSelectGroup').style.display = 'none';
     document.getElementById('iCandId').value = candId;
     document.getElementById('iCandName').value = candName;
     document.getElementById('iDate').value = '';
@@ -49,20 +57,47 @@ function openScheduleInterview(candId, candName){
     openModal('scheduleInterview');
 }
 
+async function openScheduleInterviewPick(){
+    // Show candidate select, hide name input
+    document.getElementById('iCandNameGroup').style.display = 'none';
+    document.getElementById('iCandSelectGroup').style.display = '';
+    document.getElementById('iCandId').value = '';
+    document.getElementById('iDate').value = '';
+    document.getElementById('iLink').value = '';
+    openModal('scheduleInterview');
+    // Populate candidates in pipeline that haven't had an interview yet
+    var sel = document.getElementById('iCandSelect');
+    sel.innerHTML = '<option value="">⏳ Loading…</option>';
+    var r = await apiFetch('/api/candidates?status=invite_sent,needs_review,post_interview_review&per_page=200');
+    if(!r){ sel.innerHTML='<option value="">— Failed to load —</option>'; return; }
+    var data = await r.json();
+    var cands = data.data || [];
+    sel.innerHTML = '<option value="">— Select a candidate —</option>'
+      + cands.map(function(c){
+          return '<option value="'+c.id+'">'+esc(c.first_name+' '+c.last_name)+(c.category?' · '+esc(c.category.name):'')+'</option>';
+        }).join('');
+    sel.onchange = function(){ document.getElementById('iCandId').value = this.value; };
+}
+
 async function submitInterview(){
     var candId = document.getElementById('iCandId').value;
     var dt = document.getElementById('iDate').value;
+    if(!candId){ toast('Please select a candidate','error'); return; }
     if(!dt){ toast('Please select a date and time','error'); return; }
     var body = {
         candidate_id: +candId,
-        scheduled_at: new Date(dt).toISOString(),
+      scheduled_at: dt.replace('T',' ') + ':00',
         duration_minutes: +document.getElementById('iDur').value || 20,
         type: document.getElementById('iType').value,
         meeting_link: document.getElementById('iLink').value || null
     };
     var r = await apiFetch('/api/interviews', {method:'POST', body:JSON.stringify(body)});
     if(!r) return;
-    var data = await r.json();
+    if(!r.ok){
+        var err = await r.json();
+        toast(err.message || (err.errors ? Object.values(err.errors).flat()[0] : 'Failed to schedule'), 'error');
+        return;
+    }
     closeModal('scheduleInterview');
     toast('Interview scheduled!');
     if(typeof pageRefresh==='function') pageRefresh();

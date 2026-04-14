@@ -43,16 +43,17 @@
 async function pageRefresh(){ await loadRecent(); }
 
 async function loadCategories(){
-    var r = await apiFetch('/api/settings');
+    var r = await apiFetch('/api/job-categories');
     if(!r) return;
-    // categories from candidates endpoint metadata — we'll do a quick pull
-    var r2 = await apiFetch('/api/candidates?per_page=1');
-    // fallback: fetch job categories via employees or just load hardcoded defaults
-    // We don't have a /api/categories endpoint, so load from settings or use typical values
-    var cats = ['Licensed Clinician','Masters Level','Bachelors Level','Supports Coordinator','Administrative'];
+    var cats = await r.json();
     var sel = document.getElementById('mC');
     if(!sel) return;
-    cats.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+    sel.innerHTML = '<option value="">Select…</option>';
+    (cats||[]).forEach(function(c){
+        var o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        sel.appendChild(o);
+    });
 }
 
 async function loadRecent(){
@@ -81,7 +82,7 @@ async function manualAdd(){
         first_name: f, last_name: l,
         email: document.getElementById('mE').value||null,
         phone: document.getElementById('mP').value||null,
-        job_category_id: null,
+        job_category_id: document.getElementById('mC').value ? parseInt(document.getElementById('mC').value) : null,
         source: document.getElementById('mS').value,
         notes: null,
         resume_text: document.getElementById('mR').value||null

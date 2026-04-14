@@ -32,7 +32,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->load('employee'));
     }
 
     public function logout(Request $request): JsonResponse

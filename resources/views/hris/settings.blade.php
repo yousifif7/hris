@@ -93,9 +93,9 @@ async function loadHrTeam(){
     if(!team.length){ el.innerHTML='<div style="color:var(--text3)">No HR staff found.</div>'; return; }
     el.innerHTML = team.map(function(u){
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
-          +'<div style="width:36px;height:36px;border-radius:50%;background:'+Cl(u.id)+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">'+(u.name||'?')[0].toUpperCase()+'</div>'
+          +'<div style="width:36px;height:36px;border-radius:50%;background:'+Cl(u.id)+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">'+((u.first_name||'?')[0]).toUpperCase()+'</div>'
           +'<div style="flex:1">'
-            +'<div style="font-weight:600;font-size:13px">'+esc(u.name||'—')+'</div>'
+            +'<div style="font-weight:600;font-size:13px">'+esc(u.name||u.first_name+' '+u.last_name||'—')+'</div>'
             +'<div style="font-size:12px;color:var(--text3)">'+esc(u.email||'')+'</div>'
           +'</div>'
           +'<span class="badge badge-offer-sent" style="font-size:11px">'+esc(u.role||'hr_staff')+'</span>'

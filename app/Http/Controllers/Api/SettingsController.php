@@ -15,12 +15,15 @@ class SettingsController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-            'company_name'    => Setting::get('company_name', 'Wellness Behavioral Health'),
-            'timezone'        => Setting::get('timezone', 'America/Detroit'),
-            'interview_duration' => Setting::get('interview_duration', 20),
-            'offer_deadline'  => Setting::get('offer_deadline', 20),
-            'followup_days'   => Setting::get('followup_days', 5),
-            'queue_days'      => Setting::get('queue_days', 10),
+            'company_name'           => Setting::get('company_name', 'Wellness Behavioral Health'),
+            'timezone'               => Setting::get('timezone', 'America/Detroit'),
+            'interview_duration'     => Setting::get('interview_duration', 20),
+            'offer_deadline'         => Setting::get('offer_deadline', 20),
+            'followup_days'          => Setting::get('followup_days', 5),
+            'queue_days'             => Setting::get('queue_days', 10),
+            'default_interview_type' => Setting::get('default_interview_type', 'zoom'),
+            'zoom_link'              => Setting::get('zoom_link', ''),
+            'office_address'         => Setting::get('office_address', ''),
         ]);
     }
 
@@ -54,9 +57,12 @@ class SettingsController extends Controller
     public function hrTeam(): JsonResponse
     {
         $staff = User::where('role', 'hr_staff')->where('is_active', true)
-            ->withCount('assignedCandidates')
+            ->withCount('assignedCandidates as active_candidates_count')
             ->orderBy('round_robin_order')
-            ->get();
+            ->get()
+            ->map(fn($u) => array_merge($u->toArray(), [
+                'name' => "{$u->first_name} {$u->last_name}",
+            ]));
         return response()->json($staff);
     }
 }

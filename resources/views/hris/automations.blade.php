@@ -14,14 +14,14 @@
 </div>
 
 <!-- Edit Template Modal -->
-<div class="modal-overlay" id="tplModal" onclick="if(event.target===this)closeModal('tplModal')">
-  <div class="modal-box" style="max-width:560px">
-    <div class="modal-header"><h3>Edit Email Template</h3><button class="close-btn" onclick="closeModal('tplModal')">✕</button></div>
+<div class="modal-overlay" id="modal-tplModal" onclick="if(event.target===this)closeModal('tplModal')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3>Edit Email Template</h3><button onclick="closeModal('tplModal')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="tplId">
       <div class="form-group"><label>Subject</label><input type="text" id="tplSubject" placeholder="Email subject…"></div>
-      <div class="form-group"><label>Body</label><textarea id="tplBody" rows="8" placeholder="Email body… Use {{candidate_name}}, {{company_name}}, etc."></textarea></div>
-      <div style="font-size:12px;color:var(--text3)">Available variables: <code>{{candidate_name}}</code> <code>{{company_name}}</code> <code>{{interview_date}}</code> <code>{{offer_details}}</code></div>
+      <div class="form-group"><label>Body</label><textarea id="tplBody" rows="8" placeholder="Email body… Use @{{candidate_name}}, @{{company_name}}, etc."></textarea></div>
+      <div style="font-size:12px;color:var(--text3)">Available variables: <code>@{{candidate_name}}</code> <code>@{{company_name}}</code> <code>@{{interview_date}}</code> <code>@{{offer_details}}</code></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('tplModal')">Cancel</button>
@@ -34,6 +34,8 @@
 @push('scripts')
 <script>
 async function pageRefresh(){ await Promise.all([loadRules(), loadTemplates()]); }
+
+var _tpls = {};
 
 async function loadRules(){
     var r = await apiFetch('/api/settings/automations');
@@ -61,6 +63,8 @@ async function loadTemplates(){
     if(!r) return;
     var data = await r.json();
     var tpls = data.templates || data || [];
+    _tpls = {};
+    tpls.forEach(function(t){ _tpls[t.id] = t; });
     var el = document.getElementById('tplList');
     if(!tpls.length){ el.innerHTML='<div style="padding:20px;color:var(--text3)">No email templates found.</div>'; return; }
     el.innerHTML = '<div class="card-section" style="padding:0">'
@@ -70,13 +74,15 @@ async function loadTemplates(){
               +'<div style="font-weight:600;font-size:14px">'+esc(t.name||'—')+'</div>'
               +'<div style="font-size:12px;color:var(--text3)">'+esc(t.subject||'No subject')+'</div>'
             +'</div>'
-            +'<button class="btn btn-secondary btn-sm" onclick="editTemplate('+JSON.stringify(t).replace(/"/g,\'&quot;\')+'">Edit</button>'
+            +'<button class="btn btn-secondary btn-sm" onclick="editTemplate('+t.id+')">Edit</button>'
           +'</div>';
       }).join('')
       +'</div>';
 }
 
-function editTemplate(t){
+function editTemplate(id){
+    var t = _tpls[id];
+    if(!t) return;
     document.getElementById('tplId').value      = t.id;
     document.getElementById('tplSubject').value = t.subject||'';
     document.getElementById('tplBody').value    = t.body||'';

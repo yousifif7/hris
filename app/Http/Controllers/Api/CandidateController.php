@@ -21,10 +21,27 @@ class CandidateController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Candidate::with(['category', 'assignedTo:id,first_name,last_name']);
+        $with = ['category', 'assignedTo:id,first_name,last_name'];
+
+        // Allow callers to request extra relations (e.g. screening page needs checks/refs)
+        $allowed = ['backgroundChecks', 'references', 'preScreening', 'interviews'];
+        if ($request->filled('include')) {
+            foreach (explode(',', $request->include) as $rel) {
+                if (in_array($rel, $allowed)) {
+                    $with[] = $rel;
+                }
+            }
+        }
+
+        $query = Candidate::with($with);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            if (count($statuses) > 1) {
+                $query->whereIn('status', $statuses);
+            } else {
+                $query->where('status', $statuses[0]);
+            }
         }
 
         if ($request->filled('category')) {
@@ -158,7 +175,7 @@ class CandidateController extends Controller
     public function reviewQueue(): JsonResponse
     {
         $candidates = Candidate::needsReview()
-            ->with(['category', 'assignedTo', 'interviews'])
+            ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();
 

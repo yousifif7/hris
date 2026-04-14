@@ -20,9 +20,9 @@
 </div>
 
 <!-- New Request Modal -->
-<div class="modal-overlay" id="toNewModal" onclick="if(event.target===this)closeModal('toNewModal')">
-  <div class="modal-box" style="max-width:440px">
-    <div class="modal-header"><h3>New Time-Off Request</h3><button class="close-btn" onclick="closeModal('toNewModal')">✕</button></div>
+<div class="modal-overlay" id="modal-toNewModal" onclick="if(event.target===this)closeModal('toNewModal')">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><h3>New Time-Off Request</h3><button onclick="closeModal('toNewModal')">✕</button></div>
     <div class="modal-body">
       <div class="form-group"><label>Employee</label><select id="toEmployee"><option value="">Loading…</option></select></div>
       <div class="form-group"><label>Type</label>
