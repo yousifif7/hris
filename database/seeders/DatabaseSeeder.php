@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
 
         // ── HR Staff ──
         $staff = [
-            ['first_name' => 'Sarah',  'last_name' => 'Johnson', 'email' => 'sarah@wbh.com',  'role' => 'admin',    'round_robin_order' => 1],
+            ['first_name' => 'Admin',  'last_name' => 'User', 'email' => 'admin@hris.com',  'role' => 'admin',    'round_robin_order' => 1],
             ['first_name' => 'Marcus', 'last_name' => 'Lee',     'email' => 'marcus@wbh.com', 'role' => 'hr_staff', 'round_robin_order' => 2],
             ['first_name' => 'Priya',  'last_name' => 'Patel',   'email' => 'priya@wbh.com',  'role' => 'hr_staff', 'round_robin_order' => 3],
             ['first_name' => 'James',  'last_name' => 'Wright',  'email' => 'james@wbh.com',  'role' => 'hr_staff', 'round_robin_order' => 4],

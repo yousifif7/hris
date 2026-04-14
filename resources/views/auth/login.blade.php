@@ -32,10 +32,9 @@ h2{font-size:18px;font-weight:700;margin-bottom:6px;color:var(--text)}
     <h2>Sign in to your account</h2>
     <p class="sub">Enter your HR portal credentials below.</p>
     <div class="error" id="errMsg"></div>
-    <div class="form-group"><label>Email address</label><input type="email" id="email" placeholder="sarah@example.com" autocomplete="email"></div>
+    <div class="form-group"><label>Email address</label><input type="email" id="email" placeholder="admin@hris.com" autocomplete="email"></div>
     <div class="form-group"><label>Password</label><input type="password" id="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="loginBtn" onclick="doLogin()">Sign In</button>
-    <p class="hint">Default: sarah@wbh.com / password</p>
 </div>
 <script>
 document.getElementById('password').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });

@@ -1,3 +1,8 @@
+<style>
+   a{
+        text-decoration:none !important;
+   } 
+</style>
 <aside class="sidebar">
   <div class="sidebar-logo"><div class="icon">TF</div><h1>TalentFlow</h1></div>
   <nav class="sidebar-nav">

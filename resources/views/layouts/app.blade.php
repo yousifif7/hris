@@ -259,18 +259,6 @@ tr:hover td{background:rgba(91,76,219,.03)}
         </div>
     </div>
 
-    @endverbatim
-    @stack('styles')
-</head>
-<body>
-    @include('partials.sidebar')
-    <div class="main">
-        @include('partials.topbar')
-        <div class="content" id="contentArea">
-            @yield('content')
-        </div>
-    </div>
-
     @include('partials.notifications')
     @include('partials.modals')
 
