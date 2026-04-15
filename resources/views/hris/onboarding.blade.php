@@ -2,8 +2,8 @@
 @section('title','McCrory Center — Onboarding')
 @section('content')
 <div class="animate-in">
-  <div class="section-title">🎯 Active Onboarding</div>
-  <div id="onboardingList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading…</div></div>
+  <div class="section-title">Active Onboarding</div>
+  <div id="onboardingList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading...</div></div>
 </div>
 @endsection
 

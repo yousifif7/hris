@@ -9,8 +9,8 @@ use App\Models\OnboardingTemplate;
 use App\Models\ActivityLog;
 use App\Jobs\SendCandidateEmail;
 use App\Jobs\ProcessNoResponseFollowup;
+use App\Notifications\AdminActivityNotification;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class CandidateService
 {
@@ -37,15 +37,19 @@ class CandidateService
 
         // Handle resume file upload
         if ($resumeFile) {
-            $path = $resumeFile->store("resumes/{$candidate->id}", 'private');
+            $relative = "resumes/{$candidate->id}";
+            $filename  = time().'_'.$resumeFile->getClientOriginalName();
+            $resumeFile->move(public_path($relative), $filename);
+            $path = "{$relative}/{$filename}";
+
             $candidate->update(['resume_file' => $path]);
 
             $candidate->documents()->create([
                 'name'      => $resumeFile->getClientOriginalName(),
                 'type'      => 'resume',
                 'file_path' => $path,
-                'mime_type' => $resumeFile->getMimeType(),
-                'file_size' => $resumeFile->getSize(),
+                'mime_type' => $resumeFile->getClientMimeType(),
+                'file_size' => filesize(public_path($path)),
             ]);
         }
 
@@ -60,6 +64,17 @@ class CandidateService
         if ($assignee) {
             $assignee->notify(new \App\Notifications\NewCandidateAssigned($candidate));
         }
+
+        // Notify all admins
+        $actor        = auth()->check() ? auth()->user()->full_name : 'System';
+        $assigneeName = $assignee?->full_name ?? 'nobody';
+        $this->notifyAdmins(
+            '📋 New Application Received',
+            "{$candidate->full_name} applied via {$candidate->source}. Assigned to {$assigneeName}.",
+            'new_candidate',
+            $candidate,
+            $actor
+        );
 
         return $candidate;
     }
@@ -76,6 +91,16 @@ class CandidateService
 
         $this->log($candidate, 'status_changed', $oldStatus->value, $newStatus->value,
             "Status changed from {$oldStatus->label()} to {$newStatus->label()}");
+
+        // Notify admins about status change
+        $actor = auth()->check() ? auth()->user()->full_name : 'System';
+        $this->notifyAdmins(
+            '🔄 Candidate Status Updated',
+            "{$candidate->full_name}: {$oldStatus->label()} → {$newStatus->label()}. By: {$actor}.",
+            'status_changed',
+            $candidate,
+            $actor
+        );
 
         // Trigger side-effect actions based on new status
         match ($newStatus) {
@@ -216,7 +241,29 @@ class CandidateService
 
         $this->changeStatus($candidate, CandidateStatus::HIRED);
 
+        $actor = auth()->check() ? auth()->user()->full_name : 'System';
+        $this->notifyAdmins(
+            '🎉 Candidate Converted to Employee',
+            "{$candidate->full_name} has been converted to an employee by {$actor}.",
+            'converted_to_employee',
+            $candidate,
+            $actor
+        );
+
         return $employee;
+    }
+
+    /**
+     * Send a notification to all active admin users.
+     */
+    protected function notifyAdmins(string $title, string $message, string $type, Candidate $candidate, ?string $actor = null): void
+    {
+        $notification = new AdminActivityNotification($title, $message, $type, $candidate->id, $actor);
+
+        \App\Models\User::where('role', 'admin')
+            ->where('is_active', true)
+            ->get()
+            ->each(fn($admin) => $admin->notify($notification));
     }
 
     protected function log(Candidate $candidate, string $action, ?string $old, ?string $new, ?string $desc = null): void

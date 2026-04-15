@@ -67,7 +67,7 @@ async function openScheduleInterviewPick(){
     openModal('scheduleInterview');
     // Populate candidates in pipeline that haven't had an interview yet
     var sel = document.getElementById('iCandSelect');
-    sel.innerHTML = '<option value="">⏳ Loading…</option>';
+    sel.innerHTML = '<option value="">⏳ Loading...</option>';
     var r = await apiFetch('/api/candidates?status=invite_sent,needs_review,post_interview_review&per_page=200');
     if(!r){ sel.innerHTML='<option value="">— Failed to load —</option>'; return; }
     var data = await r.json();

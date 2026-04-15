@@ -37,7 +37,7 @@
   <div class="sidebar-user">
     <div class="avatar" id="sidebarUserAvatar" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">HR</div>
     <div>
-      <div class="name" id="sidebarUserName">Loading…</div>
+        <div class="name" id="sidebarUserName">Loading...</div>
       <div class="role" id="sidebarUserRole">HR Staff</div>
     </div>
     <button onclick="logout()" title="Sign out" style="margin-left:auto;color:var(--text3);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">

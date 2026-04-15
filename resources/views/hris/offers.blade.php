@@ -15,7 +15,7 @@
   </div>
   <div class="table-wrap">
     <table><thead><tr><th>Candidate</th><th>Role</th><th>Type</th><th>Pay</th><th>Location</th><th>Status</th><th>Sent</th><th>Actions</th></tr></thead>
-    <tbody id="offersTbody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading…</td></tr></tbody></table>
+    <tbody id="offersTbody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading...</td></tr></tbody></table>
   </div>
 </div>
 @endsection
@@ -59,10 +59,18 @@ async function loadOffers(){
 }
 
 async function respondOffer(id, response){
-    if(!confirm('Mark offer as '+response+'?')) return;
+    var msgs = {
+        accepted: 'Mark this offer as accepted?\n\nOnboarding tasks will be created.',
+        declined: 'Mark this offer as declined?'
+    };
+    if(!confirm(msgs[response]||'Continue?')) return;
     var r = await apiFetch('/api/offers/'+id+'/respond', {method:'PATCH', body:JSON.stringify({response:response})});
     if(!r) return;
-    toast('Offer '+response+'!');
+    if(response==='accepted'){
+        toast('✓ Offer accepted! Onboarding started.', 'success');
+    } else {
+        toast('✗ Offer declined.', 'error');
+    }
     loadOffers();
 }
 

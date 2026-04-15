@@ -16,12 +16,12 @@
   <div class="table-wrap">
     <div class="table-header"><h3>Recent Candidates</h3><a href="{{ route('hris.review') }}" class="btn btn-secondary btn-sm">Review Queue →</a></div>
     <table><thead><tr><th>Candidate</th><th>Category</th><th>Status</th><th></th></tr></thead>
-    <tbody id="recentTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3)">Loading…</td></tr></tbody></table>
+    <tbody id="recentTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3)">Loading...</td></tr></tbody></table>
   </div>
   <div class="table-wrap">
     <div class="table-header"><h3>Upcoming Interviews</h3><a href="{{ route('hris.interviews') }}" class="btn btn-secondary btn-sm">All →</a></div>
     <table><thead><tr><th>Candidate</th><th>When</th><th>Type</th></tr></thead>
-    <tbody id="interviewTbody"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text3)">Loading…</td></tr></tbody></table>
+    <tbody id="interviewTbody"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text3)">Loading...</td></tr></tbody></table>
   </div>
 </div>
 @endsection

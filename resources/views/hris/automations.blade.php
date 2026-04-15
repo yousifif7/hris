@@ -4,12 +4,12 @@
 <div class="animate-in">
 
   <!-- Automation Rules -->
-  <div class="section-title">⚡ Automation Rules</div>
-  <div id="rulesList"><div style="text-align:center;padding:40px;color:var(--text3)">⏳ Loading…</div></div>
+  <div class="section-title">- Automation Rules</div>
+  <div id="rulesList"><div style="text-align:center;padding:40px;color:var(--text3)">⏳ Loading...</div></div>
 
   <!-- Email Templates -->
-  <div class="section-title" style="margin-top:28px">✉ Email Templates</div>
-  <div id="tplList"><div style="text-align:center;padding:40px;color:var(--text3)">⏳ Loading…</div></div>
+  <div class="section-title" style="margin-top:28px">- Email Templates</div>
+  <div id="tplList"><div style="text-align:center;padding:40px;color:var(--text3)">⏳ Loading...</div></div>
 
 </div>
 
@@ -19,8 +19,8 @@
     <div class="modal-header"><h3>Edit Email Template</h3><button onclick="closeModal('tplModal')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="tplId">
-      <div class="form-group"><label>Subject</label><input type="text" id="tplSubject" placeholder="Email subject…"></div>
-      <div class="form-group"><label>Body</label><textarea id="tplBody" rows="8" placeholder="Email body… Use @{{candidate_name}}, @{{company_name}}, etc."></textarea></div>
+      <div class="form-group"><label>Subject</label><input type="text" id="tplSubject" placeholder="Email subject..."></div>
+        <div class="form-group"><label>Body</label><textarea id="tplBody" rows="8" placeholder="Email body... Use @{{candidate_name}}, @{{company_name}}, etc."></textarea></div>
       <div style="font-size:12px;color:var(--text3)">Available variables: <code>@{{candidate_name}}</code> <code>@{{company_name}}</code> <code>@{{interview_date}}</code> <code>@{{offer_details}}</code></div>
     </div>
     <div class="modal-footer">

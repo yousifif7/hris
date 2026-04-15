@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DocumentController extends Controller
 {
@@ -25,19 +25,25 @@ class DocumentController extends Controller
             : \App\Models\Employee::class;
 
         $model = $modelClass::findOrFail($request->documentable_id);
-        $file = $request->file('file');
-        $path = $file->store("documents/{$request->documentable_type}/{$request->documentable_id}", 'private');
+        $file  = $request->file('file');
+
+        $relative = "documents/{$request->documentable_type}/{$request->documentable_id}";
+        $filename  = time().'_'.$file->getClientOriginalName();
+        $file->move(public_path($relative), $filename);
+        $path = "{$relative}/{$filename}";
 
         $doc = $model->documents()->create([
-            'name'      => $request->name ?? $file->getClientOriginalName(),
-            'type'      => $request->type,
-            'file_path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'name'        => $request->name ?? $file->getClientOriginalName(),
+            'type'        => $request->type,
+            'file_path'   => $path,
+            'mime_type'   => $file->getMimeType() ?? $file->getClientMimeType(),
+            'file_size'   => filesize(public_path($path)),
             'uploaded_by' => auth()->id(),
         ]);
 
-        return response()->json($doc, 201);
+        return response()->json(array_merge($doc->toArray(), [
+            'url' => url($path),
+        ]), 201);
     }
 
     /** Employee portal — own documents only */
@@ -52,8 +58,8 @@ class DocumentController extends Controller
         );
     }
 
-    public function download(Document $document)
+    public function download(Document $document): BinaryFileResponse
     {
-        return Storage::disk('private')->download($document->file_path, $document->name);
+        return response()->download(public_path($document->file_path), $document->name);
     }
 }

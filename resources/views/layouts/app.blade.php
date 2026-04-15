@@ -299,14 +299,14 @@ var SB={needs_review:'needs-review',invite_sent:'invite-sent',no_response:'queue
 function B(s){ var lbl=SL[s]||s; return '<span class="badge badge-'+(SB[s]||'queue')+'">'+esc(lbl)+'</span>'; }
 
 function toast(m,type,duration){
-    var bg = type==='error' ? 'var(--red)' : type==='info' ? 'var(--primary)' : 'var(--green)';
+    var bg = type==='error' ? 'var(--red)' : type==='info' ? 'var(--blue)' : 'var(--green)';
     var e=document.createElement('div');
     e.style.cssText='position:fixed;bottom:24px;right:24px;background:'+bg+';color:#fff;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:13px;z-index:2000;animation:fadeIn .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:380px';
     e.textContent=m; document.body.appendChild(e); setTimeout(function(){ e.remove(); }, duration||2800);
 }
 
-function loading(id){ var el=document.getElementById(id); if(el) el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">â³</div><p>Loadingâ€¦</p></div>'; }
-function empty(id,msg){ var el=document.getElementById(id); if(el) el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">ðŸ“­</div><p>'+(msg||'Nothing here yet.')+'</p></div>'; }
+function loading(id){ var el=document.getElementById(id); if(el) el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><p>Loading...</p></div>'; }
+function empty(id,msg){ var el=document.getElementById(id); if(el) el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><p>'+(msg||'Nothing here yet.')+'</p></div>'; }
 
 /* â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function openModal(id){ document.getElementById('modal-'+id).classList.add('open'); }
@@ -330,17 +330,23 @@ async function loadNotifications(){
     if(!data.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No notifications yet.</div>'; return; }
     list.innerHTML = data.map(function(n){
         var d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
-        return '<div class="notif-item '+(n.read_at?'':'unread')+'" onclick="markNotifRead(\''+esc(n.id)+'\')">'
-            +'<div class="notif-icon" style="background:var(--accent-glow);font-size:18px">ðŸ””</div>'
+        var icons = {new_candidate:'📋', status_changed:'🔄', converted_to_employee:'🎉', reference_received:'📨', background_check:'🔍', training_expiring:'⏰'};
+        var icon = icons[d.type] || '🔔';
+        return '<div class="notif-item '+(n.read_at?'':'unread')+'" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')">'
+            +'<div class="notif-icon" style="background:var(--accent-glow);font-size:18px">'+icon+'</div>'
             +'<div class="notif-text"><div class="title">'+esc(d.title||'Notification')+'</div>'
             +'<div class="desc">'+esc(d.message||'')+'</div>'
             +'<div class="time">'+fDate(n.created_at)+'</div></div></div>';
     }).join('');
 }
 
-async function markNotifRead(id){
+async function markNotifRead(id, candidateId){
     await apiFetch('/api/notifications/'+id+'/read', {method:'POST'});
     loadNotifications();
+    if(candidateId){
+        document.getElementById('notifPanel').classList.remove('open');
+        viewCandidate(candidateId);
+    }
 }
 
 async function readAllNotifs(){
@@ -359,8 +365,8 @@ async function updateReviewBadge(){
 
 /* â”€â”€ Global: Candidate detail modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function viewCandidate(id){
-    document.getElementById('detailName').textContent = 'Loadingâ€¦';
-    document.getElementById('detailBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">â³ Loading profileâ€¦</div>';
+    document.getElementById('detailName').textContent = 'Loading...';
+    document.getElementById('detailBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading profile...</div>';
     document.getElementById('detailFooter').innerHTML = '';
     openModal('candidateDetail');
 
@@ -405,6 +411,28 @@ async function viewCandidate(id){
         }).join('')+'</div></div>';
     }
 
+    var docsHtml = '';
+    if(c.documents && c.documents.length){
+        var fileIcon = function(mime){
+            if(!mime) return '📄';
+            if(mime.includes('pdf')) return '📕';
+            if(mime.includes('word') || mime.includes('doc')) return '📝';
+            if(mime.includes('image')) return '🖼️';
+            return '📄';
+        };
+        var fSz = function(b){ if(!b) return ''; if(b<1024) return b+'B'; if(b<1048576) return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; };
+        docsHtml='<div style="margin-top:14px"><h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">Uploaded Files</h4>'
+        +c.documents.map(function(d){
+            var url = '/storage/'+d.file_path;
+            return '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;text-decoration:none;transition:border-color .2s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+                +'<span style="font-size:18px">'+fileIcon(d.mime_type)+'</span>'
+                +'<span style="flex:1;font-size:12px;font-weight:600;color:var(--text)">'+esc(d.name)+'</span>'
+                +(d.type?'<span style="font-size:10px;padding:2px 7px;background:var(--accent-glow);color:var(--accent);border-radius:10px;font-weight:600">'+esc(d.type)+'</span>':'')
+                +'<span style="font-size:11px;color:var(--text3)">'+fSz(d.file_size)+'</span>'
+                +'<span style="font-size:11px;color:var(--accent)">↗</span></a>';
+        }).join('')+'</div>';
+    }
+
     document.getElementById('detailBody').innerHTML=
       '<div style="display:flex;gap:20px;flex-wrap:wrap">'
       +'<div style="flex:1;min-width:260px">'
@@ -423,7 +451,7 @@ async function viewCandidate(id){
         +'<div class="form-group" style="margin-top:12px"><label>Change Status</label>'
         +'<select id="detailSt">'+statusOpts+'</select></div>'
       +'</div>'
-      +'<div style="flex:1;min-width:220px">'+bgHtml+refsHtml+logsHtml+'</div>'
+      +'<div style="flex:1;min-width:220px">'+docsHtml+bgHtml+refsHtml+logsHtml+'</div>'
     +'</div>';
 
     document.getElementById('detailFooter').innerHTML=
@@ -434,11 +462,24 @@ async function viewCandidate(id){
 
 async function cdAction(id, forceStatus){
     var st = forceStatus || document.getElementById('detailSt').value;
+    var name = document.getElementById('detailName').textContent || 'this candidate';
+
+    // Destructive actions require confirmation
+    var confirmRequired = {
+        rejected:          'Reject '+name+'?\n\nA rejection email will be sent.',
+        applicant_declined:'Mark '+name+' as declined?',
+        hired:             'Convert '+name+' to hired?\n\nThis will trigger onboarding.'
+    };
+    if(confirmRequired[st] && !confirm(confirmRequired[st])) return;
+
     var r = await apiFetch('/api/candidates/'+id+'/status', {method:'PATCH', body:JSON.stringify({status:st})});
     if(!r) return;
     var data = await r.json();
+
+    var toastType = st==='rejected' ? 'error' : 'success';
+    toast((data.first_name||'Candidate')+' → '+(SL[st]||st), toastType);
+
     closeModal('candidateDetail');
-    toast((data.first_name||'Candidate')+' â†’ '+(SL[st]||st));
     if(typeof pageRefresh === 'function') pageRefresh();
     updateReviewBadge();
 }

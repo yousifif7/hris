@@ -2,6 +2,20 @@
 @section('title','McCrory Center — Resume Intake')
 @section('content')
 <div class="animate-in">
+
+  {{-- Share Apply Link --}}
+  <div class="card-section" style="margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:220px">
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px">🔗 Public Apply Link</div>
+      <div style="font-size:12px;color:var(--text2)">Share this URL with candidates — no login required.</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="applyLinkInput" readonly style="width:340px;max-width:100%;font-size:12px;background:var(--surface2);color:var(--text2)" value="Loading...">
+      <button class="btn btn-secondary btn-sm" onclick="copyApplyLink()">Copy</button>
+      <button class="btn btn-secondary btn-sm" onclick="regenerateApplyLink()" title="Generate a new link (invalidates the old one)">Regenerate</button>
+    </div>
+  </div>
+
   <div class="section-title">📄 Upload Resumes</div>
   <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Upload resumes from Indeed, LinkedIn, or direct applications. Candidates auto-assign to HR staff via round-robin.</p>
   <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -23,10 +37,10 @@
       <div class="form-group"><label>Phone</label><input id="mP" type="tel"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Category</label><select id="mC"><option value="">Select…</option></select></div>
+      <div class="form-group"><label>Category</label><select id="mC"><option value="">Select...</option></select></div>
       <div class="form-group"><label>Source *</label><select id="mS"><option>Indeed</option><option>LinkedIn</option><option>Referral</option><option>Website</option><option>Walk-in</option><option>Other</option></select></div>
     </div>
-    <div class="form-group"><label>Resume / Summary</label><textarea id="mR" rows="5" placeholder="Paste the full resume text or a summary…"></textarea></div>
+    <div class="form-group"><label>Resume / Summary</label><textarea id="mR" rows="5" placeholder="Paste the full resume text or a summary..."></textarea></div>
     <button class="btn btn-primary" onclick="manualAdd()">Add to Review Queue</button>
   </div>
 
@@ -42,13 +56,37 @@
 <script>
 async function pageRefresh(){ await loadRecent(); }
 
+async function loadApplyLink(){
+    var r = await apiFetch('/api/settings/apply-link');
+    if(!r) return;
+    var data = await r.json();
+    var inp = document.getElementById('applyLinkInput');
+    if(inp && data.url) inp.value = data.url;
+}
+
+async function copyApplyLink(){
+    var val = document.getElementById('applyLinkInput').value;
+    if(!val || val === 'Loading...') return;
+    try { await navigator.clipboard.writeText(val); toast('Link copied to clipboard!'); }
+    catch(e) { document.getElementById('applyLinkInput').select(); document.execCommand('copy'); toast('Link copied!'); }
+}
+
+async function regenerateApplyLink(){
+    if(!confirm('Regenerating the link will invalidate the old one. Continue?')) return;
+    var r = await apiFetch('/api/settings/apply-link/regenerate', {method:'POST'});
+    if(!r) return;
+    var data = await r.json();
+    var inp = document.getElementById('applyLinkInput');
+    if(inp && data.url){ inp.value = data.url; toast('New apply link generated!'); }
+}
+
 async function loadCategories(){
     var r = await apiFetch('/api/job-categories');
     if(!r) return;
     var cats = await r.json();
     var sel = document.getElementById('mC');
     if(!sel) return;
-    sel.innerHTML = '<option value="">Select…</option>';
+    sel.innerHTML = '<option value="">Select...</option>';
     (cats||[]).forEach(function(c){
         var o = document.createElement('option');
         o.value = c.id; o.textContent = c.name;
@@ -106,7 +144,7 @@ async function handleFileUpload(e){ handleFiles(e.target.files); }
 
 async function handleFiles(files){
     var prog = document.getElementById('uploadProgress');
-    prog.innerHTML = '<div style="color:var(--text2);font-size:13px">Uploading '+files.length+' file(s)…</div>';
+    prog.innerHTML = '<div style="color:var(--text2);font-size:13px">Uploading '+files.length+' file(s)...</div>';
     var fd = new FormData();
     for(var i=0;i<files.length;i++) fd.append('resumes[]', files[i]);
     var r = await apiFetch('/api/candidates-upload', {method:'POST', body:fd});
@@ -123,6 +161,6 @@ async function handleFiles(files){
     document.getElementById('fileInput').value='';
 }
 
-document.addEventListener('DOMContentLoaded', function(){ loadCategories(); loadRecent(); });
+document.addEventListener('DOMContentLoaded', function(){ loadApplyLink(); loadCategories(); loadRecent(); });
 </script>
 @endpush

@@ -6,5 +6,5 @@
       <button onclick="toggleNotif()" style="color:var(--text3)">✕</button>
     </div>
   </div>
-  <div id="notifList"><div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Loading…</div></div>
+  <div id="notifList"><div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Loading...</div></div>
 </div>

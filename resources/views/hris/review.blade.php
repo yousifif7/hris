@@ -40,11 +40,11 @@ async function loadQueue(){
           +(isP&&c.pre_screening?'<div style="background:var(--accent-glow);border:1px solid rgba(91,76,219,.15);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:13px"><strong style="color:var(--accent)">Pre-Screening:</strong> '+esc(c.pre_screening.education_level)+' · '+esc(c.pre_screening.years_experience)+'yrs · '+esc(c.pre_screening.availability)+'</div>':'')
           +'<div class="action-bar">'
             +(isP
-              ?'<button class="btn btn-success btn-sm" onclick="setStatus('+c.id+',\'pre_screening_passed\')">✓ Move to Screening</button>'
-              :'<button class="btn btn-success btn-sm" onclick="setStatus('+c.id+',\'invite_sent\')">✉ Invite to Interview</button>'
+              ?'<button class="btn btn-success btn-sm" onclick="setStatus('+c.id+',\'pre_screening_passed\',\''+esc(c.first_name+' '+c.last_name)+'\')">✓ Move to Screening</button>'
+              :'<button class="btn btn-success btn-sm" onclick="setStatus('+c.id+',\'invite_sent\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Invite to Interview</button>'
             )
-            +'<button class="btn btn-danger btn-sm" onclick="setStatus('+c.id+',\'rejected\')">✗ Reject</button>'
-            +'<button class="btn btn-warning btn-sm" onclick="setStatus('+c.id+',\'queue\')">⏳ Queue</button>'
+            +'<button class="btn btn-danger btn-sm" onclick="setStatus('+c.id+',\'rejected\',\''+esc(c.first_name+' '+c.last_name)+'\')">✗ Reject</button>'
+            +'<button class="btn btn-warning btn-sm" onclick="setStatus('+c.id+',\'queue\',\''+esc(c.first_name+' '+c.last_name)+'\')">⏳ Queue</button>'
             +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
             +(isP?'':'<button class="btn btn-blue btn-sm" onclick="openPrescreenModal('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">📋 Pre-Screen</button>')
             +'<button class="btn btn-blue btn-sm" onclick="openScheduleInterview('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">📅 Schedule Interview</button>'
@@ -54,10 +54,26 @@ async function loadQueue(){
 }
 
 async function setStatus(id, status){
+    var name = (arguments[2]||'this candidate');
+    var confirmMsgs = {
+        rejected:         'Reject '+name+'?\n\nThis will send a rejection email.',
+        invite_sent:      'Invite '+name+' to an interview?\n\nA confirmation email will be sent.',
+        pre_screening_passed: 'Move '+name+' to screening?',
+        queue:            'Move '+name+' to queue for later?'
+    };
+    var msg = confirmMsgs[status];
+    if(msg && !confirm(msg)) return;
     var r = await apiFetch('/api/candidates/'+id+'/status', {method:'PATCH', body:JSON.stringify({status:status})});
     if(!r) return;
     var c = await r.json();
-    toast(esc(c.first_name+' '+c.last_name)+' → '+(SL[status]||status));
+    var toastMsgs = {
+        rejected:             '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
+        invite_sent:          '✉ Interview invite sent to '+esc(c.first_name+' '+c.last_name)+'!',
+        pre_screening_passed: '✓ '+esc(c.first_name+' '+c.last_name)+' moved to screening.',
+        queue:                '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.'
+    };
+    var type = status==='rejected' ? 'error' : 'success';
+    toast(toastMsgs[status] || esc(c.first_name+' '+c.last_name)+' → '+(SL[status]||status), type);
     loadQueue();
 }
 

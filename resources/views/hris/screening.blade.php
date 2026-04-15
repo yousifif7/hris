@@ -3,7 +3,7 @@
 @section('content')
 <div class="animate-in">
   <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Track applications, consent forms, references, and clearances (MDHHS, SAM/OIG, NPDB).</p>
-  <div id="screeningList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading…</div></div>
+  <div id="screeningList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading...</div></div>
 </div>
 @endsection
 
@@ -75,15 +75,15 @@ function renderScreeningCard(c){
 async function updateBgCheck(id, status){
     var r = await apiFetch('/api/background-checks/'+id, {method:'PATCH', body:JSON.stringify({status:status})});
     if(!r) return;
-    toast('Background check updated');
+    toast('✓ Background check updated to: '+status, 'success');
     loadScreening();
 }
 
 async function rejectCandidate(id){
-    if(!confirm('Reject this candidate?')) return;
+    if(!confirm('Reject this candidate?\n\nA rejection email will be sent.')) return;
     var r = await apiFetch('/api/candidates/'+id+'/status', {method:'PATCH', body:JSON.stringify({status:'rejected'})});
     if(!r) return;
-    toast('Candidate rejected');
+    toast('✗ Candidate rejected.', 'error');
     loadScreening();
 }
 

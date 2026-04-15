@@ -15,7 +15,7 @@
   </div>
   <div class="table-wrap">
     <table><thead><tr><th>Employee</th><th>Type</th><th>Start</th><th>End</th><th>Days</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody id="toTbody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading…</td></tr></tbody></table>
+    <tbody id="toTbody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading...</td></tr></tbody></table>
   </div>
 </div>
 
@@ -24,7 +24,7 @@
   <div class="modal" style="max-width:440px">
     <div class="modal-header"><h3>New Time-Off Request</h3><button onclick="closeModal('toNewModal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>Employee</label><select id="toEmployee"><option value="">Loading…</option></select></div>
+      <div class="form-group"><label>Employee</label><select id="toEmployee"><option value="">Loading...</option></select></div>
       <div class="form-group"><label>Type</label>
         <select id="toType">
           <option value="Vacation">Vacation</option>
@@ -37,7 +37,7 @@
         <div class="form-group"><label>Start Date</label><input type="date" id="toStart"></div>
         <div class="form-group"><label>End Date</label><input type="date" id="toEnd"></div>
       </div>
-      <div class="form-group"><label>Notes (optional)</label><textarea id="toNotes" rows="2" placeholder="Brief reason…"></textarea></div>
+      <div class="form-group"><label>Notes (optional)</label><textarea id="toNotes" rows="2" placeholder="Brief reason..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('toNewModal')">Cancel</button>
@@ -84,8 +84,8 @@ async function loadTimeOff(){
           +'<td><span class="badge badge-'+col+'">'+s+'</span></td>'
           +'<td class="actions-cell">'
             +(s==='pending'
-              ?'<button class="btn btn-success btn-sm" onclick="reviewTO('+req.id+',\'approved\')">Approve</button>'
-               +'<button class="btn btn-danger btn-sm" onclick="reviewTO('+req.id+',\'denied\')">Deny</button>'
+              ?'<button class="btn btn-success btn-sm" onclick="reviewTO('+req.id+',\'approved\')">✓ Approve</button>'
+               +'<button class="btn btn-danger btn-sm" onclick="reviewTO('+req.id+',\'denied\')">✗ Deny</button>'
               :'')
           +'</td>'
         +'</tr>';
@@ -93,9 +93,15 @@ async function loadTimeOff(){
 }
 
 async function reviewTO(id, action){
+    var emp = ((document.querySelector('[data-to-id="'+id+'"]')||{}).dataset||{}).empName || 'this request';
+    var msgs = {
+        approved: 'Approve this time-off request?',
+        denied:   'Deny this time-off request?'
+    };
+    if(!confirm(msgs[action] || 'Continue?')) return;
     var r = await apiFetch('/api/time-off/'+id+'/review', {method:'PATCH', body:JSON.stringify({status:action})});
     if(!r) return;
-    toast('Request '+action+'!');
+    toast(action==='approved' ? '✓ Time-off request approved!' : '✗ Time-off request denied.', action==='approved'?'success':'error');
     loadTimeOff();
 }
 

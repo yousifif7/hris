@@ -6,7 +6,7 @@
   <div class="card-section" id="portalBanner" style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
     <div id="portalAvatar" style="width:52px;height:52px;border-radius:50%;background:#6c63ff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700">?</div>
     <div>
-      <div id="portalName" style="font-size:17px;font-weight:700">Loading…</div>
+      <div id="portalName" style="font-size:17px;font-weight:700">Loading...</div>
       <div id="portalRole" style="font-size:13px;color:var(--text3)"></div>
     </div>
   </div>
@@ -31,7 +31,7 @@
   </div>
   <div class="table-wrap">
     <table><thead><tr><th>Training</th><th>Employee</th><th>Category</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody id="trainTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading…</td></tr></tbody></table>
+    <tbody id="trainTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading...</td></tr></tbody></table>
   </div>
 
   <!-- Doc upload modal trigger area -->

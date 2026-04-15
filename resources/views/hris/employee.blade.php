@@ -3,7 +3,7 @@
 @section('content')
 <div class="animate-in">
   <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
-    <input id="empSearch" placeholder="Search employees…" style="width:220px" oninput="filterEmps()">
+    <input id="empSearch" placeholder="Search employees..." style="width:220px" oninput="filterEmps()">
     <select id="empDept" onchange="filterEmps()" style="width:180px">
       <option value="">All levels</option>
       <option value="Admin">Admin</option>
@@ -20,8 +20,8 @@
     <span id="empCount" style="font-size:13px;color:var(--text3)"></span>
     <button class="btn btn-primary btn-sm" onclick="openAddEmpModal()">+ Add Employee</button>
   </div>
-  <div class="emp-grid" id="empGrid">
-    <div style="text-align:center;padding:60px;color:var(--text3);grid-column:1/-1">⏳ Loading…</div>
+    <div class="emp-grid" id="empGrid">
+    <div style="text-align:center;padding:60px;color:var(--text3);grid-column:1/-1">⏳ Loading...</div>
   </div>
 </div>
 

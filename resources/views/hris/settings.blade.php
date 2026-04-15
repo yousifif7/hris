@@ -29,8 +29,8 @@
             <option value="phone">Phone</option>
           </select>
         </div>
-        <div class="form-group"><label>Zoom Link</label><input type="url" id="sZoomLink" placeholder="https://zoom.us/j/…"></div>
-        <div class="form-group"><label>Office Address</label><input type="text" id="sOfficeAddr" placeholder="123 Main St…"></div>
+        <div class="form-group"><label>Zoom Link</label><input type="url" id="sZoomLink" placeholder="https://zoom.us/j/..."></div>
+        <div class="form-group"><label>Office Address</label><input type="text" id="sOfficeAddr" placeholder="123 Main St..."></div>
         <button type="submit" class="btn btn-primary" style="width:100%">Save Settings</button>
       </form>
     </div>
@@ -38,7 +38,7 @@
     <!-- HR Team -->
     <div class="card-section">
       <div class="section-title">👥 HR Team</div>
-      <div id="hrTeamList"><div style="text-align:center;padding:30px;color:var(--text3)">⏳ Loading…</div></div>
+      <div id="hrTeamList"><div style="text-align:center;padding:30px;color:var(--text3)">⏳ Loading...</div></div>
     </div>
 
   </div>

@@ -9,6 +9,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SettingsController extends Controller
 {
@@ -52,6 +53,32 @@ class SettingsController extends Controller
             'body'    => 'required|string',
         ]));
         return response()->json($template);
+    }
+
+    public function applyLink(): JsonResponse
+    {
+        $token = Setting::get('apply_token');
+
+        if (! $token) {
+            $token = Str::uuid()->toString();
+            Setting::set('apply_token', $token);
+        }
+
+        return response()->json([
+            'url'   => url("/apply/{$token}"),
+            'token' => $token,
+        ]);
+    }
+
+    public function regenerateApplyLink(): JsonResponse
+    {
+        $token = Str::uuid()->toString();
+        Setting::set('apply_token', $token);
+
+        return response()->json([
+            'url'   => url("/apply/{$token}"),
+            'token' => $token,
+        ]);
     }
 
     public function hrTeam(): JsonResponse

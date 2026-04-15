@@ -30,8 +30,11 @@ Route::post('/login', [AuthController::class, 'login']);
 |--------------------------------------------------------------------------
 */
 Route::prefix('public')->group(function () {
-    // Candidate submits their own resume
+    // Candidate submits their own resume (public apply form)
     Route::post('/apply', [CandidateController::class, 'store']);
+
+    // Job categories for the public apply form dropdown
+    Route::get('/job-categories', [JobCategoryController::class, 'index']);
 
     // Candidate self-books an interview via scheduling link
     Route::post('/interviews/book', [InterviewController::class, 'publicBook']);
@@ -114,6 +117,8 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     // Settings
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::put('/settings', [SettingsController::class, 'update']);
+    Route::get('/settings/apply-link', [SettingsController::class, 'applyLink']);
+    Route::post('/settings/apply-link/regenerate', [SettingsController::class, 'regenerateApplyLink']);
     Route::get('/settings/automations', [SettingsController::class, 'automationRules']);
     Route::get('/settings/email-templates', [SettingsController::class, 'emailTemplates']);
     Route::put('/settings/email-templates/{template}', [SettingsController::class, 'updateEmailTemplate']);
@@ -122,6 +127,10 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     // Notifications
     Route::get('/notifications', function () {
         return response()->json(auth()->user()->notifications()->latest()->limit(30)->get());
+    });
+    Route::post('/notifications/{id}/read', function (string $id) {
+        auth()->user()->notifications()->where('id', $id)->first()?->markAsRead();
+        return response()->json(['ok' => true]);
     });
     Route::post('/notifications/read-all', function () {
         auth()->user()->unreadNotifications->markAsRead();
