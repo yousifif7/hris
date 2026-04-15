@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\JobCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class JobCategoryController extends Controller
 {
@@ -19,6 +20,8 @@ class JobCategoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate(['name' => 'required|string|unique:job_categories,name']);
+        // generate a slug from the name (database requires a non-null unique slug)
+        $data['slug'] = Str::slug($data['name']);
         $data['is_active'] = true;
         return response()->json(JobCategory::create($data), 201);
     }
@@ -29,6 +32,10 @@ class JobCategoryController extends Controller
             'name'      => 'nullable|string|unique:job_categories,name,'.$jobCategory->id,
             'is_active' => 'nullable|boolean',
         ]);
+        // if the name is being changed, update the slug as well
+        if(isset($data['name']) && $data['name'] !== null){
+            $data['slug'] = Str::slug($data['name']);
+        }
         $jobCategory->update(array_filter($data, fn($v) => $v !== null));
         return response()->json($jobCategory);
     }
