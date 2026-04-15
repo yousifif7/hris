@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Review Queue')
+@section('title','McCrory Center — Review Queue')
 @section('content')
 <div class="animate-in">
   <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Review each resume and decide: <strong style="color:var(--green)">Invite</strong> for interview, <strong style="color:var(--red)">Reject</strong>, or <strong style="color:var(--text3)">Queue</strong> for later.</p>

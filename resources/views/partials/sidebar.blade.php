@@ -35,7 +35,7 @@
     </div>
   </nav>
   <div class="sidebar-user">
-    <div class="avatar" id="sidebarUserAvatar" style="background:linear-gradient(135deg,var(--accent),var(--pink))">HR</div>
+    <div class="avatar" id="sidebarUserAvatar" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">HR</div>
     <div>
       <div class="name" id="sidebarUserName">Loading…</div>
       <div class="role" id="sidebarUserRole">HR Staff</div>

@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Time Off')
+@section('title','McCrory Center — Time Off')
 @section('content')
 <div class="animate-in">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">

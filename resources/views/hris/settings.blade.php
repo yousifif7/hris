@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Settings')
+@section('title','McCrory Center — Settings')
 @section('content')
 <div class="animate-in">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">

@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Resume Intake')
+@section('title','McCrory Center — Resume Intake')
 @section('content')
 <div class="animate-in">
   <div class="section-title">📄 Upload Resumes</div>

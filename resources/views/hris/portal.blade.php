@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Employee Portal')
+@section('title','McCrory Center — Employee Portal')
 @section('content')
 <div class="animate-in">
   <!-- My Info Banner -->

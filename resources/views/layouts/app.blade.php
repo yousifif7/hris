@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title','TalentFlow HRIS')</title>
+    <title>@yield('title','McCrory Center')</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="icon" href="https://www.mccrorycenter.com/wp-content/uploads/2025/04/asdasfasf.png" type="image/png">
+    <link rel="shortcut icon" href="https://www.mccrorycenter.com/wp-content/uploads/2025/04/asdasfasf.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://www.mccrorycenter.com/wp-content/uploads/2025/04/asdasfasf.png">
     @verbatim
     <style>
 :root{
-  --bg:#f4f5f7;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e8e9ed;
-  --border:#dfe1e6;--border-light:#c1c7d0;
-  --text:#172b4d;--text2:#5e6c84;--text3:#97a0af;
-  --accent:#5b4cdb;--accent2:#7b68ee;--accent-glow:rgba(91,76,219,.08);
+    --bg:#f4f5f7;--surface:#ffffff;--surface2:#f0f1f4;--surface3:#e8e9ed;
+    --border:#dfe1e6;--border-light:#c1c7d0;
+    --text:#172b4d;--text2:#5e6c84;--text3:#97a0af;
+    --accent:#5ac6cc;--accent2:#4fbfc7;--accent-glow:rgba(90,198,204,.08);
   --green:#00875a;--green-bg:rgba(0,135,90,.08);
   --yellow:#ff991f;--yellow-bg:rgba(255,153,31,.08);
   --red:#de350b;--red-bg:rgba(222,53,11,.07);

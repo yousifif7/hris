@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Offer Management')
+@section('title','McCrory Center — Offer Management')
 @section('content')
 <div class="animate-in">
   <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">

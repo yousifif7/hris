@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','TalentFlow — Screening & Checks')
+@section('title','McCrory Center — Screening & Checks')
 @section('content')
 <div class="animate-in">
   <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Track applications, consent forms, references, and clearances (MDHHS, SAM/OIG, NPDB).</p>
