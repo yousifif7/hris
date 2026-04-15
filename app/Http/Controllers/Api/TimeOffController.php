@@ -56,6 +56,31 @@ class TimeOffController extends Controller
         return response()->json(TimeOffRequest::create($data), 201);
     }
 
+    public function update(Request $request, TimeOffRequest $timeOffRequest): JsonResponse
+    {
+        $data = $request->validate([
+            'type'       => 'nullable|in:Vacation,Sick,Personal,Bereavement',
+            'start_date' => 'nullable|date',
+            'end_date'   => 'nullable|date|after_or_equal:start_date',
+            'notes'      => 'nullable|string',
+        ]);
+
+        if (!empty($data['start_date']) && !empty($data['end_date'])) {
+            $data['days'] = (int) ceil(
+                (strtotime($data['end_date']) - strtotime($data['start_date'])) / 86400
+            ) + 1;
+        }
+
+        $timeOffRequest->update(array_filter($data, fn($v) => $v !== null));
+        return response()->json($timeOffRequest->fresh('employee'));
+    }
+
+    public function destroy(TimeOffRequest $timeOffRequest): JsonResponse
+    {
+        $timeOffRequest->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function review(Request $request, TimeOffRequest $timeOffRequest): JsonResponse
     {
         $data = $request->validate(['status' => 'required|in:approved,denied']);

@@ -10,7 +10,9 @@ use App\Models\ActivityLog;
 use App\Jobs\SendCandidateEmail;
 use App\Jobs\ProcessNoResponseFollowup;
 use App\Notifications\AdminActivityNotification;
+use App\Models\EmailTemplate;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 
 class CandidateService
 {
@@ -180,7 +182,7 @@ class CandidateService
     /**
      * Create onboarding tasks from templates.
      */
-    protected function createOnboardingTasks(Candidate $candidate): void
+    public function createOnboardingTasks(Candidate $candidate): void
     {
         $templates = OnboardingTemplate::where('is_active', true)
             ->orderBy('sort_order')->get();
@@ -238,6 +240,43 @@ class CandidateService
             'location'        => $offer?->location,
             'is_active'       => true,
         ], $extraData));
+
+        // Create (or update) a User account so the employee can log in to the portal
+        $accessInfo   = $extraData['access_info'] ?? [];
+        $tempPassword = $accessInfo['temp_password'] ?? null;
+
+        if ($candidate->email && $tempPassword) {
+            $user = User::updateOrCreate(
+                ['email' => $candidate->email],
+                [
+                    'first_name' => $candidate->first_name,
+                    'last_name'  => $candidate->last_name,
+                    'password'   => Hash::make($tempPassword),
+                    'role'       => 'employee',
+                    'is_active'  => true,
+                ]
+            );
+
+            $employee->update(['user_id' => $user->id]);
+
+            // Ensure the portal_credentials template exists (safe on existing databases)
+            EmailTemplate::firstOrCreate(
+                ['slug' => 'portal_credentials'],
+                [
+                    'name'    => 'Portal Credentials',
+                    'subject' => 'Your {{company_name}} Employee Portal Access',
+                    'body'    => "Dear {{candidate_name}},\n\nCongratulations and welcome to {{company_name}}!\n\nYour employee portal access has been created:\n\nLogin URL:          {{login_url}}\nEmail:              {{login_email}}\nTemporary Password: {{temp_password}}\n\nBuilding Access: {{door_code}}\nWiFi Password:   {{wifi_password}}\n\nPlease log in and change your password on first sign-in.\n\nBest regards,\n{{hr_name}}",
+                ]
+            );
+
+            SendCandidateEmail::dispatch($candidate, 'portal_credentials', [
+                'login_url'     => config('app.url') . '/login',
+                'login_email'   => $candidate->email,
+                'temp_password' => $tempPassword,
+                'door_code'     => $accessInfo['door_code']     ?? 'See HR for details',
+                'wifi_password' => $accessInfo['wifi_password'] ?? 'See HR for details',
+            ]);
+        }
 
         $this->changeStatus($candidate, CandidateStatus::HIRED);
 

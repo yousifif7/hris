@@ -148,6 +148,7 @@ function renderEmps(emps){
 }
 
 async function viewEmployee(id){
+    window._viewingEmpId = id;
     var r = await apiFetch('/api/employees/'+id);
     if(!r) return;
     var e = await r.json();
@@ -156,7 +157,9 @@ async function viewEmployee(id){
         var col = t.is_completed?'var(--green)':'var(--yellow,#d4ac0d)';
         return '<div class="bg-check-row">'
           +'<span>'+esc(t.name)+'</span>'
-          +'<span style="color:'+col+';font-weight:600">'+(t.is_completed?'Complete ✓':'Due '+fDate(t.due_date))+'</span>'
+          +'<span style="color:'+col+';font-weight:600;margin-right:8px">'+(t.is_completed?'Complete ✓':'Due '+fDate(t.due_date))+'</span>'
+          +'<button class="btn btn-warning btn-sm" style="padding:2px 7px" onclick="openEditTraining('+t.id+',\''+esc(t.name)+'\',\''+esc(t.due_date||'')+'\')">✏</button>'
+          +'<button class="btn btn-danger btn-sm" style="padding:2px 7px;margin-left:4px" onclick="deleteTraining('+t.id+',\''+esc(t.name)+'\')">🗑</button>'
         +'</div>';
     }).join('');
     document.getElementById('detailBody').innerHTML =
@@ -291,5 +294,57 @@ async function saveEmployee(){
     closeModal('addEmpModal');
     loadEmployees();
 }
+
+function openEditTraining(id, name, dueDate){
+    document.getElementById('editTrainId').value   = id;
+    document.getElementById('editTrainName').value = name;
+    document.getElementById('editTrainDue').value  = dueDate ? dueDate.split('T')[0].split(' ')[0] : '';
+    openModal('editTrainModal');
+}
+
+async function saveEditTraining(){
+    var id = document.getElementById('editTrainId').value;
+    var name = document.getElementById('editTrainName').value.trim();
+    if(!name){ toast('Name is required','error'); return; }
+    var body = {
+        name:     name,
+        due_date: document.getElementById('editTrainDue').value||null,
+    };
+    var r = await apiFetch('/api/trainings/'+id, {method:'PATCH', body:JSON.stringify(body)});
+    if(!r) return;
+    if(!r.ok){ var e=await r.json(); toast(e.message||'Update failed','error'); return; }
+    closeModal('editTrainModal');
+    toast('Training updated!');
+    // Reload the employee detail if open
+    var empId = document.querySelector('#modal-candidateDetail')&&document.getElementById('modal-candidateDetail').classList.contains('open')
+        ? (window._viewingEmpId||null) : null;
+    if(empId) viewEmployee(empId);
+    loadEmployees();
+}
+
+async function deleteTraining(id, name){
+    if(!confirm('Delete training "'+name+'"? This cannot be undone.')) return;
+    var r = await apiFetch('/api/trainings/'+id, {method:'DELETE'});
+    if(!r) return;
+    toast('Training deleted.');
+    if(window._viewingEmpId) viewEmployee(window._viewingEmpId);
+    loadEmployees();
+}
 </script>
+
+<!-- Edit Training Modal -->
+<div class="modal-overlay" id="modal-editTrainModal" onclick="if(event.target===this)closeModal('editTrainModal')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><h3>Edit Training</h3><button onclick="closeModal('editTrainModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editTrainId">
+      <div class="form-group"><label>Training Name *</label><input id="editTrainName"></div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="editTrainDue"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editTrainModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditTraining()">Save Changes</button>
+    </div>
+  </div>
+</div>
 @endpush

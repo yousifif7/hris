@@ -59,6 +59,9 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
 
     // Job categories
     Route::get('/job-categories', [JobCategoryController::class, 'index']);
+    Route::post('/job-categories', [JobCategoryController::class, 'store']);
+    Route::patch('/job-categories/{jobCategory}', [JobCategoryController::class, 'update']);
+    Route::delete('/job-categories/{jobCategory}', [JobCategoryController::class, 'destroy']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -77,7 +80,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::post('/candidates/{candidate}/prescreen', [PreScreeningController::class, 'store']);
 
     // Interviews
-    Route::apiResource('interviews', InterviewController::class)->only(['index', 'store']);
+    Route::apiResource('interviews', InterviewController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('/interviews/{interview}/complete', [InterviewController::class, 'complete']);
 
     // Background checks
@@ -87,32 +90,42 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     // References
     Route::get('/candidates/{candidate}/references', [ReferenceController::class, 'index']);
     Route::post('/candidates/{candidate}/references', [ReferenceController::class, 'store']);
+    Route::delete('/candidates/{candidate}/references/{reference}', [ReferenceController::class, 'destroy']);
 
     // Offers
-    Route::apiResource('offers', OfferController::class)->only(['index', 'store']);
+    Route::apiResource('offers', OfferController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('/offers/{offer}/respond', [OfferController::class, 'respond']);
 
     // Onboarding
     Route::get('/onboarding', [OnboardingController::class, 'index']);
     Route::patch('/onboarding-tasks/{task}/toggle', [OnboardingController::class, 'completeTask']);
+    Route::delete('/onboarding-tasks/{task}', [OnboardingController::class, 'destroyTask']);
     Route::get('/onboarding-templates', [OnboardingController::class, 'templates']);
     Route::post('/onboarding-templates', [OnboardingController::class, 'storeTemplate']);
+    Route::patch('/onboarding-templates/{template}', [OnboardingController::class, 'updateTemplate']);
+    Route::delete('/onboarding-templates/{template}', [OnboardingController::class, 'destroyTemplate']);
 
     // Employees
     Route::apiResource('employees', EmployeeController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
     // Time Off
-    Route::apiResource('time-off', TimeOffController::class)->only(['index', 'store']);
+    Route::get('/time-off', [TimeOffController::class, 'index']);
+    Route::post('/time-off', [TimeOffController::class, 'store']);
+    Route::patch('/time-off/{timeOffRequest}', [TimeOffController::class, 'update']);
+    Route::delete('/time-off/{timeOffRequest}', [TimeOffController::class, 'destroy']);
     Route::patch('/time-off/{timeOffRequest}/review', [TimeOffController::class, 'review']);
 
     // Trainings
     Route::get('/trainings', [TrainingController::class, 'index']);
     Route::post('/trainings', [TrainingController::class, 'store']);
+    Route::patch('/trainings/{training}', [TrainingController::class, 'update']);
+    Route::delete('/trainings/{training}', [TrainingController::class, 'destroy']);
     Route::patch('/trainings/{training}/complete', [TrainingController::class, 'complete']);
 
     // Documents
     Route::post('/documents', [DocumentController::class, 'upload']);
     Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
 
     // Settings
     Route::get('/settings', [SettingsController::class, 'index']);
@@ -126,14 +139,32 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
 
     // Notifications
     Route::get('/notifications', function () {
-        return response()->json(auth()->user()->notifications()->latest()->limit(30)->get());
+        return response()->json(auth()->user()->notifications()->latest()->limit(50)->get());
     });
     Route::post('/notifications/{id}/read', function (string $id) {
         auth()->user()->notifications()->where('id', $id)->first()?->markAsRead();
         return response()->json(['ok' => true]);
     });
+    Route::delete('/notifications/{id}', function (string $id) {
+        auth()->user()->notifications()->where('id', $id)->delete();
+        return response()->json(['ok' => true]);
+    });
     Route::post('/notifications/read-all', function () {
         auth()->user()->unreadNotifications->markAsRead();
+        return response()->json(['ok' => true]);
+    });
+    Route::post('/notifications/bulk-read', function (Illuminate\Http\Request $request) {
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'string'])['ids'];
+        auth()->user()->notifications()->whereIn('id', $ids)->update(['read_at' => now()]);
+        return response()->json(['ok' => true]);
+    });
+    Route::delete('/notifications/bulk-delete', function (Illuminate\Http\Request $request) {
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'string'])['ids'];
+        auth()->user()->notifications()->whereIn('id', $ids)->delete();
+        return response()->json(['ok' => true]);
+    });
+    Route::delete('/notifications', function () {
+        auth()->user()->notifications()->delete();
         return response()->json(['ok' => true]);
     });
 });

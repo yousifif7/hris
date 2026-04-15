@@ -19,6 +19,7 @@ class SendCandidateEmail implements ShouldQueue
     public function __construct(
         public Candidate $candidate,
         public string $templateSlug,
+        public array $extraVars = [],
     ) {}
 
     public function handle(): void
@@ -43,6 +44,8 @@ class SendCandidateEmail implements ShouldQueue
             $vars['location']        = $offer->location ?? 'TBD';
             $vars['start_date']      = $offer->start_date?->format('M d, Y') ?? 'TBD';
         }
+
+        $vars = array_merge($vars, $this->extraVars);
 
         $rendered = $template->render($vars);
 

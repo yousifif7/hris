@@ -344,7 +344,38 @@ document.addEventListener('click', function(e){
 });
 
 /* â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Notifications ─────────────────────────────────────────── */
+var _notifSelectMode = false;
+
 function toggleNotif(){ document.getElementById('notifPanel').classList.toggle('open'); }
+
+function toggleNotifSelectMode(){
+    _notifSelectMode = !_notifSelectMode;
+    var bar = document.getElementById('notifBulkBar');
+    var btn = document.getElementById('notifSelectBtn');
+    if(_notifSelectMode){
+        if(bar) bar.style.display='flex';
+        if(btn){ btn.textContent='Cancel'; btn.className='btn btn-sm btn-warning'; }
+        document.querySelectorAll('.notif-select-wrap').forEach(function(w){ w.style.display='flex'; });
+    } else {
+        if(bar) bar.style.display='none';
+        if(btn){ btn.textContent='Select'; btn.className='btn btn-sm btn-secondary'; }
+        document.querySelectorAll('.notif-checkbox').forEach(function(cb){ cb.checked=false; });
+        document.querySelectorAll('.notif-select-wrap').forEach(function(w){ w.style.display='none'; });
+        var cnt=document.getElementById('notifSelCount'); if(cnt) cnt.textContent='0 selected';
+        var sa=document.getElementById('notifSelectAll'); if(sa) sa.checked=false;
+    }
+}
+
+function toggleSelectAllNotifs(checked){
+    document.querySelectorAll('.notif-checkbox').forEach(function(cb){ cb.checked=checked; });
+    updateNotifSelCount();
+}
+
+function updateNotifSelCount(){
+    var count=document.querySelectorAll('.notif-checkbox:checked').length;
+    var el=document.getElementById('notifSelCount'); if(el) el.textContent=count+' selected';
+}
 
 async function loadNotifications(){
     var r = await apiFetch('/api/notifications');
@@ -356,19 +387,28 @@ async function loadNotifications(){
     var unread = data.filter(function(n){ return !n.read_at; });
     if(dot) dot.style.display = unread.length ? 'block' : 'none';
     if(!data.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No notifications yet.</div>'; return; }
+    var icons = {new_candidate:'📋', status_changed:'🔄', converted_to_employee:'🎉', reference_received:'📨', background_check:'🔍', training_expiring:'⏰'};
     list.innerHTML = data.map(function(n){
         var d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
-        var icons = {new_candidate:'📋', status_changed:'🔄', converted_to_employee:'🎉', reference_received:'📨', background_check:'🔍', training_expiring:'⏰'};
         var icon = icons[d.type] || '🔔';
-        return '<div class="notif-item '+(n.read_at?'':'unread')+'" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')">'
-            +'<div class="notif-icon" style="background:var(--accent-glow);font-size:18px">'+icon+'</div>'
-            +'<div class="notif-text"><div class="title">'+esc(d.title||'Notification')+'</div>'
+        return '<div class="notif-item '+(n.read_at?'':'unread')+'" data-notif-id="'+esc(n.id)+'">'
+            +'<label class="notif-select-wrap" style="display:none;align-items:center;padding:0 4px 0 14px;cursor:pointer" onclick="event.stopPropagation()">'
+              +'<input type="checkbox" class="notif-checkbox" data-id="'+esc(n.id)+'" onchange="updateNotifSelCount()" style="width:auto">'
+            +'</label>'
+            +'<div class="notif-icon" style="background:var(--accent-glow);font-size:18px;cursor:pointer" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')">'+icon+'</div>'
+            +'<div class="notif-text" style="cursor:pointer;flex:1" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')"><div class="title">'+esc(d.title||'Notification')+'</div>'
             +'<div class="desc">'+esc(d.message||'')+'</div>'
-            +'<div class="time">'+fDate(n.created_at)+'</div></div></div>';
+            +'<div class="time">'+fDate(n.created_at)+'</div></div>'
+            +'<div style="display:flex;flex-direction:column;gap:4px;padding:0 10px;flex-shrink:0">'
+              +(n.read_at?'':'<button title="Mark read" onclick="markNotifRead(\''+esc(n.id)+'\'); event.stopPropagation()" style="font-size:11px;color:var(--accent);padding:2px 5px;border-radius:4px" onmouseover="this.style.background=\'var(--accent-glow)\'" onmouseout="this.style.background=\'\'">✓</button>')
+              +'<button title="Delete" onclick="deleteNotif(\''+esc(n.id)+'\'); event.stopPropagation()" style="font-size:11px;color:var(--red);padding:2px 5px;border-radius:4px" onmouseover="this.style.background=\'var(--red-bg)\'" onmouseout="this.style.background=\'\'">🗑</button>'
+            +'</div></div>';
     }).join('');
+    if(_notifSelectMode) document.querySelectorAll('.notif-select-wrap').forEach(function(w){ w.style.display='flex'; });
 }
 
 async function markNotifRead(id, candidateId){
+    if(_notifSelectMode) return;
     await apiFetch('/api/notifications/'+id+'/read', {method:'POST'});
     loadNotifications();
     if(candidateId){
@@ -377,9 +417,35 @@ async function markNotifRead(id, candidateId){
     }
 }
 
+async function deleteNotif(id){
+    await apiFetch('/api/notifications/'+id, {method:'DELETE'});
+    loadNotifications();
+}
+
 async function readAllNotifs(){
     var r = await apiFetch('/api/notifications/read-all', {method:'POST'});
     if(r) loadNotifications();
+}
+
+async function deleteAllNotifs(){
+    if(!confirm('Delete all notifications? This cannot be undone.')) return;
+    var r = await apiFetch('/api/notifications', {method:'DELETE'});
+    if(r){ loadNotifications(); toast('All notifications cleared.'); }
+}
+
+async function bulkReadNotifs(){
+    var ids=Array.from(document.querySelectorAll('.notif-checkbox:checked')).map(function(cb){ return cb.dataset.id; });
+    if(!ids.length){ toast('No notifications selected.','error'); return; }
+    var r=await apiFetch('/api/notifications/bulk-read',{method:'POST',body:JSON.stringify({ids:ids})});
+    if(r){ loadNotifications(); toast(ids.length+' notification'+(ids.length>1?'s':'')+' marked as read.'); toggleNotifSelectMode(); }
+}
+
+async function bulkDeleteNotifs(){
+    var ids=Array.from(document.querySelectorAll('.notif-checkbox:checked')).map(function(cb){ return cb.dataset.id; });
+    if(!ids.length){ toast('No notifications selected.','error'); return; }
+    if(!confirm('Delete '+ids.length+' notification'+(ids.length>1?'s':'')+' ?')) return;
+    var r=await apiFetch('/api/notifications/bulk-delete',{method:'DELETE',body:JSON.stringify({ids:ids})});
+    if(r){ loadNotifications(); toast(ids.length+' notification'+(ids.length>1?'s':'')+' deleted.'); toggleNotifSelectMode(); }
 }
 
 /* Sidebar Calendar */

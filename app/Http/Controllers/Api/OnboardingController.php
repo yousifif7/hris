@@ -6,21 +6,34 @@ use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Models\OnboardingTask;
 use App\Models\OnboardingTemplate;
+use App\Services\CandidateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OnboardingController extends Controller
 {
+    public function __construct(protected CandidateService $service) {}
+
     public function index(): JsonResponse
     {
         $candidates = Candidate::whereIn('status', ['onboarding', 'offer_accepted'])
-            ->with('onboardingTasks')
-            ->get()
-            ->map(fn($c) => [
-                'candidate' => $c,
-                'progress'  => $c->onboardingProgress(),
-            ]);
-        return response()->json($candidates);
+            ->with(['onboardingTasks', 'latestOffer', 'category'])
+            ->get();
+
+        // Auto-create tasks for any candidate that doesn't have them yet
+        foreach ($candidates as $c) {
+            if ($c->onboardingTasks->isEmpty()) {
+                $this->service->createOnboardingTasks($c);
+                $c->load('onboardingTasks');
+            }
+        }
+
+        $result = $candidates->map(fn($c) => [
+            'candidate' => $c,
+            'progress'  => $c->onboardingProgress(),
+        ]);
+
+        return response()->json($result);
     }
 
     public function completeTask(Request $request, OnboardingTask $task): JsonResponse
@@ -53,5 +66,27 @@ class OnboardingController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
         return response()->json(OnboardingTemplate::create($data), 201);
+    }
+
+    public function updateTemplate(Request $request, OnboardingTemplate $template): JsonResponse
+    {
+        $data = $request->validate([
+            'name'       => 'nullable|string',
+            'sort_order' => 'nullable|integer',
+        ]);
+        $template->update(array_filter($data, fn($v) => $v !== null));
+        return response()->json($template);
+    }
+
+    public function destroyTemplate(OnboardingTemplate $template): JsonResponse
+    {
+        $template->delete();
+        return response()->json(['ok' => true]);
+    }
+
+    public function destroyTask(OnboardingTask $task): JsonResponse
+    {
+        $task->delete();
+        return response()->json(['ok' => true]);
     }
 }

@@ -43,6 +43,29 @@ class TrainingController extends Controller
         return response()->json(Training::create($data), 201);
     }
 
+    public function update(Request $request, Training $training): JsonResponse
+    {
+        $data = $request->validate([
+            'name'             => 'nullable|string',
+            'due_date'         => 'nullable|date',
+            'certificate_path' => 'nullable|string',
+            'is_completed'     => 'nullable|boolean',
+        ]);
+
+        if (array_key_exists('is_completed', $data)) {
+            $data['completed_date'] = $data['is_completed'] ? now() : null;
+        }
+
+        $training->update(array_filter($data, fn($v) => $v !== null));
+        return response()->json($training->load('employee'));
+    }
+
+    public function destroy(Training $training): JsonResponse
+    {
+        $training->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function complete(Training $training): JsonResponse
     {
         $training->update(['is_completed' => true, 'completed_date' => now()]);

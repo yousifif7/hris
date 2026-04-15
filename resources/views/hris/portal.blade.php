@@ -15,7 +15,7 @@
   <div class="section-title">Quick Actions</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px">
     <a href="/hris/timeoff"     class="portal-tile">🏖 Time Off</a>
-    <a href="/hris/employees"  class="portal-tile">📋 Directory</a>
+    <a href="/hris/employee"  class="portal-tile">📋 Directory</a>
     <div class="portal-tile" onclick="openDocUpload()">📎 Upload Doc</div>
     <a href="/hris/onboarding" class="portal-tile">🎯 Onboarding</a>
     <div class="portal-tile" onclick="loadTrainings()">📚 Trainings</div>
@@ -90,17 +90,52 @@ async function loadTrainings(filter){
           +'<td>'+esc(t.category||'—')+'</td>'
           +'<td>'+fDate(t.due_date)+'</td>'
           +'<td><span style="font-weight:600;color:'+sc+'">'+status+'</span></td>'
-          +'<td>'
-            +(!done?'<button class="btn btn-success btn-sm" onclick="completeTraining('+t.id+')">Mark Done</button>':'')
+          +'<td class="actions-cell">'
+            +(done ? '<button class="btn btn-secondary btn-sm" onclick="toggleTrainingStatus('+t.id+', false)">↺ Reopen</button>' : '<button class="btn btn-success btn-sm" onclick="toggleTrainingStatus('+t.id+', true)">✓ Done</button>')
+            +'<button class="btn btn-warning btn-sm" onclick="openEditTrainingPortal('+t.id+',\''+esc(t.name)+'\',\''+esc(t.due_date||'')+'\')" >✏ Edit</button>'
+            +'<button class="btn btn-danger btn-sm" onclick="deleteTrainingPortal('+t.id+',\''+esc(t.name)+'\')" >🗑</button>'
           +'</td>'
         +'</tr>';
     }).join('');
 }
 
 async function completeTraining(id){
-    var r = await apiFetch('/api/trainings/'+id+'/complete', {method:'PATCH'});
-    if(!r) return;
-    toast('Training marked complete!');
+  return toggleTrainingStatus(id, true);
+}
+
+async function toggleTrainingStatus(id, completed){
+  var r = await apiFetch('/api/trainings/'+id, {method:'PATCH', body: JSON.stringify({is_completed: completed})});
+  if(!r || !r.ok){ toast('Failed to update training','error'); return; }
+  toast(completed ? 'Training marked complete!' : 'Training reopened.');
+  loadTrainings('all');
+}
+
+var _portalTrainings = [];
+
+function openEditTrainingPortal(id, name, dueDate){
+    document.getElementById('ptEditId').value       = id;
+    document.getElementById('ptEditName').value     = name;
+    document.getElementById('ptEditDueDate').value  = dueDate ? dueDate.split('T')[0].split(' ')[0] : '';
+    openModal('ptEditModal');
+}
+
+async function saveEditTrainingPortal(){
+    var id      = document.getElementById('ptEditId').value;
+    var name    = document.getElementById('ptEditName').value.trim();
+    var dueDate = document.getElementById('ptEditDueDate').value;
+    if(!name){ toast('Name is required','error'); return; }
+    var r = await apiFetch('/api/trainings/'+id, {method:'PATCH', body:JSON.stringify({name:name, due_date:dueDate||null})});
+    if(!r || !r.ok){ var e=r?await r.json():{}; toast(e.message||'Update failed','error'); return; }
+    closeModal('ptEditModal');
+    toast('Training updated!');
+    loadTrainings('all');
+}
+
+async function deleteTrainingPortal(id, name){
+    if(!confirm('Delete training "'+name+'"? This cannot be undone.')) return;
+    var r = await apiFetch('/api/trainings/'+id, {method:'DELETE'});
+    if(!r || !r.ok){ toast('Delete failed','error'); return; }
+    toast('Training deleted.');
     loadTrainings('all');
 }
 
@@ -123,4 +158,20 @@ async function uploadDoc(){
     document.getElementById('docFile').value='';
 }
 </script>
+
+<!-- Edit Training Modal -->
+<div class="modal-overlay" id="modal-ptEditModal" onclick="if(event.target===this)closeModal('ptEditModal')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><h3>Edit Training</h3><button onclick="closeModal('ptEditModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ptEditId">
+      <div class="form-group"><label>Training Name *</label><input type="text" id="ptEditName"></div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="ptEditDueDate"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('ptEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditTrainingPortal()">Save Changes</button>
+    </div>
+  </div>
+</div>
 @endpush

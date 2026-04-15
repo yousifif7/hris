@@ -78,6 +78,27 @@ class InterviewController extends Controller
         ], 201);
     }
 
+    public function update(Request $request, Interview $interview): JsonResponse
+    {
+        $data = $request->validate([
+            'scheduled_at'     => 'nullable|date',
+            'duration_minutes' => 'nullable|integer|min:5|max:120',
+            'type'             => 'nullable|in:zoom,in_person,phone',
+            'meeting_link'     => 'nullable|url',
+            'notes'            => 'nullable|string',
+            'status'           => 'nullable|in:scheduled,completed,cancelled,no_show',
+        ]);
+
+        $interview->update(array_filter($data, fn($v) => $v !== null));
+        return response()->json($interview->fresh(['candidate', 'interviewer']));
+    }
+
+    public function destroy(Interview $interview): JsonResponse
+    {
+        $interview->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function complete(Request $request, Interview $interview): JsonResponse
     {
         $data = $request->validate([

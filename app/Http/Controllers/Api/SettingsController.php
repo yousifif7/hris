@@ -25,6 +25,8 @@ class SettingsController extends Controller
             'default_interview_type' => Setting::get('default_interview_type', 'zoom'),
             'zoom_link'              => Setting::get('zoom_link', ''),
             'office_address'         => Setting::get('office_address', ''),
+            'door_access_info'       => Setting::get('door_access_info', ''),
+            'wifi_password'          => Setting::get('wifi_password', ''),
         ]);
     }
 

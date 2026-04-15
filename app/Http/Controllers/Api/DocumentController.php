@@ -62,4 +62,14 @@ class DocumentController extends Controller
     {
         return response()->download(public_path($document->file_path), $document->name);
     }
+
+    public function destroy(Document $document): JsonResponse
+    {
+        $filePath = public_path($document->file_path);
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+        $document->delete();
+        return response()->json(['ok' => true]);
+    }
 }

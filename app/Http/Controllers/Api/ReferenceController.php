@@ -33,6 +33,12 @@ class ReferenceController extends Controller
         return response()->json($ref, 201);
     }
 
+    public function destroy(Candidate $candidate, CandidateReference $reference): JsonResponse
+    {
+        $reference->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function submitResponse(Request $request, CandidateReference $reference): JsonResponse
     {
         $data = $request->validate(['response' => 'required|string']);

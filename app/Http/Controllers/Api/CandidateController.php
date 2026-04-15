@@ -238,8 +238,13 @@ class CandidateController extends Controller
     public function convertToEmployee(Request $request, Candidate $candidate): JsonResponse
     {
         $data = $request->validate([
-            'department' => 'nullable|string',
-            'start_date' => 'nullable|date',
+            'department'              => 'nullable|string',
+            'start_date'              => 'nullable|date',
+            'access_info'             => 'nullable|array',
+            'access_info.email_login' => 'nullable|string|max:255',
+            'access_info.temp_password' => 'nullable|string|max:255',
+            'access_info.door_code'   => 'nullable|string|max:255',
+            'access_info.wifi_password' => 'nullable|string|max:255',
         ]);
 
         $employee = $this->service->convertToEmployee($candidate, $data);

@@ -51,6 +51,29 @@ class OfferController extends Controller
         return response()->json($offer->load('candidate'), 201);
     }
 
+    public function update(Request $request, Offer $offer): JsonResponse
+    {
+        $data = $request->validate([
+            'pay_rate'           => 'nullable|numeric|min:0',
+            'pay_type'           => 'nullable|string',
+            'employment_type'    => 'nullable|string',
+            'location'           => 'nullable|string',
+            'required_documents' => 'nullable|string',
+            'deadline_days'      => 'nullable|integer|min:1',
+            'start_date'         => 'nullable|date',
+            'orientation_date'   => 'nullable|date',
+        ]);
+
+        $offer->update(array_filter($data, fn($v) => $v !== null));
+        return response()->json($offer->fresh('candidate'));
+    }
+
+    public function destroy(Offer $offer): JsonResponse
+    {
+        $offer->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function respond(Request $request, Offer $offer): JsonResponse
     {
         $data = $request->validate([
