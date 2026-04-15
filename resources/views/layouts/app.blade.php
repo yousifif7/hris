@@ -249,6 +249,34 @@ tr:hover td{background:rgba(91,76,219,.03)}
 /* PROGRESS BAR */
 .progress-wrap{background:var(--surface2);border-radius:8px;height:6px;margin-bottom:14px;overflow:hidden}
 .progress-fill{background:var(--green);height:100%;border-radius:8px;transition:width .4s}
+
+/* SIDEBAR CALENDAR */
+.sidebar-cal{border-top:1px solid var(--border);flex-shrink:0}
+.sidebar-cal-hdr{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);user-select:none;transition:background .15s}
+.sidebar-cal-hdr:hover{background:var(--surface2);color:var(--text)}
+.sidebar-cal-hdr svg{width:14px;height:14px;flex-shrink:0}
+.cal-chevron{margin-left:auto;transition:transform .2s}
+.sidebar-cal-body{padding:6px 10px 10px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.cal-nav-lbl{font-size:11px;font-weight:700;color:var(--text)}
+.cal-nav-btn{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px;line-height:1;transition:all .15s}
+.cal-nav-btn:hover{background:var(--surface2);color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:6px}
+.cal-dn{text-align:center;font-size:9px;font-weight:600;color:var(--text3);padding:2px 0;text-transform:uppercase}
+.cal-d{text-align:center;font-size:10px;padding:4px 1px;border-radius:4px;cursor:pointer;position:relative;color:var(--text2);line-height:1.4}
+.cal-d:hover:not(.cal-empty){background:var(--surface2)}
+.cal-d.today{background:var(--accent-glow);color:var(--accent);font-weight:700}
+.cal-d.sel{background:var(--accent);color:#fff !important;font-weight:700}
+.cal-d.has-evt::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-d.sel.has-evt::after{background:#fff}
+.cal-d.cal-other{color:var(--text3);opacity:.35}
+.cal-d.cal-empty{cursor:default}
+.cal-int-list{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto}
+.cal-int-item{padding:6px 8px;border-radius:6px;background:var(--surface2);cursor:pointer;transition:background .15s}
+.cal-int-item:hover{background:var(--border)}
+.cal-int-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-int-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.cal-empty-msg{font-size:11px;color:var(--text3);text-align:center;padding:6px 0}
     </style>
     @endverbatim
     @stack('styles')
@@ -352,6 +380,120 @@ async function markNotifRead(id, candidateId){
 async function readAllNotifs(){
     var r = await apiFetch('/api/notifications/read-all', {method:'POST'});
     if(r) loadNotifications();
+}
+
+/* Sidebar Calendar */
+var _calInterviews = [];
+var _calViewDate   = new Date();
+var _calSelDay     = null;
+var _calOpen       = true;
+
+async function loadCalendarInterviews(){
+    var r = await apiFetch('/api/interviews?per_page=500');
+    if(!r) return;
+    var data = await r.json();
+    _calInterviews = data.data || [];
+    renderMiniCal();
+}
+
+function toggleSidebarCal(){
+    _calOpen = !_calOpen;
+    var body    = document.getElementById('sidebarCalBody');
+    var chevron = document.getElementById('sidebarCalChevron');
+    if(body)    body.style.display      = _calOpen ? '' : 'none';
+    if(chevron) chevron.style.transform = _calOpen ? '' : 'rotate(-90deg)';
+}
+
+function calPrev(){
+    _calViewDate = new Date(_calViewDate.getFullYear(), _calViewDate.getMonth()-1, 1);
+    renderMiniCal();
+}
+
+function calNext(){
+    _calViewDate = new Date(_calViewDate.getFullYear(), _calViewDate.getMonth()+1, 1);
+    renderMiniCal();
+}
+
+function renderMiniCal(){
+    var lbl = document.getElementById('calMonthLabel');
+    if(!lbl) return;
+    var year  = _calViewDate.getFullYear();
+    var month = _calViewDate.getMonth();
+    var today = new Date();
+    lbl.textContent = _calViewDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+
+    // Build event map: 'YYYY-MM-DD' -> count
+    var evtMap = {};
+    _calInterviews.forEach(function(i){
+        if(!i.scheduled_at) return;
+        var key = (i.scheduled_at+'').substring(0,10);
+        evtMap[key] = (evtMap[key]||0)+1;
+    });
+
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMo = new Date(year, month+1, 0).getDate();
+    var prevDays = new Date(year, month, 0).getDate();
+
+    var html = '';
+    ['S','M','T','W','T','F','S'].forEach(function(d){ html+='<div class="cal-dn">'+d+'</div>'; });
+
+    for(var p=firstDay-1; p>=0; p--)
+        html+='<div class="cal-d cal-other cal-empty">'+(prevDays-p)+'</div>';
+
+    for(var d=1; d<=daysInMo; d++){
+        var mm  = String(month+1).padStart(2,'0');
+        var dd  = String(d).padStart(2,'0');
+        var key = year+'-'+mm+'-'+dd;
+        var isToday = year===today.getFullYear() && month===today.getMonth() && d===today.getDate();
+        var isSel   = _calSelDay===key;
+        var hasEvt  = !!evtMap[key];
+        var cls = 'cal-d'+(isToday?' today':'')+(isSel?' sel':'')+(hasEvt?' has-evt':'');
+        var tip = key+(hasEvt?' ('+evtMap[key]+' interview'+(evtMap[key]>1?'s':'')+')'  :'');
+        html+='<div class="'+cls+'" onclick="calSelectDay(\''+key+'\')" title="'+tip+'">'+d+'</div>';
+    }
+
+    var trailing = (7-((firstDay+daysInMo)%7))%7;
+    for(var n=1; n<=trailing; n++)
+        html+='<div class="cal-d cal-other cal-empty">'+n+'</div>';
+
+    document.getElementById('calGrid').innerHTML = html;
+    renderCalDayList();
+}
+
+function calSelectDay(key){
+    _calSelDay = (_calSelDay===key) ? null : key;
+    renderMiniCal();
+}
+
+function renderCalDayList(){
+    var el = document.getElementById('calDayList');
+    if(!el) return;
+    var list;
+    if(_calSelDay){
+        list = _calInterviews.filter(function(i){
+            return i.scheduled_at && (i.scheduled_at+'').substring(0,10)===_calSelDay;
+        });
+    } else {
+        var now = Date.now();
+        list = _calInterviews
+            .filter(function(i){ return i.scheduled_at && +new Date((i.scheduled_at+'').replace(' ','T'))>=now; })
+            .sort(function(a,b){ return +new Date((a.scheduled_at+'').replace(' ','T'))- +new Date((b.scheduled_at+'').replace(' ','T')); })
+            .slice(0,5);
+    }
+    if(!list.length){
+        el.innerHTML='<div class="cal-empty-msg">'+(_calSelDay?'No interviews on this day.':'No upcoming interviews.')+'</div>';
+        return;
+    }
+    el.innerHTML='<div class="cal-int-list">'+list.map(function(i){
+        var c  = i.candidate||{};
+        var dt = new Date((i.scheduled_at+'').replace(' ','T'));
+        var tm = dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        var pre = _calSelDay ? '' : dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' ';
+        return '<div class="cal-int-item" onclick="viewCandidate('+c.id+')">'
+            +'<div class="cal-int-name">'+esc((c.first_name||'')+' '+(c.last_name||''))+'</div>'
+            +'<div class="cal-int-meta">'+pre+tm+' - '+esc(i.type||'zoom')+'</div>'
+            +'</div>';
+    }).join('')+'</div>';
 }
 
 /* â”€â”€ Global: update review badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -503,6 +645,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     loadNotifications();
     updateReviewBadge();
+    loadCalendarInterviews();
     document.getElementById('notifBtn').addEventListener('click', toggleNotif);
 
     // Global search

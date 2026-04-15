@@ -19,6 +19,7 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/review', 'hris.review')->name('review');
     Route::view('/pipeline', 'hris.pipeline')->name('pipeline');
     Route::view('/interviews', 'hris.interviews')->name('interviews');
+    Route::view('/calendar', 'hris.calendar')->name('calendar');
     Route::view('/screening', 'hris.screening')->name('screening');
     Route::view('/offers', 'hris.offers')->name('offers');
     Route::view('/onboarding', 'hris.onboarding')->name('onboarding');
