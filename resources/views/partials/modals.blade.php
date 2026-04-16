@@ -2,10 +2,19 @@
 
 <!-- Quick Email modal -->
 <div class="modal-overlay" id="modal-quickEmailModal" onclick="if(event.target===this)closeModal('quickEmailModal')">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header"><h3>Send Email to Candidate</h3><button onclick="closeModal('quickEmailModal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>To</label><input id="qeTo" type="email" placeholder="candidate@example.com"></div>
+      <!-- Recipient chips + search -->
+      <div class="form-group">
+        <label>To</label>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;cursor:text" onclick="document.getElementById('qeSearch').focus()">
+          <div id="qeSelected" style="display:contents"></div>
+          <input id="qeSearch" type="text" placeholder="Search candidates…" style="border:none;outline:none;background:transparent;font-size:13px;flex:1;min-width:140px" oninput="qeSearchCandidates()">
+        </div>
+        <div id="qeDropdown" style="display:none;position:absolute;z-index:1200;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);min-width:320px;max-height:220px;overflow-y:auto"></div>
+        <div id="qeSendCount" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+      </div>
       <div class="form-group"><label>Subject *</label><input id="qeSubject" placeholder="Subject…"></div>
       <div class="form-group"><label>Message *</label><textarea id="qeBody" rows="8" placeholder="Type your message… use @{{candidate_name}} etc."></textarea></div>
     </div>
@@ -18,11 +27,23 @@
 
 <!-- Quick SMS modal -->
 <div class="modal-overlay" id="modal-quickSmsModal" onclick="if(event.target===this)closeModal('quickSmsModal')">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:460px">
     <div class="modal-header"><h3>Send SMS to Candidate</h3><button onclick="closeModal('quickSmsModal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>Phone</label><input id="qsPhone" type="tel" placeholder="+12025551234"></div>
-      <div class="form-group"><label>Message *</label><textarea id="qsBody" rows="5" placeholder="Type your SMS…" maxlength="160"></textarea></div>
+      <!-- Recipient chips + search -->
+      <div class="form-group">
+        <label>To</label>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;cursor:text" onclick="document.getElementById('qsSearch').focus()">
+          <div id="qsSelected" style="display:contents"></div>
+          <input id="qsSearch" type="text" placeholder="Search candidates…" style="border:none;outline:none;background:transparent;font-size:13px;flex:1;min-width:140px" oninput="qsSearchCandidates()">
+        </div>
+        <div id="qsDropdown" style="display:none;position:absolute;z-index:1200;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);min-width:300px;max-height:220px;overflow-y:auto"></div>
+        <div id="qsSendCount" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+      </div>
+      <div class="form-group">
+        <label>Message * <span style="float:right;font-size:11px;color:var(--text3)"><span id="qsCharCount">0</span>/160</span></label>
+        <textarea id="qsBody" rows="5" placeholder="Type your SMS…" maxlength="160" oninput="qsUpdateCount()"></textarea>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('quickSmsModal')">Cancel</button>

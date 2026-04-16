@@ -897,6 +897,32 @@ document.addEventListener('DOMContentLoaded', async function(){
     loadCalendarInterviews();
     document.getElementById('notifBtn').addEventListener('click', toggleNotif);
 
+    // Auto-poll notifications every 30 seconds
+    var _lastNotifCount = 0;
+    setInterval(async function(){
+        var r = await apiFetch('/api/notifications');
+        if(!r) return;
+        var data = await r.json();
+        var list = document.getElementById('notifList');
+        var dot  = document.querySelector('#notifBtn .dot');
+        var unread = Array.isArray(data) ? data.filter(function(n){ return !n.read_at; }) : [];
+        if(dot) dot.style.display = unread.length ? 'block' : 'none';
+        // Pop a toast for each newly arrived notification
+        if(_lastNotifCount > 0 && unread.length > _lastNotifCount){
+            var newest = data[0];
+            if(newest){
+                var d = typeof newest.data === 'string' ? JSON.parse(newest.data) : newest.data;
+                toast((d.title||'New notification')+': '+(d.message||''), 'info', 5000);
+            }
+        }
+        _lastNotifCount = unread.length;
+        // Re-render list if panel is open
+        if(document.getElementById('notifPanel').classList.contains('open')){
+            loadNotifications();
+        }
+        updateReviewBadge();
+    }, 30000);
+
     // Global search
     var gs = document.getElementById('globalSearch');
     if(gs) gs.addEventListener('keydown', function(e){

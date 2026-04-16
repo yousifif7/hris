@@ -307,7 +307,7 @@ async function loadEmailTemplates(){
     var r = await apiFetch('/api/settings/email-templates');
     if(!r) return;
     var data = await r.json();
-    var tpls = data.templates||data||[];
+    var tpls = Array.isArray(data) ? data : (Array.isArray(data.templates) ? data.templates : []);
     var el = document.getElementById('tplList');
     if(!tpls.length){ el.innerHTML='<div style="color:var(--text3);padding:14px 0">No templates yet. Click "+ New Template" to create one.</div>'; return; }
     el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'

@@ -342,6 +342,99 @@ class MessageController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    // ─── Bulk send ───────────────────────────────────────────────────────────
+
+    /**
+     * Send an email to multiple candidates at once.
+     * POST /api/candidates/bulk-email
+     */
+    public function bulkEmail(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'candidate_ids' => 'required|array|min:1',
+            'candidate_ids.*' => 'integer|exists:candidates,id',
+            'subject'       => 'required|string|max:255',
+            'body'          => 'required|string',
+        ]);
+
+        $sent    = 0;
+        $skipped = 0;
+        $from    = Setting::get('smtp_from_email', config('mail.from.address', ''));
+
+        foreach ($data['candidate_ids'] as $candidateId) {
+            $candidate = Candidate::find($candidateId);
+            if (! $candidate || empty($candidate->email)) { $skipped++; continue; }
+
+            $vars    = $this->buildCandidateVars($candidate);
+            $subject = $data['subject'];
+            $body    = $data['body'];
+            foreach ($vars as $key => $val) {
+                $subject = str_replace("{{{$key}}}", (string) $val, $subject);
+                $body    = str_replace("{{{$key}}}", (string) $val, $body);
+            }
+
+            $message = Message::create([
+                'type'         => 'email',
+                'folder'       => 'sent',
+                'candidate_id' => $candidate->id,
+                'created_by'   => auth()->id(),
+                'from'         => $from,
+                'to'           => $candidate->email,
+                'subject'      => $subject,
+                'body'         => $body,
+                'sent_at'      => now(),
+            ]);
+
+            SendMessageJob::dispatch($message);
+            $sent++;
+        }
+
+        return response()->json(['ok' => true, 'sent' => $sent, 'skipped' => $skipped]);
+    }
+
+    /**
+     * Send an SMS to multiple candidates at once.
+     * POST /api/candidates/bulk-sms
+     */
+    public function bulkSms(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'candidate_ids'   => 'required|array|min:1',
+            'candidate_ids.*' => 'integer|exists:candidates,id',
+            'body'            => 'required|string|max:1600',
+        ]);
+
+        $sent    = 0;
+        $skipped = 0;
+        $from    = Setting::get('twilio_from_number', '');
+
+        foreach ($data['candidate_ids'] as $candidateId) {
+            $candidate = Candidate::find($candidateId);
+            if (! $candidate || empty($candidate->phone)) { $skipped++; continue; }
+
+            $body = $data['body'];
+            foreach ($this->buildCandidateVars($candidate) as $key => $val) {
+                $body = str_replace("{{{$key}}}", (string) $val, $body);
+            }
+
+            $message = Message::create([
+                'type'         => 'sms',
+                'folder'       => 'sent',
+                'candidate_id' => $candidate->id,
+                'created_by'   => auth()->id(),
+                'from'         => $from,
+                'to'           => $candidate->phone,
+                'body'         => $body,
+                'sent_at'      => now(),
+            ]);
+
+            SendMessageJob::dispatch($message);
+            $sent++;
+        }
+
+        return response()->json(['ok' => true, 'sent' => $sent, 'skipped' => $skipped]);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     protected function buildCandidateVars(Candidate $candidate): array

@@ -46,13 +46,17 @@ return new class extends Migration
 
         // Add HTML body to email_templates
         if (Schema::hasTable('email_templates')) {
-            if (! Schema::hasColumn('email_templates', 'body_html')) {
-                Schema::table('email_templates', function (Blueprint $table) {
+            Schema::table('email_templates', function (Blueprint $table) {
+                if (! Schema::hasColumn('email_templates', 'body_html')) {
                     $table->text('body_html')->nullable()->after('body');
-                    $table->string('category')->nullable()->after('slug'); // e.g. candidate, offer, onboarding
+                }
+                if (! Schema::hasColumn('email_templates', 'category')) {
+                    $table->string('category')->nullable()->after('slug');
+                }
+                if (! Schema::hasColumn('email_templates', 'is_active')) {
                     $table->boolean('is_active')->default(true)->after('category');
-                });
-            }
+                }
+            });
         }
     }
 

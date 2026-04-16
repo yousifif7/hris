@@ -141,23 +141,11 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::get('/settings/email-tokens', [SettingsController::class, 'emailTokens']);
     Route::get('/settings/hr-team', [SettingsController::class, 'hrTeam']);
 
-    // Messages (email)
-    Route::get('/messages', [MessageController::class, 'index']);
-    Route::post('/messages', [MessageController::class, 'store']);
-    Route::get('/messages/{message}', [MessageController::class, 'show']);
-    Route::patch('/messages/{message}', [MessageController::class, 'update']);
-    Route::delete('/messages/{message}', [MessageController::class, 'destroy']);
-    Route::post('/messages/{message}/send', [MessageController::class, 'send']);
-    Route::patch('/messages/{message}/read', [MessageController::class, 'markRead']);
-
-    // Candidate quick-send
+    // Candidate quick-send (email + SMS)
     Route::post('/candidates/{candidate}/send-email', [MessageController::class, 'sendToCandidate']);
     Route::post('/candidates/{candidate}/send-sms', [MessageController::class, 'sendSmsToCandidate']);
-
-    // SMS
-    Route::get('/sms', [MessageController::class, 'smsIndex']);
-    Route::post('/sms', [MessageController::class, 'smsSend']);
-    Route::delete('/sms/{message}', [MessageController::class, 'smsDestroy']);
+    Route::post('/candidates/bulk-email', [MessageController::class, 'bulkEmail']);
+    Route::post('/candidates/bulk-sms', [MessageController::class, 'bulkSms']);
 
     // Notifications
     Route::get('/notifications', function () {

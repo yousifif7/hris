@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class ProcessNoResponseFollowup implements ShouldQueue
 {
@@ -36,8 +37,14 @@ class ProcessNoResponseFollowup implements ShouldQueue
                 'description' => "Auto-moved to Queue after {$queueDays} days no response.",
             ]);
         } elseif ($daysSince >= $followupDays && $candidate->followup_count === 0) {
-            // 5 days → send follow-up text/email
-            SendCandidateEmail::dispatch($candidate, 'followup');
+            // 5 days no response → send an SMS text (per workflow spec)
+            if ($candidate->phone) {
+                SendCandidateSms::dispatch($candidate, 'sms_followup');
+            } else {
+                // Fallback to email if no phone number on file
+                Log::info("[ProcessNoResponseFollowup] Candidate #{$candidate->id} has no phone — sending follow-up email instead.");
+                SendCandidateEmail::dispatch($candidate, 'followup');
+            }
             $candidate->update([
                 'followup_count'   => $candidate->followup_count + 1,
                 'last_followup_at' => now(),

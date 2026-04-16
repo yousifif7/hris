@@ -32,6 +32,4 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');
-    Route::view('/messaging', 'hris.messaging')->name('messaging');
-    Route::view('/sms', 'hris.sms')->name('sms');
 });

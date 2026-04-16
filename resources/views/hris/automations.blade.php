@@ -62,7 +62,7 @@ async function loadTemplates(){
     var r = await apiFetch('/api/settings/email-templates');
     if(!r) return;
     var data = await r.json();
-    var tpls = data.templates || data || [];
+    var tpls = Array.isArray(data) ? data : (Array.isArray(data.templates) ? data.templates : []);
     _tpls = {};
     tpls.forEach(function(t){ _tpls[t.id] = t; });
     var el = document.getElementById('tplList');

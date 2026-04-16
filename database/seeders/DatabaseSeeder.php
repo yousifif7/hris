@@ -32,9 +32,6 @@ class DatabaseSeeder extends Seeder
         // ── HR Staff ──
         $staff = [
             ['first_name' => 'Admin',  'last_name' => 'User', 'email' => 'admin@hris.com',  'role' => 'admin',    'round_robin_order' => 1],
-            ['first_name' => 'Marcus', 'last_name' => 'Lee',     'email' => 'marcus@wbh.com', 'role' => 'hr_staff', 'round_robin_order' => 2],
-            ['first_name' => 'Priya',  'last_name' => 'Patel',   'email' => 'priya@wbh.com',  'role' => 'hr_staff', 'round_robin_order' => 3],
-            ['first_name' => 'James',  'last_name' => 'Wright',  'email' => 'james@wbh.com',  'role' => 'hr_staff', 'round_robin_order' => 4],
         ];
         foreach ($staff as $s) {
             User::create(array_merge($s, ['password' => Hash::make('password'), 'is_active' => true]));
@@ -68,6 +65,7 @@ class DatabaseSeeder extends Seeder
             ['slug' => 'onboarding',          'name' => 'Onboarding Welcome',        'subject' => 'Welcome to {{company_name}}!',                  'body' => "Dear {{candidate_name}},\n\nWelcome! Here's what you need:\n- Email login info\n- WiFi credentials\n- Building access: front desk day 1\n\nComplete all onboarding tasks in your portal.\n\nBest,\n{{hr_name}}"],
             ['slug' => 'interview_confirmation', 'name' => 'Interview Confirmation', 'subject' => 'Interview Confirmed — {{company_name}}',       'body' => "Dear {{candidate_name}},\n\nYour interview for {{role}} is confirmed.\n\nDetails will be sent shortly.\n\nBest,\n{{hr_name}}"],
             ['slug' => 'declined_followup',   'name' => 'Declined Follow-up',        'subject' => 'Thank You — {{company_name}}',                  'body' => "Dear {{candidate_name}},\n\nWe understand your decision. We'd love to stay in touch for future opportunities.\n\nBest,\n{{hr_name}}"],
+            ['slug' => 'sms_followup',            'name' => 'SMS Follow-up (No Response)',  'subject' => '',                                              'body' => "Hi {{candidate_first_name}}, this is {{hr_name}} from {{company_name}}. Still interested in the {{role}} position? Book a quick interview here: {{scheduling_link}}", 'category' => 'sms'],
             ['slug' => 'portal_credentials',  'name' => 'Portal Credentials',        'subject' => 'Your {{company_name}} Employee Portal Access',   'body' => "Dear {{candidate_name}},\n\nCongratulations and welcome to {{company_name}}!\n\nYour employee portal access has been created:\n\nLogin URL:          {{login_url}}\nEmail:              {{login_email}}\nTemporary Password: {{temp_password}}\n\nBuilding Access: {{door_code}}\nWiFi Password:   {{wifi_password}}\n\nPlease log in and change your password on first sign-in.\n\nBest regards,\n{{hr_name}}"],
         ];
         foreach ($templates as $t) EmailTemplate::create($t);
@@ -76,7 +74,7 @@ class DatabaseSeeder extends Seeder
         $rules = [
             ['trigger_event' => 'candidate_created',  'action_type' => 'notify',     'action_config' => ['target' => 'assigned_hr']],
             ['trigger_event' => 'status_changed',     'trigger_value' => 'invite_sent',             'action_type' => 'send_email', 'action_config' => ['template' => 'invite']],
-            ['trigger_event' => 'no_response',        'trigger_value' => '5_days',                  'action_type' => 'send_email', 'action_config' => ['template' => 'followup'], 'delay_hours' => 120],
+            ['trigger_event' => 'no_response',        'trigger_value' => '5_days',                  'action_type' => 'send_sms',   'action_config' => ['template' => 'sms_followup'], 'delay_hours' => 120],
             ['trigger_event' => 'no_response',        'trigger_value' => '10_days',                 'action_type' => 'move_to_queue', 'delay_hours' => 240],
             ['trigger_event' => 'status_changed',     'trigger_value' => 'interview_scheduled',     'action_type' => 'send_email', 'action_config' => ['template' => 'interview_confirmation']],
             ['trigger_event' => 'status_changed',     'trigger_value' => 'pre_screening_passed',    'action_type' => 'send_email', 'action_config' => ['template' => 'prescreening'], 'delay_hours' => 48],
