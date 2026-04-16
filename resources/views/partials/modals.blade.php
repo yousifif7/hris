@@ -1,5 +1,36 @@
 <div class="modal-overlay" id="modal-candidateDetail"><div class="modal" style="max-width:760px"><div class="modal-header"><h3 id="detailName"></h3><button onclick="closeModal('candidateDetail')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
 
+<!-- Quick Email modal -->
+<div class="modal-overlay" id="modal-quickEmailModal" onclick="if(event.target===this)closeModal('quickEmailModal')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3>Send Email to Candidate</h3><button onclick="closeModal('quickEmailModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>To</label><input id="qeTo" type="email" placeholder="candidate@example.com"></div>
+      <div class="form-group"><label>Subject *</label><input id="qeSubject" placeholder="Subject…"></div>
+      <div class="form-group"><label>Message *</label><textarea id="qeBody" rows="8" placeholder="Type your message… use @{{candidate_name}} etc."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('quickEmailModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendQuickEmail()">Send Email</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick SMS modal -->
+<div class="modal-overlay" id="modal-quickSmsModal" onclick="if(event.target===this)closeModal('quickSmsModal')">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><h3>Send SMS to Candidate</h3><button onclick="closeModal('quickSmsModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Phone</label><input id="qsPhone" type="tel" placeholder="+12025551234"></div>
+      <div class="form-group"><label>Message *</label><textarea id="qsBody" rows="5" placeholder="Type your SMS…" maxlength="160"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('quickSmsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendQuickSms()">Send SMS</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-prescreen"><div class="modal" style="max-width:560px"><div class="modal-header"><h3>Pre-Screening Questionnaire</h3><button onclick="closeModal('prescreen')">✕</button></div><div class="modal-body" id="prescreenBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('prescreen')">Cancel</button><button class="btn btn-primary" onclick="savePrescreen()">Save Responses</button></div></div></div>
 
 <div class="modal-overlay" id="modal-offer"><div class="modal" style="max-width:540px"><div class="modal-header"><h3>Generate Offer Letter</h3><button onclick="closeModal('offer')">✕</button></div><div class="modal-body" id="offerBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('offer')">Cancel</button><button class="btn btn-primary" onclick="sendOffer()">Send Offer</button></div></div></div>

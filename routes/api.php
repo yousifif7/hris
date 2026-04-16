@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\JobCategoryController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PreScreeningController;
@@ -134,8 +135,29 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::post('/settings/apply-link/regenerate', [SettingsController::class, 'regenerateApplyLink']);
     Route::get('/settings/automations', [SettingsController::class, 'automationRules']);
     Route::get('/settings/email-templates', [SettingsController::class, 'emailTemplates']);
+    Route::post('/settings/email-templates', [SettingsController::class, 'createEmailTemplate']);
     Route::put('/settings/email-templates/{template}', [SettingsController::class, 'updateEmailTemplate']);
+    Route::delete('/settings/email-templates/{template}', [SettingsController::class, 'destroyEmailTemplate']);
+    Route::get('/settings/email-tokens', [SettingsController::class, 'emailTokens']);
     Route::get('/settings/hr-team', [SettingsController::class, 'hrTeam']);
+
+    // Messages (email)
+    Route::get('/messages', [MessageController::class, 'index']);
+    Route::post('/messages', [MessageController::class, 'store']);
+    Route::get('/messages/{message}', [MessageController::class, 'show']);
+    Route::patch('/messages/{message}', [MessageController::class, 'update']);
+    Route::delete('/messages/{message}', [MessageController::class, 'destroy']);
+    Route::post('/messages/{message}/send', [MessageController::class, 'send']);
+    Route::patch('/messages/{message}/read', [MessageController::class, 'markRead']);
+
+    // Candidate quick-send
+    Route::post('/candidates/{candidate}/send-email', [MessageController::class, 'sendToCandidate']);
+    Route::post('/candidates/{candidate}/send-sms', [MessageController::class, 'sendSmsToCandidate']);
+
+    // SMS
+    Route::get('/sms', [MessageController::class, 'smsIndex']);
+    Route::post('/sms', [MessageController::class, 'smsSend']);
+    Route::delete('/sms/{message}', [MessageController::class, 'smsDestroy']);
 
     // Notifications
     Route::get('/notifications', function () {

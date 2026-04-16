@@ -45,8 +45,102 @@
 
   </div>
 
-  <!-- Job Categories -->
+  <!-- Email Templates -->
   <div class="card-section" style="margin-top:20px">
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span>📧 Email Templates</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddTemplate()">+ New Template</button>
+    </div>
+
+    <!-- Token legend -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Available Tokens — insert these in your templates and they'll be replaced with real data when sent:</div>
+      <div id="tokenLegend" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <div id="tplList"><div style="text-align:center;padding:30px;color:var(--text3)">⏳ Loading…</div></div>
+  </div>
+
+  <!-- SMTP Settings -->
+  <div class="card-section" style="margin-top:20px">
+    <div class="section-title">📤 SMTP / Email Sending</div>
+    <form onsubmit="saveSmtp(event)">
+      <div class="form-row">
+        <div class="form-group"><label>SMTP Host</label><input type="text" id="sSmtpHost" placeholder="smtp.gmail.com"></div>
+        <div class="form-group"><label>SMTP Port</label><input type="number" id="sSmtpPort" placeholder="587"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Username / Email</label><input type="text" id="sSmtpUser" placeholder="you@example.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="sSmtpPass" placeholder="••••••••"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>From Email</label><input type="email" id="sSmtpFromEmail" placeholder="hr@yourcompany.com"></div>
+        <div class="form-group"><label>From Name</label><input type="text" id="sSmtpFromName" placeholder="HR Team"></div>
+      </div>
+      <div class="form-group"><label>Encryption</label>
+        <select id="sSmtpEnc">
+          <option value="tls">TLS (recommended)</option>
+          <option value="ssl">SSL</option>
+          <option value="">None</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Save SMTP Settings</button>
+    </form>
+  </div>
+
+  <!-- Twilio / SMS Settings -->
+  <div class="card-section" style="margin-top:20px">
+    <div class="section-title">💬 Twilio SMS Settings</div>
+    <form onsubmit="saveTwilio(event)">
+      <div class="form-group"><label>Account SID</label><input type="text" id="sTwilioSid" placeholder="ACxxxxxxxxxxxxxxxx"></div>
+      <div class="form-group"><label>Auth Token</label><input type="password" id="sTwilioToken" placeholder="••••••••"></div>
+      <div class="form-group"><label>From Phone Number (E.164 format)</label><input type="tel" id="sTwilioFrom" placeholder="+12025551234"></div>
+      <button type="submit" class="btn btn-primary">Save Twilio Settings</button>
+    </form>
+  </div>
+
+</div>
+
+<!-- Template create/edit modal -->
+<div class="modal-overlay" id="modal-tplModal" onclick="if(event.target===this)closeModal('tplModal')">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3 id="tplModalTitle">New Email Template</h3>
+      <button onclick="closeModal('tplModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="tplEditId">
+      <div class="form-row">
+        <div class="form-group"><label>Template Name *</label><input id="tplName" placeholder="e.g. Rejection Notice"></div>
+        <div class="form-group"><label>Category</label>
+          <select id="tplCategory">
+            <option value="">— Select category —</option>
+            <option value="candidate">Candidate</option>
+            <option value="offer">Offer</option>
+            <option value="onboarding">Onboarding</option>
+            <option value="rejection">Rejection</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Subject *</label><input id="tplSubject" placeholder="Subject line…"></div>
+
+      <!-- Token inserter -->
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Insert token:</span>
+        <select id="tplTokenSelect" style="font-size:12px;max-width:280px" onchange="insertTplToken()">
+          <option value="">— Pick a token to insert —</option>
+        </select>
+      </div>
+
+      <div class="form-group"><label>Body (plain text — tokens will be replaced on send) *</label><textarea id="tplBody" rows="10" placeholder="Dear @{{candidate_name}},&#10;&#10;We are pleased to offer you the position of @{{role}} at @{{company_name}}…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('tplModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTemplate()">Save Template</button>
+    </div>
+  </div>
+</div>
     <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
       <span>🗂 Job Categories</span>
       <button class="btn btn-primary btn-sm" onclick="openAddCategory()">+ Add Category</button>
@@ -75,8 +169,9 @@
 @push('scripts')
 <script>
 var _categories = [];
+var _tplTokens  = [];
 
-async function pageRefresh(){ await Promise.all([loadSettings(), loadHrTeam(), loadCategories()]); }
+async function pageRefresh(){ await Promise.all([loadSettings(), loadHrTeam(), loadCategories(), loadEmailTemplates(), loadTokens()]); }
 
 async function loadSettings(){
     var r = await apiFetch('/api/settings');
@@ -95,6 +190,17 @@ async function loadSettings(){
     set('sOfficeAddr',    s.office_address);
     set('sDoorAccess',    s.door_access_info);
     set('sWifiPass',      s.wifi_password);
+    // SMTP
+    set('sSmtpHost',      s.smtp_host);
+    set('sSmtpPort',      s.smtp_port||587);
+    set('sSmtpUser',      s.smtp_username);
+    set('sSmtpFromEmail', s.smtp_from_email);
+    set('sSmtpFromName',  s.smtp_from_name);
+    var encEl = document.getElementById('sSmtpEnc');
+    if(encEl && s.smtp_encryption != null) encEl.value = s.smtp_encryption;
+    // Twilio
+    set('sTwilioSid',   s.twilio_account_sid);
+    set('sTwilioFrom',  s.twilio_from_number);
 }
 
 async function saveSettings(e){
@@ -138,6 +244,160 @@ async function loadHrTeam(){
 }
 
 document.addEventListener('DOMContentLoaded', pageRefresh);
+
+async function saveSmtp(e){
+    e.preventDefault();
+    var payload = {
+        smtp_host:       document.getElementById('sSmtpHost').value,
+        smtp_port:       document.getElementById('sSmtpPort').value,
+        smtp_username:   document.getElementById('sSmtpUser').value,
+        smtp_password:   document.getElementById('sSmtpPass').value,
+        smtp_from_email: document.getElementById('sSmtpFromEmail').value,
+        smtp_from_name:  document.getElementById('sSmtpFromName').value,
+        smtp_encryption: document.getElementById('sSmtpEnc').value
+    };
+    var r = await apiFetch('/api/settings', {method:'PUT', body:JSON.stringify(payload)});
+    if(!r) return;
+    toast('SMTP settings saved!');
+}
+
+async function saveTwilio(e){
+    e.preventDefault();
+    var payload = {
+        twilio_account_sid: document.getElementById('sTwilioSid').value,
+        twilio_auth_token:  document.getElementById('sTwilioToken').value,
+        twilio_from_number: document.getElementById('sTwilioFrom').value
+    };
+    var r = await apiFetch('/api/settings', {method:'PUT', body:JSON.stringify(payload)});
+    if(!r) return;
+    toast('Twilio settings saved!');
+}
+
+async function loadTokens(){
+    var r = await apiFetch('/api/settings/email-tokens');
+    if(!r) return;
+    var data = await r.json();
+    _tplTokens = data.tokens||data||[];
+    // render legend chips
+    var legend = document.getElementById('tokenLegend');
+    if(legend){
+        legend.innerHTML = _tplTokens.map(function(t){
+            return '<span title="'+esc(t.label)+'" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;font-family:monospace;color:var(--accent)" onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(t.token)+'\')">'+esc(t.token)+'</span>';
+        }).join('');
+    }
+    // populate template token select
+    var sel = document.getElementById('tplTokenSelect');
+    if(sel){
+        // group by group field
+        var groups = {};
+        _tplTokens.forEach(function(t){ var g=t.group||'General'; if(!groups[g]) groups[g]=[]; groups[g].push(t); });
+        sel.innerHTML = '<option value="">— Pick a token to insert —</option>';
+        Object.keys(groups).forEach(function(g){
+            var og = document.createElement('optgroup'); og.label = g;
+            groups[g].forEach(function(t){
+                var o = document.createElement('option'); o.value = t.token; o.textContent = t.label+' ('+t.token+')'; og.appendChild(o);
+            });
+            sel.appendChild(og);
+        });
+    }
+}
+
+/* ---- Email Templates ---- */
+async function loadEmailTemplates(){
+    var r = await apiFetch('/api/settings/email-templates');
+    if(!r) return;
+    var data = await r.json();
+    var tpls = data.templates||data||[];
+    var el = document.getElementById('tplList');
+    if(!tpls.length){ el.innerHTML='<div style="color:var(--text3);padding:14px 0">No templates yet. Click "+ New Template" to create one.</div>'; return; }
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      +'<thead><tr style="border-bottom:2px solid var(--border)">'
+        +'<th style="text-align:left;padding:8px 10px">Name</th>'
+        +'<th style="text-align:left;padding:8px 10px">Slug</th>'
+        +'<th style="text-align:left;padding:8px 10px">Category</th>'
+        +'<th style="padding:8px 10px">Active</th>'
+        +'<th style="padding:8px 10px">Actions</th>'
+      +'</tr></thead><tbody>'
+      + tpls.map(function(t){
+          return '<tr style="border-bottom:1px solid var(--border)">'
+            +'<td style="padding:8px 10px;font-weight:500">'+esc(t.name)+'</td>'
+            +'<td style="padding:8px 10px;font-family:monospace;font-size:12px;color:var(--text3)">'+esc(t.slug||'')+'</td>'
+            +'<td style="padding:8px 10px">'+esc(t.category||'—')+'</td>'
+            +'<td style="padding:8px 10px;text-align:center">'+(t.is_active?'✅':'❌')+'</td>'
+            +'<td style="padding:8px 10px;text-align:center;white-space:nowrap">'
+              +'<button class="btn btn-warning btn-sm" onclick="openEditTemplate('+t.id+')">✏ Edit</button> '
+              +'<button class="btn btn-danger btn-sm" onclick="deleteTemplate('+t.id+',\''+esc(t.name)+'\')">🗑</button>'
+            +'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table>';
+}
+
+function openAddTemplate(){
+    document.getElementById('tplEditId').value = '';
+    document.getElementById('tplName').value    = '';
+    document.getElementById('tplSubject').value = '';
+    document.getElementById('tplBody').value    = '';
+    document.getElementById('tplCategory').value = '';
+    document.getElementById('tplModalTitle').textContent = 'New Email Template';
+    loadTokens();
+    openModal('tplModal');
+}
+
+async function openEditTemplate(id){
+    var r = await apiFetch('/api/settings/email-templates/'+id);
+    if(!r) return;
+    var t = await r.json();
+    t = t.template||t;
+    document.getElementById('tplEditId').value  = t.id;
+    document.getElementById('tplName').value    = t.name||'';
+    document.getElementById('tplSubject').value = t.subject||'';
+    document.getElementById('tplBody').value    = t.body||'';
+    document.getElementById('tplCategory').value= t.category||'';
+    document.getElementById('tplModalTitle').textContent = 'Edit Template';
+    loadTokens();
+    openModal('tplModal');
+}
+
+function insertTplToken(){
+    var sel = document.getElementById('tplTokenSelect');
+    var token = sel.value; if(!token) return;
+    var ta = document.getElementById('tplBody');
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.substring(0,start) + token + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + token.length;
+    ta.focus();
+    sel.value = '';
+}
+
+async function saveTemplate(){
+    var id      = document.getElementById('tplEditId').value;
+    var name    = document.getElementById('tplName').value.trim();
+    var subject = document.getElementById('tplSubject').value.trim();
+    var body    = document.getElementById('tplBody').value;
+    var category= document.getElementById('tplCategory').value;
+    if(!name||!subject||!body){ toast('Name, subject and body are required','error'); return; }
+    var payload = {name:name, subject:subject, body:body, category:category, is_active:true};
+    var r;
+    if(id){
+        r = await apiFetch('/api/settings/email-templates/'+id, {method:'PUT', body:JSON.stringify(payload)});
+    } else {
+        r = await apiFetch('/api/settings/email-templates', {method:'POST', body:JSON.stringify(payload)});
+    }
+    if(!r) return;
+    if(!r.ok){ var e=await r.json(); toast(e.message||(e.errors?Object.values(e.errors).flat()[0]:'Save failed'),'error'); return; }
+    closeModal('tplModal');
+    toast(id ? 'Template updated!' : 'Template created!');
+    loadEmailTemplates();
+}
+
+async function deleteTemplate(id, name){
+    if(!confirm('Delete template "'+name+'"? This cannot be undone.')) return;
+    var r = await apiFetch('/api/settings/email-templates/'+id, {method:'DELETE'});
+    if(!r) return;
+    toast('"'+name+'" deleted.');
+    loadEmailTemplates();
+}
 
 async function loadCategories(){
     var r = await apiFetch('/api/job-categories');

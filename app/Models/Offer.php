@@ -9,8 +9,10 @@ class Offer extends Model
     protected $fillable = [
         'candidate_id', 'pay_rate', 'pay_type', 'employment_type', 'location',
         'required_documents', 'deadline_days', 'orientation_date', 'start_date',
-        'status', 'sent_at', 'responded_at', 'created_by',
+        'status', 'sent_at', 'responded_at', 'created_by', 'token', 'viewed_at', 'notes',
     ];
+
+    protected $appends = ['public_url'];
 
     protected function casts(): array
     {
@@ -20,7 +22,13 @@ class Offer extends Model
             'start_date'       => 'date',
             'sent_at'          => 'datetime',
             'responded_at'     => 'datetime',
+            'viewed_at'        => 'datetime',
         ];
+    }
+
+    public function getPublicUrlAttribute(): string
+    {
+        return $this->token ? config('app.url') . '/offer/' . $this->token : '';
     }
 
     public function candidate()

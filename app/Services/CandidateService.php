@@ -153,13 +153,30 @@ class CandidateService
 
     protected function onOfferSent(Candidate $candidate): void
     {
-        SendCandidateEmail::dispatch($candidate, 'offer');
+        $offer    = $candidate->latestOffer;
+        $extraVars = [];
+
+        if ($offer?->token) {
+            $extraVars['offer_link'] = config('app.url') . '/offer/' . $offer->token;
+        }
+
+        SendCandidateEmail::dispatch($candidate, 'offer', $extraVars);
     }
 
     protected function onOfferAccepted(Candidate $candidate): void
     {
         SendCandidateEmail::dispatch($candidate, 'onboarding');
         $this->createOnboardingTasks($candidate);
+
+        // Notify HR staff assigned to this candidate
+        $actor = $candidate->full_name;
+        $this->notifyAdmins(
+            '✅ Offer Accepted',
+            "{$candidate->full_name} has accepted the offer. Start onboarding.",
+            'offer_accepted',
+            $candidate,
+            $actor
+        );
     }
 
     protected function onRejected(Candidate $candidate): void

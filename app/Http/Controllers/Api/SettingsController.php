@@ -27,6 +27,18 @@ class SettingsController extends Controller
             'office_address'         => Setting::get('office_address', ''),
             'door_access_info'       => Setting::get('door_access_info', ''),
             'wifi_password'          => Setting::get('wifi_password', ''),
+            // SMTP
+            'smtp_host'              => Setting::get('smtp_host', ''),
+            'smtp_port'              => Setting::get('smtp_port', '587'),
+            'smtp_username'          => Setting::get('smtp_username', ''),
+            'smtp_password'          => Setting::get('smtp_password', ''),
+            'smtp_from_email'        => Setting::get('smtp_from_email', ''),
+            'smtp_from_name'         => Setting::get('smtp_from_name', ''),
+            'smtp_encryption'        => Setting::get('smtp_encryption', 'tls'),
+            // SMS / Twilio
+            'twilio_account_sid'     => Setting::get('twilio_account_sid', ''),
+            'twilio_auth_token'      => Setting::get('twilio_auth_token', ''),
+            'twilio_from_number'     => Setting::get('twilio_from_number', ''),
         ]);
     }
 
@@ -45,16 +57,51 @@ class SettingsController extends Controller
 
     public function emailTemplates(): JsonResponse
     {
-        return response()->json(EmailTemplate::all());
+        return response()->json(EmailTemplate::orderBy('category')->orderBy('name')->get());
     }
 
     public function updateEmailTemplate(Request $request, EmailTemplate $template): JsonResponse
     {
         $template->update($request->validate([
-            'subject' => 'required|string',
-            'body'    => 'required|string',
+            'name'      => 'sometimes|required|string|max:100',
+            'subject'   => 'required|string',
+            'body'      => 'required|string',
+            'body_html' => 'nullable|string',
+            'category'  => 'nullable|string|max:50',
+            'is_active' => 'nullable|boolean',
         ]));
         return response()->json($template);
+    }
+
+    public function createEmailTemplate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name'      => 'required|string|max:100',
+            'subject'   => 'required|string',
+            'body'      => 'required|string',
+            'body_html' => 'nullable|string',
+            'category'  => 'nullable|string|max:50',
+        ]);
+
+        $data['slug']      = Str::slug($data['name']) . '-' . Str::random(4);
+        $data['is_active'] = true;
+
+        $template = EmailTemplate::create($data);
+        return response()->json($template, 201);
+    }
+
+    public function destroyEmailTemplate(EmailTemplate $template): JsonResponse
+    {
+        $template->delete();
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Return available template tokens for the frontend token-picker.
+     */
+    public function emailTokens(): JsonResponse
+    {
+        return response()->json(EmailTemplate::availableTokens());
     }
 
     public function applyLink(): JsonResponse

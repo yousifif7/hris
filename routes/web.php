@@ -1,10 +1,15 @@
 <?php
 
 use App\Http\Controllers\PublicApplyController;
+use App\Http\Controllers\PublicOfferController;
 use Illuminate\Support\Facades\Route;
 
 // Public career application form (token-masked URL)
 Route::get('/apply/{token}', [PublicApplyController::class, 'show'])->name('public.apply');
+
+// Public offer acceptance page (candidate-facing, no auth)
+Route::get('/offer/{token}', [PublicOfferController::class, 'show'])->name('public.offer');
+Route::post('/offer/{token}/respond', [PublicOfferController::class, 'respond'])->name('public.offer.respond');
 
 // Root: redirect based on auth state (JS handles role-based redirect after /me)
 Route::get('/', fn() => redirect('/login'));
@@ -27,4 +32,6 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');
+    Route::view('/messaging', 'hris.messaging')->name('messaging');
+    Route::view('/sms', 'hris.sms')->name('sms');
 });

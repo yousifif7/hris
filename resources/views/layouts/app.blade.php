@@ -664,6 +664,8 @@ async function viewCandidate(id){
 
     document.getElementById('detailFooter').innerHTML=
       '<button class="btn btn-danger btn-sm" onclick="cdAction('+c.id+',\'rejected\')">Reject</button>'
+      +'<button class="btn btn-info btn-sm" onclick="openCandidateEmail('+c.id+',\''+esc(c.email||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">📧 Email</button>'
+      +'<button class="btn btn-info btn-sm" onclick="openCandidateSms('+c.id+',\''+esc(c.phone||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">💬 SMS</button>'
       +'<button class="btn btn-secondary" onclick="closeModal(\'candidateDetail\')">Close</button>'
       +'<button class="btn btn-primary" onclick="cdAction('+c.id+',null)">Save Status</button>';
 }
@@ -692,7 +694,188 @@ async function cdAction(id, forceStatus){
     updateReviewBadge();
 }
 
-/* â”€â”€ Global: logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Quick Email / SMS multi-send ───────────────────────────── */
+var _qeRecipients = [];  // [{id, name, email}]
+var _qsRecipients = [];  // [{id, name, phone}]
+var _qeSearchTimer = null;
+var _qsSearchTimer = null;
+
+function openCandidateEmail(id, email, name){
+    _qeRecipients = id ? [{id:id, name:name||'Candidate', email:email||''}] : [];
+    _renderQeChips();
+    document.getElementById('qeSearch').value  = '';
+    document.getElementById('qeSubject').value = '';
+    document.getElementById('qeBody').value    = '';
+    document.getElementById('qeDropdown').style.display = 'none';
+    openModal('quickEmailModal');
+}
+
+function openCandidateSms(id, phone, name){
+    _qsRecipients = id ? [{id:id, name:name||'Candidate', phone:phone||''}] : [];
+    _renderQsChips();
+    document.getElementById('qsSearch').value = '';
+    document.getElementById('qsBody').value   = '';
+    document.getElementById('qsDropdown').style.display = 'none';
+    openModal('quickSmsModal');
+}
+
+function _renderQeChips(){
+    var wrap = document.getElementById('qeSelected');
+    wrap.innerHTML = _qeRecipients.map(function(r){
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:600">'
+            +esc(r.name)+(r.email?' <span style="font-weight:400;opacity:.8">&lt;'+esc(r.email)+'&gt;</span>':'')
+            +'<span style="cursor:pointer;margin-left:4px;opacity:.7" onclick="_qeRemove('+r.id+')">✕</span></span>';
+    }).join('');
+    var cnt = document.getElementById('qeSendCount');
+    if(cnt) cnt.textContent = _qeRecipients.length > 1 ? 'Sending to '+_qeRecipients.length+' candidates' : '';
+}
+
+function _renderQsChips(){
+    var wrap = document.getElementById('qsSelected');
+    wrap.innerHTML = _qsRecipients.map(function(r){
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:600">'
+            +esc(r.name)+(r.phone?' <span style="font-weight:400;opacity:.8">'+esc(r.phone)+'</span>':'')
+            +'<span style="cursor:pointer;margin-left:4px;opacity:.7" onclick="_qsRemove('+r.id+')">✕</span></span>';
+    }).join('');
+    var cnt = document.getElementById('qsSendCount');
+    if(cnt) cnt.textContent = _qsRecipients.length > 1 ? 'Sending to '+_qsRecipients.length+' candidates' : '';
+}
+
+function _qeRemove(id){ _qeRecipients = _qeRecipients.filter(function(r){ return r.id!==id; }); _renderQeChips(); }
+function _qsRemove(id){ _qsRecipients = _qsRecipients.filter(function(r){ return r.id!==id; }); _renderQsChips(); }
+
+function _qeAddRecipient(c){
+    if(_qeRecipients.find(function(r){ return r.id===c.id; })) return;
+    _qeRecipients.push({id:c.id, name:c.first_name+' '+c.last_name, email:c.email||''});
+    _renderQeChips();
+    document.getElementById('qeSearch').value = '';
+    document.getElementById('qeDropdown').style.display = 'none';
+}
+
+function _qsAddRecipient(c){
+    if(_qsRecipients.find(function(r){ return r.id===c.id; })) return;
+    _qsRecipients.push({id:c.id, name:c.first_name+' '+c.last_name, phone:c.phone||''});
+    _renderQsChips();
+    document.getElementById('qsSearch').value = '';
+    document.getElementById('qsDropdown').style.display = 'none';
+}
+
+function _renderSearchDropdown(candidates, dropdownId, addFn){
+    var dd = document.getElementById(dropdownId);
+    if(!candidates.length){
+        dd.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--text3)">No candidates found.</div>';
+        dd.style.display='block'; return;
+    }
+    dd.innerHTML = candidates.map(function(c){
+        var sub = c.email||c.phone||'';
+        return '<div onclick="'+addFn+'(window._qsearchResult_'+c.id+')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+            +'<strong>'+esc(c.first_name+' '+c.last_name)+'</strong>'
+            +(sub?' <span style="font-size:11px;color:var(--text3)">'+esc(sub)+'</span>':'')
+            +(c.category?' <span style="font-size:10px;background:var(--surface2);padding:1px 5px;border-radius:8px;color:var(--text3)">'+esc(c.category.name)+'</span>':'')
+            +'</div>';
+    }).join('');
+    // Store refs globally so onclick can access them
+    candidates.forEach(function(c){ window['_qsearchResult_'+c.id]=c; });
+    dd.style.display='block';
+}
+
+async function _searchCandidates(q){
+    var url = '/api/candidates?per_page=20&search='+encodeURIComponent(q||'');
+    // exclude rejected — add status filter for all non-rejected statuses isn't easy,
+    // so we filter client-side after fetch
+    var r = await apiFetch(url);
+    if(!r) return [];
+    var data = await r.json();
+    return (data.data||[]).filter(function(c){ return c.status!=='rejected'; });
+}
+
+function qeSearchCandidates(){
+    clearTimeout(_qeSearchTimer);
+    var q = document.getElementById('qeSearch').value.trim();
+    _qeSearchTimer = setTimeout(async function(){
+        var cands = await _searchCandidates(q);
+        _renderSearchDropdown(cands, 'qeDropdown', '_qeAddRecipient');
+    }, 220);
+}
+
+function qsSearchCandidates(){
+    clearTimeout(_qsSearchTimer);
+    var q = document.getElementById('qsSearch').value.trim();
+    _qsSearchTimer = setTimeout(async function(){
+        var cands = await _searchCandidates(q);
+        _renderSearchDropdown(cands, 'qsDropdown', '_qsAddRecipient');
+    }, 220);
+}
+
+function qsUpdateCount(){
+    var el = document.getElementById('qsCharCount');
+    if(el) el.textContent = document.getElementById('qsBody').value.length;
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e){
+    if(!e.target.closest('#modal-quickEmailModal')) {
+        var dd = document.getElementById('qeDropdown'); if(dd) dd.style.display='none';
+    }
+    if(!e.target.closest('#modal-quickSmsModal')) {
+        var dd = document.getElementById('qsDropdown'); if(dd) dd.style.display='none';
+    }
+});
+
+async function sendQuickEmail(){
+    if(!_qeRecipients.length){ toast('Please select at least one candidate','error'); return; }
+    var subject = document.getElementById('qeSubject').value.trim();
+    var body    = document.getElementById('qeBody').value.trim();
+    if(!subject||!body){ toast('Subject and body are required','error'); return; }
+
+    var ids = _qeRecipients.map(function(r){ return r.id; });
+
+    var r;
+    if(ids.length === 1){
+        r = await apiFetch('/api/candidates/'+ids[0]+'/send-email',
+            {method:'POST', body:JSON.stringify({subject:subject, body:body})});
+    } else {
+        r = await apiFetch('/api/candidates/bulk-email',
+            {method:'POST', body:JSON.stringify({candidate_ids:ids, subject:subject, body:body})});
+    }
+    if(!r) return;
+    if(!r.ok){ var e=await r.json(); toast(e.message||e.error||'Failed','error'); return; }
+    var res = await r.json();
+    closeModal('quickEmailModal');
+    if(res.sent != null){
+        toast('Email sent to '+res.sent+' candidate'+(res.sent!==1?'s':'')+(res.skipped?' ('+res.skipped+' skipped — no email)':'')+'!');
+    } else {
+        toast('Email sent!');
+    }
+}
+
+async function sendQuickSms(){
+    if(!_qsRecipients.length){ toast('Please select at least one candidate','error'); return; }
+    var body = document.getElementById('qsBody').value.trim();
+    if(!body){ toast('Message is required','error'); return; }
+
+    var ids = _qsRecipients.map(function(r){ return r.id; });
+
+    var r;
+    if(ids.length === 1){
+        r = await apiFetch('/api/candidates/'+ids[0]+'/send-sms',
+            {method:'POST', body:JSON.stringify({body:body})});
+    } else {
+        r = await apiFetch('/api/candidates/bulk-sms',
+            {method:'POST', body:JSON.stringify({candidate_ids:ids, body:body})});
+    }
+    if(!r) return;
+    if(!r.ok){ var e=await r.json(); toast(e.message||e.error||'Failed','error'); return; }
+    var res = await r.json();
+    closeModal('quickSmsModal');
+    if(res.sent != null){
+        toast('SMS sent to '+res.sent+' candidate'+(res.sent!==1?'s':'')+(res.skipped?' ('+res.skipped+' skipped — no phone)':'')+'!');
+    } else {
+        toast('SMS sent!');
+    }
+}
+
+/* ── Global: logout ──────────────────────────────────────────────── */
 function logout(){
     apiFetch('/api/logout', {method:'POST'}).finally(function(){ clearToken(); window.location.href='/login'; });
 }

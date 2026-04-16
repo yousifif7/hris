@@ -9,6 +9,7 @@ use App\Models\Offer;
 use App\Services\CandidateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class OfferController extends Controller
 {
@@ -39,6 +40,7 @@ class OfferController extends Controller
         $data['created_by'] = auth()->id();
         $data['status'] = 'sent';
         $data['sent_at'] = now();
+        $data['token']   = Str::uuid()->toString(); // unique offer acceptance token
 
         $offer = Offer::create($data);
 
