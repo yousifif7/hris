@@ -8,6 +8,7 @@ use App\Models\Candidate;
 use App\Models\EmailTemplate;
 use App\Models\Message;
 use App\Models\Setting;
+use App\Services\MailService;
 use App\Services\SmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,9 +83,10 @@ class MessageController extends Controller
         $sendNow = ! empty($data['send_now']);
         $from    = Setting::get('smtp_from_email', config('mail.from.address', ''));
 
+        // Always create as draft first — only promote to sent after confirmed delivery
         $message = Message::create([
             'type'         => 'email',
-            'folder'       => $sendNow ? 'sent' : 'draft',
+            'folder'       => 'draft',
             'candidate_id' => $data['candidate_id'] ?? null,
             'template_id'  => $data['template_id'] ?? null,
             'created_by'   => auth()->id(),
@@ -95,11 +97,25 @@ class MessageController extends Controller
             'subject'      => $data['subject'] ?? null,
             'body'         => $data['body'],
             'is_html'      => ! empty($data['body_html']),
-            'sent_at'      => $sendNow ? now() : null,
+            'sent_at'      => null,
         ]);
 
         if ($sendNow) {
-            SendMessageJob::dispatch($message);
+            try {
+                MailService::send(
+                    to: $data['to'],
+                    subject: $data['subject'] ?? '(No Subject)',
+                    body: $data['body'],
+                    isHtml: ! empty($data['body_html']),
+                    fromEmail: $from ?: null,
+                    cc: $data['cc'] ?? null,
+                    bcc: $data['bcc'] ?? null,
+                );
+                $message->update(['folder' => 'sent', 'sent_at' => now()]);
+            } catch (\Throwable $e) {
+                // Keep as draft so the user can retry; surface the real SMTP error
+                return response()->json(['error' => 'Failed to send: ' . $e->getMessage()], 500);
+            }
         }
 
         return response()->json($message->load('candidate'), 201);
@@ -157,8 +173,19 @@ class MessageController extends Controller
             return response()->json(['error' => 'Recipient (to) is required.'], 422);
         }
 
-        $message->update(['folder' => 'sent', 'sent_at' => now()]);
-        SendMessageJob::dispatch($message);
+        try {
+            MailService::send(
+                to: $message->to,
+                subject: $message->subject ?? '(No Subject)',
+                body: $message->body,
+                isHtml: (bool) $message->is_html,
+                cc: $message->cc,
+                bcc: $message->bcc,
+            );
+            $message->update(['folder' => 'sent', 'sent_at' => now()]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed to send: ' . $e->getMessage()], 500);
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -209,6 +236,22 @@ class MessageController extends Controller
 
         $from = Setting::get('smtp_from_email', config('mail.from.address', ''));
 
+        $isHtml = ! empty($data['body_html']);
+        $body   = $isHtml ? $data['body_html'] : $data['body'];
+
+        try {
+            MailService::send(
+                to: $candidate->email,
+                subject: $data['subject'],
+                body: $body,
+                isHtml: $isHtml,
+                fromEmail: $from,
+                cc: $data['cc'] ?? null,
+            );
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed to send: ' . $e->getMessage()], 500);
+        }
+
         $message = Message::create([
             'type'         => 'email',
             'folder'       => 'sent',
@@ -220,11 +263,9 @@ class MessageController extends Controller
             'cc'           => $data['cc'] ?? null,
             'subject'      => $data['subject'],
             'body'         => $data['body'],
-            'is_html'      => ! empty($data['body_html']),
+            'is_html'      => $isHtml,
             'sent_at'      => now(),
         ]);
-
-        SendMessageJob::dispatch($message);
 
         return response()->json(['ok' => true, 'message_id' => $message->id]);
     }
@@ -373,7 +414,20 @@ class MessageController extends Controller
                 $body    = str_replace("{{{$key}}}", (string) $val, $body);
             }
 
-            $message = Message::create([
+            try {
+                MailService::send(
+                    to: $candidate->email,
+                    subject: $subject,
+                    body: $body,
+                    isHtml: false,
+                    fromEmail: $from,
+                );
+            } catch (\Throwable $e) {
+                $skipped++;
+                continue;
+            }
+
+            Message::create([
                 'type'         => 'email',
                 'folder'       => 'sent',
                 'candidate_id' => $candidate->id,
@@ -384,8 +438,6 @@ class MessageController extends Controller
                 'body'         => $body,
                 'sent_at'      => now(),
             ]);
-
-            SendMessageJob::dispatch($message);
             $sent++;
         }
 

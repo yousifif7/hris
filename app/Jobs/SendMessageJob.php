@@ -120,15 +120,19 @@ class SendMessageJob implements ShouldQueue
 
         if ($host && $username) {
             config([
-                'mail.default'                   => 'smtp',
-                'mail.mailers.smtp.host'         => $host,
-                'mail.mailers.smtp.port'         => (int) ($port ?: 587),
-                'mail.mailers.smtp.encryption'   => $encryption,
-                'mail.mailers.smtp.username'     => $username,
-                'mail.mailers.smtp.password'     => $password,
-                'mail.from.address'              => Setting::get('smtp_from_email', config('mail.from.address')),
-                'mail.from.name'                 => Setting::get('smtp_from_name', config('mail.from.name')),
+                'mail.default'                      => 'smtp',
+                'mail.mailers.smtp.transport'       => 'smtp',
+                'mail.mailers.smtp.host'            => $host,
+                'mail.mailers.smtp.port'            => (int) ($port ?: 587),
+                'mail.mailers.smtp.encryption'      => strtolower($encryption) === 'none' ? null : strtolower($encryption),
+                'mail.mailers.smtp.username'        => $username,
+                'mail.mailers.smtp.password'        => $password,
+                'mail.from.address'                 => Setting::get('smtp_from_email', config('mail.from.address')),
+                'mail.from.name'                    => Setting::get('smtp_from_name', config('mail.from.name')),
             ]);
+
+            // Purge cached mailer so the new config is used
+            \Illuminate\Support\Facades\Mail::purge('smtp');
         }
     }
 }

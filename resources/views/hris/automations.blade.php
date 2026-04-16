@@ -69,12 +69,19 @@ async function loadTemplates(){
     if(!tpls.length){ el.innerHTML='<div style="padding:20px;color:var(--text3)">No email templates found.</div>'; return; }
     el.innerHTML = '<div class="card-section" style="padding:0">'
       + tpls.map(function(t){
-          return '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">'
-            +'<div style="flex:1">'
-              +'<div style="font-weight:600;font-size:14px">'+esc(t.name||'—')+'</div>'
-              +'<div style="font-size:12px;color:var(--text3)">'+esc(t.subject||'No subject')+'</div>'
+          var isOn = t.is_active;
+          var preview = (t.body||'').replace(/\n/g,' ').trim();
+          if(preview.length > 120) preview = preview.substring(0,120)+'…';
+          return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'
+            +'<div style="display:flex;align-items:center;gap:12px">'
+              +'<div style="flex:1">'
+                +'<div style="font-weight:600;font-size:14px">'+esc(t.name||'—')+'</div>'
+                +'<div style="font-size:12px;color:var(--text3)">'+esc(t.subject||'No subject')+'</div>'
+              +'</div>'
+              +'<span class="badge '+(isOn?'badge-offer-accepted':'badge-rejected')+'">'+(isOn?'Active':'Inactive')+'</span>'
+              +'<button class="btn btn-secondary btn-sm" onclick="editTemplate('+t.id+')">Edit</button>'
             +'</div>'
-            +'<button class="btn btn-secondary btn-sm" onclick="editTemplate('+t.id+')">Edit</button>'
+            +(preview ? '<div style="margin-top:6px;font-size:12px;color:var(--text3);white-space:pre-wrap;background:var(--bg2,#f5f5f5);border-radius:4px;padding:6px 8px;line-height:1.5">'+esc(preview)+'</div>' : '')
           +'</div>';
       }).join('')
       +'</div>';

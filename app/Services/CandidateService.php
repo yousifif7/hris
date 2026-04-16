@@ -11,8 +11,10 @@ use App\Jobs\SendCandidateEmail;
 use App\Jobs\ProcessNoResponseFollowup;
 use App\Notifications\AdminActivityNotification;
 use App\Models\EmailTemplate;
+use App\Models\Offer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class CandidateService
 {
@@ -114,6 +116,7 @@ class CandidateService
             CandidateStatus::REJECTED => $this->onRejected($candidate),
             CandidateStatus::APPLICANT_DECLINED => $this->onDeclined($candidate),
             CandidateStatus::ONBOARDING => $this->onOnboarding($candidate),
+            CandidateStatus::HIRED => $this->onHired($candidate),
             default => null,
         };
 
@@ -153,10 +156,25 @@ class CandidateService
 
     protected function onOfferSent(Candidate $candidate): void
     {
-        $offer    = $candidate->latestOffer;
-        $extraVars = [];
+        $offer = $candidate->latestOffer;
 
-        if ($offer?->token) {
+        // Auto-create a placeholder offer so it appears in the Offers area and is editable
+        if (! $offer) {
+            $offer = Offer::create([
+                'candidate_id'    => $candidate->id,
+                'pay_rate'        => 0.00,
+                'pay_type'        => 'hourly',
+                'employment_type' => 'Full-Time',
+                'status'          => 'sent',
+                'sent_at'         => now(),
+                'created_by'      => auth()->id(),
+                'token'           => Str::uuid()->toString(),
+                'deadline_days'   => (int) \App\Models\Setting::get('offer_deadline', 20),
+            ]);
+        }
+
+        $extraVars = [];
+        if ($offer->token) {
             $extraVars['offer_link'] = config('app.url') . '/offer/' . $offer->token;
         }
 
@@ -194,6 +212,54 @@ class CandidateService
         if ($candidate->onboardingTasks()->count() === 0) {
             $this->createOnboardingTasks($candidate);
         }
+    }
+
+    protected function onHired(Candidate $candidate): void
+    {
+        // Guard: if convertToEmployee was already called (employee record exists), skip
+        if (\App\Models\Employee::where('candidate_id', $candidate->id)->exists()) {
+            return;
+        }
+
+        if (! $candidate->email) return;
+
+        $tempPassword = Str::random(10);
+        $offer        = $candidate->latestOffer;
+
+        $user = User::updateOrCreate(
+            ['email' => $candidate->email],
+            [
+                'first_name' => $candidate->first_name,
+                'last_name'  => $candidate->last_name,
+                'password'   => Hash::make($tempPassword),
+                'role'       => 'employee',
+                'is_active'  => true,
+            ]
+        );
+
+        \App\Models\Employee::create([
+            'candidate_id'    => $candidate->id,
+            'user_id'         => $user->id,
+            'first_name'      => $candidate->first_name,
+            'last_name'       => $candidate->last_name,
+            'email'           => $candidate->email,
+            'phone'           => $candidate->phone,
+            'role'            => $candidate->category?->name ?? 'Staff',
+            'employment_type' => $offer?->employment_type ?? 'Full-Time',
+            'start_date'      => $offer?->start_date ?? now()->toDateString(),
+            'pay_rate'        => $offer?->pay_rate,
+            'pay_type'        => $offer?->pay_type ?? 'hourly',
+            'location'        => $offer?->location,
+            'is_active'       => true,
+        ]);
+
+        SendCandidateEmail::dispatch($candidate, 'portal_credentials', [
+            'login_url'     => config('app.url') . '/login',
+            'login_email'   => $candidate->email,
+            'temp_password' => $tempPassword,
+            'door_code'     => \App\Models\Setting::get('door_code', 'See HR for details'),
+            'wifi_password' => \App\Models\Setting::get('wifi_password', 'See HR for details'),
+        ]);
     }
 
     /**

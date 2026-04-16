@@ -135,8 +135,6 @@ return new class extends Migration
                 $table->string('new_value')->nullable();
                 $table->text('description')->nullable();
                 $table->timestamps();
-
-                $table->index(['loggable_type', 'loggable_id']);
             });
         }
 

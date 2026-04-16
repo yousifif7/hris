@@ -31,7 +31,10 @@ class DatabaseSeeder extends Seeder
 
         // ── HR Staff ──
         $staff = [
-            ['first_name' => 'Admin',  'last_name' => 'User', 'email' => 'admin@hris.com',  'role' => 'admin',    'round_robin_order' => 1],
+            ['first_name' => 'Admin',   'last_name' => 'User',    'email' => 'admin@hris.com',   'role' => 'admin',    'round_robin_order' => 1],
+            ['first_name' => 'Sarah',   'last_name' => 'Johnson',  'email' => 'sjohnson@hris.com', 'role' => 'hr_staff', 'round_robin_order' => 2],
+            ['first_name' => 'Marcus',  'last_name' => 'Lee',      'email' => 'mlee@hris.com',     'role' => 'hr_staff', 'round_robin_order' => 3],
+            ['first_name' => 'Denise',  'last_name' => 'Harris',   'email' => 'dharris@hris.com',  'role' => 'hr_staff', 'round_robin_order' => 4],
         ];
         foreach ($staff as $s) {
             User::create(array_merge($s, ['password' => Hash::make('password'), 'is_active' => true]));

@@ -5,12 +5,12 @@ namespace App\Jobs;
 use App\Models\Candidate;
 use App\Models\EmailTemplate;
 use App\Models\Setting;
+use App\Services\MailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Mail;
 
 class SendCandidateEmail implements ShouldQueue
 {
@@ -28,9 +28,6 @@ class SendCandidateEmail implements ShouldQueue
 
         $template = EmailTemplate::where('slug', $this->templateSlug)->first();
         if (! $template) return;
-
-        // Apply SMTP settings stored in the database
-        $this->applySmtpConfig();
 
         $offer = $this->candidate->latestOffer;
 
@@ -72,48 +69,25 @@ class SendCandidateEmail implements ShouldQueue
 
         // Use HTML body if available, else plain text
         $isHtml = ! empty($rendered['body_html']);
+        $body   = $isHtml ? $rendered['body_html'] : $rendered['body'];
 
-        Mail::send([], [], function ($mail) use ($rendered, $fromEmail, $fromName, $isHtml) {
-            $mail->to($this->candidate->email)
-                 ->from($fromEmail, $fromName)
-                 ->subject($rendered['subject']);
+        try {
+            MailService::send(
+                to: $this->candidate->email,
+                subject: $rendered['subject'],
+                body: $body,
+                isHtml: $isHtml,
+                fromEmail: $fromEmail,
+                fromName: $fromName,
+            );
 
-            if ($isHtml) {
-                $mail->setBody($rendered['body_html'], 'text/html');
-                $mail->text($rendered['body']);
-            } else {
-                $mail->text($rendered['body']);
-            }
-        });
-
-        $this->candidate->activityLogs()->create([
-            'action'      => 'email_sent',
-            'description' => "Email sent: {$this->templateSlug}",
-        ]);
-    }
-
-    /**
-     * Override Laravel mail config with SMTP settings stored in the database.
-     */
-    protected function applySmtpConfig(): void
-    {
-        $host       = Setting::get('smtp_host');
-        $port       = Setting::get('smtp_port');
-        $username   = Setting::get('smtp_username');
-        $password   = Setting::get('smtp_password');
-        $encryption = Setting::get('smtp_encryption', 'tls');
-
-        if ($host && $username) {
-            config([
-                'mail.default'                 => 'smtp',
-                'mail.mailers.smtp.host'       => $host,
-                'mail.mailers.smtp.port'       => (int) ($port ?: 587),
-                'mail.mailers.smtp.encryption' => $encryption,
-                'mail.mailers.smtp.username'   => $username,
-                'mail.mailers.smtp.password'   => $password,
-                'mail.from.address'            => Setting::get('smtp_from_email', config('mail.from.address')),
-                'mail.from.name'               => Setting::get('smtp_from_name', config('mail.from.name')),
+            $this->candidate->activityLogs()->create([
+                'action'      => 'email_sent',
+                'description' => "Email sent: {$this->templateSlug}",
             ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("SendCandidateEmail failed [{$this->templateSlug}] to {$this->candidate->email}: " . $e->getMessage());
+            throw $e;
         }
     }
 }
