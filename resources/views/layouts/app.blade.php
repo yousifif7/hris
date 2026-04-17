@@ -398,7 +398,7 @@ async function loadNotifications(){
             +'<div class="notif-icon" style="background:var(--accent-glow);font-size:18px;cursor:pointer" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')">'+icon+'</div>'
             +'<div class="notif-text" style="cursor:pointer;flex:1" onclick="markNotifRead(\''+esc(n.id)+'\''+(d.candidate_id?','+d.candidate_id:'')+')"><div class="title">'+esc(d.title||'Notification')+'</div>'
             +'<div class="desc">'+esc(d.message||'')+'</div>'
-            +'<div class="time">'+fDate(n.created_at)+'</div></div>'
+            +'<div class="time">'+fD(n.created_at)+'</div></div>'
             +'<div style="display:flex;flex-direction:column;gap:4px;padding:0 10px;flex-shrink:0">'
               +(n.read_at?'':'<button title="Mark read" onclick="markNotifRead(\''+esc(n.id)+'\'); event.stopPropagation()" style="font-size:11px;color:var(--accent);padding:2px 5px;border-radius:4px" onmouseover="this.style.background=\'var(--accent-glow)\'" onmouseout="this.style.background=\'\'">✓</button>')
               +'<button title="Delete" onclick="deleteNotif(\''+esc(n.id)+'\'); event.stopPropagation()" style="font-size:11px;color:var(--red);padding:2px 5px;border-radius:4px" onmouseover="this.style.background=\'var(--red-bg)\'" onmouseout="this.style.background=\'\'">🗑</button>'
@@ -631,7 +631,7 @@ async function viewCandidate(id){
         var fSz = function(b){ if(!b) return ''; if(b<1024) return b+'B'; if(b<1048576) return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; };
         docsHtml='<div style="margin-top:14px"><h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">Uploaded Files</h4>'
         +c.documents.map(function(d){
-            var url = '/storage/'+d.file_path;
+            var url = '/'+d.file_path;
             return '<a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;text-decoration:none;transition:border-color .2s" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
                 +'<span style="font-size:18px">'+fileIcon(d.mime_type)+'</span>'
                 +'<span style="flex:1;font-size:12px;font-weight:600;color:var(--text)">'+esc(d.name)+'</span>'
@@ -673,6 +673,13 @@ async function viewCandidate(id){
 async function cdAction(id, forceStatus){
     var st = forceStatus || document.getElementById('detailSt').value;
     var name = document.getElementById('detailName').textContent || 'this candidate';
+
+    // Offer-sent → open offer details modal instead of patching status directly
+    if(st === 'offer_sent'){
+        closeModal('candidateDetail');
+        openOfferModal(id, name);
+        return;
+    }
 
     // Destructive actions require confirmation
     var confirmRequired = {
@@ -890,7 +897,16 @@ document.addEventListener('DOMContentLoaded', async function(){
     var me = await r.json();
     var av = document.getElementById('sidebarUserAvatar');  if(av) av.textContent = In(me.first_name, me.last_name);
     var nm = document.getElementById('sidebarUserName');    if(nm) nm.textContent = me.first_name+' '+me.last_name;
-    var rl = document.getElementById('sidebarUserRole');    if(rl) rl.textContent = me.role === 'admin' ? 'Admin' : 'HR Staff';
+    var rl = document.getElementById('sidebarUserRole');
+    if (rl) {
+        if (me.role === 'admin') {
+            rl.textContent = 'Admin';
+        } else if (me.role === 'employee') {
+            rl.textContent = 'Employee';
+        } else {
+            rl.textContent = 'HR Staff';
+        }
+    }
 
     loadNotifications();
     updateReviewBadge();

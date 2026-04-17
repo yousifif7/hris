@@ -43,7 +43,8 @@ class Offer extends Model
 
     public function isExpired(): bool
     {
-        return $this->status === 'sent'
-            && $this->sent_at?->addDays($this->deadline_days)->isPast();
+        return in_array($this->status, ['sent', 'viewed'])
+            && $this->sent_at !== null
+            && $this->sent_at->addDays($this->deadline_days)->isPast();
     }
 }

@@ -35,6 +35,7 @@ class OfferController extends Controller
             'deadline_days'      => 'nullable|integer|min:1',
             'orientation_date'   => 'nullable|date',
             'start_date'         => 'nullable|date',
+            'notes'              => 'nullable|string',
         ]);
 
         $data['created_by'] = auth()->id();

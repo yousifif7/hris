@@ -116,15 +116,24 @@
         <div class="form-group"><label>Category</label>
           <select id="tplCategory">
             <option value="">— Select category —</option>
+            <option value="follow-up">Follow-up</option>
             <option value="candidate">Candidate</option>
             <option value="offer">Offer</option>
             <option value="onboarding">Onboarding</option>
             <option value="rejection">Rejection</option>
             <option value="general">General</option>
+            <option value="sms">Sms</option>
           </select>
         </div>
       </div>
       <div class="form-group"><label>Subject *</label><input id="tplSubject" placeholder="Subject line…"></div>
+
+      <div class="form-group"><label>Active</label>
+        <select id="tplIsActive">
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
 
       <!-- Token inserter -->
       <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -171,6 +180,29 @@
 <script>
 var _categories = [];
 var _tplTokens  = [];
+var _emailTemplates = [];
+function _unwrapTemplate(resp){
+  if(!resp) return null;
+  if(resp.template && typeof resp.template === 'object') return resp.template;
+  if(resp.templates && Array.isArray(resp.templates) && resp.templates.length) return resp.templates[0];
+  if(resp.data && typeof resp.data === 'object'){
+    if(resp.data.template) return resp.data.template;
+    if(Array.isArray(resp.data) && resp.data.length) return resp.data[0];
+  }
+  if('id' in resp || 'name' in resp || 'subject' in resp || 'body' in resp) return resp;
+  function find(obj){
+    if(!obj || typeof obj !== 'object') return null;
+    if(('name' in obj) && ('body' in obj)) return obj;
+    for(var k in obj){
+      if(obj.hasOwnProperty(k)){
+        var f = find(obj[k]);
+        if(f) return f;
+      }
+    }
+    return null;
+  }
+  return find(resp) || resp;
+}
 
 async function pageRefresh(){ await Promise.all([loadSettings(), loadHrTeam(), loadCategories(), loadEmailTemplates(), loadTokens()]); }
 
@@ -179,7 +211,26 @@ async function loadSettings(){
     if(!r) return;
     var data = await r.json();
     var s = data.settings||data||{};
-    var set = function(id,val){ var el=document.getElementById(id); if(el&&val!=null) el.value=val; };
+    var set = function(id,val){
+      var el = document.getElementById(id);
+      if(!el || val == null) return;
+      // Ensure selects get the value even if option doesn't exist yet
+      if(el.tagName && el.tagName.toUpperCase() === 'SELECT'){
+        var found = false;
+        for(var i=0;i<el.options.length;i++){
+          if(el.options[i].value == val){ found = true; break; }
+        }
+        if(!found){
+          var o = document.createElement('option');
+          o.value = val;
+          o.textContent = val;
+          el.appendChild(o);
+        }
+        el.value = val;
+      } else {
+        el.value = val;
+      }
+    };
     set('sCompanyName',   s.company_name);
     set('sAppUrl',        s.app_url);
     set('sTimezone',      s.timezone);
@@ -310,7 +361,8 @@ async function loadEmailTemplates(){
     var r = await apiFetch('/api/settings/email-templates');
     if(!r) return;
     var data = await r.json();
-    var tpls = Array.isArray(data) ? data : (Array.isArray(data.templates) ? data.templates : []);
+  var tpls = Array.isArray(data) ? data : (Array.isArray(data.templates) ? data.templates : []);
+  _emailTemplates = tpls || [];
     var el = document.getElementById('tplList');
     if(!tpls.length){ el.innerHTML='<div style="color:var(--text3);padding:14px 0">No templates yet. Click "+ New Template" to create one.</div>'; return; }
     el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
@@ -337,29 +389,46 @@ async function loadEmailTemplates(){
 }
 
 function openAddTemplate(){
-    document.getElementById('tplEditId').value = '';
-    document.getElementById('tplName').value    = '';
-    document.getElementById('tplSubject').value = '';
-    document.getElementById('tplBody').value    = '';
-    document.getElementById('tplCategory').value = '';
-    document.getElementById('tplModalTitle').textContent = 'New Email Template';
-    loadTokens();
-    openModal('tplModal');
+  document.getElementById('tplEditId').value = '';
+  document.getElementById('tplName').value    = '';
+  document.getElementById('tplSubject').value = '';
+  document.getElementById('tplBody').value    = '';
+  document.getElementById('tplCategory').value = '';
+  document.getElementById('tplModalTitle').textContent = 'New Email Template';
+  loadTokens();
+  var isActiveEl = document.getElementById('tplIsActive');
+  if(isActiveEl) isActiveEl.value = '1';
+  openModal('tplModal');
 }
 
 async function openEditTemplate(id){
-    var r = await apiFetch('/api/settings/email-templates/'+id);
-    if(!r) return;
-    var t = await r.json();
-    t = t.template||t;
-    document.getElementById('tplEditId').value  = t.id;
-    document.getElementById('tplName').value    = t.name||'';
-    document.getElementById('tplSubject').value = t.subject||'';
-    document.getElementById('tplBody').value    = t.body||'';
-    document.getElementById('tplCategory').value= t.category||'';
-    document.getElementById('tplModalTitle').textContent = 'Edit Template';
-    loadTokens();
-    openModal('tplModal');
+  // Try to find the template in the cached list
+  if(!_emailTemplates || !_emailTemplates.length){
+    await loadEmailTemplates();
+  }
+  var t = (_emailTemplates||[]).find(function(x){ return String(x.id) === String(id); });
+
+  // Fallback: refresh list from API and try again
+  if(!t){
+    await loadEmailTemplates();
+    t = (_emailTemplates||[]).find(function(x){ return String(x.id) === String(id); });
+  }
+
+  if(!t){ toast('Template not found','error'); return; }
+
+  document.getElementById('tplEditId').value  = t.id || '';
+  document.getElementById('tplName').value    = t.name || t.title || '';
+  document.getElementById('tplSubject').value = t.subject || '';
+  document.getElementById('tplBody').value    = t.body || t.content || '';
+  document.getElementById('tplCategory').value= t.category || '';
+  var isActiveEl = document.getElementById('tplIsActive');
+  if(isActiveEl){
+    var isActive = (t.is_active!=null) ? t.is_active : ((t.active!=null)?t.active:(t.status=='active'));
+    isActiveEl.value = isActive ? '1' : '0';
+  }
+  document.getElementById('tplModalTitle').textContent = 'Edit Template';
+  loadTokens();
+  openModal('tplModal');
 }
 
 function insertTplToken(){
@@ -374,13 +443,15 @@ function insertTplToken(){
 }
 
 async function saveTemplate(){
-    var id      = document.getElementById('tplEditId').value;
-    var name    = document.getElementById('tplName').value.trim();
-    var subject = document.getElementById('tplSubject').value.trim();
-    var body    = document.getElementById('tplBody').value;
-    var category= document.getElementById('tplCategory').value;
-    if(!name||!subject||!body){ toast('Name, subject and body are required','error'); return; }
-    var payload = {name:name, subject:subject, body:body, category:category, is_active:true};
+  var id      = document.getElementById('tplEditId').value;
+  var name    = document.getElementById('tplName').value.trim();
+  var subject = document.getElementById('tplSubject').value.trim();
+  var body    = document.getElementById('tplBody').value;
+  var category= document.getElementById('tplCategory').value;
+  var isActiveEl = document.getElementById('tplIsActive');
+  var isActive = isActiveEl ? (isActiveEl.value === '1' || isActiveEl.checked) : true;
+  if(!name||!subject||!body){ toast('Name, subject and body are required','error'); return; }
+  var payload = {name:name, subject:subject, body:body, category:category, is_active:!!isActive};
     var r;
     if(id){
         r = await apiFetch('/api/settings/email-templates/'+id, {method:'PUT', body:JSON.stringify(payload)});

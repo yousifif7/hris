@@ -184,7 +184,7 @@ function openOfferModal(candId, candName){
       '<input type="hidden" id="oId" value="'+candId+'">'
       +'<div class="form-group"><label>Candidate</label><input value="'+esc(candName)+'" disabled></div>'
       +'<div class="form-row">'
-        +'<div class="form-group"><label>Pay Rate</label><input id="oPay" type="number" step="0.01" placeholder="25.00"></div>'
+        +'<div class="form-group"><label>Pay Rate *</label><input id="oPay" type="number" step="0.01" placeholder="25.00"></div>'
         +'<div class="form-group"><label>Pay Type</label><select id="oPayType"><option value="hourly">Hourly</option><option value="salary">Salary</option></select></div>'
       +'</div>'
       +'<div class="form-row">'
@@ -193,16 +193,24 @@ function openOfferModal(candId, candName){
       +'</div>'
       +'<div class="form-group"><label>Required Documents</label><textarea id="oDo" rows="2">Signed offer, I-9, W-4, License, Credentials</textarea></div>'
       +'<div class="form-row">'
-        +'<div class="form-group"><label>Deadline (days)</label><input type="number" id="oDy" value="20"></div>'
         +'<div class="form-group"><label>Start Date</label><input type="date" id="oStart"></div>'
-      +'</div>';
+        +'<div class="form-group"><label>Orientation Date</label><input type="date" id="oOrient"></div>'
+      +'</div>'
+      +'<div class="form-row">'
+        +'<div class="form-group"><label>Deadline to Respond (days)</label><input type="number" id="oDy" value="7" min="1"></div>'
+      +'</div>'
+      +'<div class="form-group"><label>Internal Notes <span style="font-size:11px;color:var(--text3)">(not sent to candidate)</span></label>'
+        +'<textarea id="oNotes" rows="2" placeholder="Any internal notes about this offer…"></textarea></div>'
+      +'<div style="background:var(--accent-glow);border:1px solid rgba(90,198,204,.2);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--text2);margin-top:4px">'
+        +'<strong>📧 An offer email</strong> with all details and a personalised accept/decline link will be sent automatically to the candidate.</div>';
     openModal('offer');
 }
 
 async function sendOffer(){
     var candId = +document.getElementById('oId').value;
     var pay = parseFloat(document.getElementById('oPay').value);
-    if(!pay){ toast('Pay rate is required','error'); return; }
+    if(!candId){ toast('Candidate not set','error'); return; }
+    if(!pay || pay <= 0){ toast('Pay rate is required','error'); return; }
     var body = {
         candidate_id: candId,
         pay_rate: pay,
@@ -210,14 +218,25 @@ async function sendOffer(){
         employment_type: document.getElementById('oTy').value,
         location: document.getElementById('oLo').value||null,
         required_documents: document.getElementById('oDo').value||null,
-        deadline_days: +document.getElementById('oDy').value||20,
-        start_date: document.getElementById('oStart').value||null
+        deadline_days: +document.getElementById('oDy').value||7,
+        start_date: document.getElementById('oStart').value||null,
+        orientation_date: document.getElementById('oOrient').value||null,
+        notes: document.getElementById('oNotes').value||null
     };
+    var btn = document.querySelector('#modal-offer .btn-primary');
+    if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
     var r = await apiFetch('/api/offers', {method:'POST', body:JSON.stringify(body)});
+    if(btn){ btn.disabled=false; btn.textContent='Send Offer'; }
     if(!r) return;
+    if(!r.ok){
+        var e = await r.json();
+        toast(e.message||(e.errors?Object.values(e.errors).flat()[0]:'Failed to send offer'),'error');
+        return;
+    }
     closeModal('offer');
-    toast('Offer letter sent!');
+    toast('✉ Offer sent — candidate will receive an email with accept/decline link!', 'success');
     if(typeof pageRefresh==='function') pageRefresh();
+    updateReviewBadge();
 }
 
 function openPrescreenModal(candId, candName){

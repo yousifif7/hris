@@ -13,6 +13,7 @@ use App\Models\EmailTemplate;
 use App\Models\Offer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class CandidateService
@@ -41,9 +42,18 @@ class CandidateService
         // Handle resume file upload
         if ($resumeFile) {
             $relative = "resumes/{$candidate->id}";
-            $filename  = time().'_'.$resumeFile->getClientOriginalName();
-            $resumeFile->move(public_path($relative), $filename);
+            $dir = public_path($relative);
+
+            // Ensure the public directory exists so file is web-accessible
+            if (! File::exists($dir)) {
+                File::makeDirectory($dir, 0755, true, true);
+            }
+
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $resumeFile->getClientOriginalName());
+            $resumeFile->move($dir, $filename);
+
             $path = "{$relative}/{$filename}";
+            $fullPath = public_path($path);
 
             $candidate->update(['resume_file' => $path]);
 
@@ -52,7 +62,7 @@ class CandidateService
                 'type'      => 'resume',
                 'file_path' => $path,
                 'mime_type' => $resumeFile->getClientMimeType(),
-                'file_size' => filesize(public_path($path)),
+                'file_size' => is_file($fullPath) ? filesize($fullPath) : null,
             ]);
         }
 
@@ -174,7 +184,8 @@ class CandidateService
 
         $extraVars = [];
         if ($offer->token) {
-            $extraVars['offer_link'] = config('app.url') . '/offer/' . $offer->token;
+            $baseUrl = rtrim(\App\Models\Setting::get('app_url', config('app.url')), '/');
+            $extraVars['offer_link'] = $baseUrl . '/offer/' . $offer->token;
         }
 
         SendCandidateEmail::dispatchSync($candidate, 'offer', $extraVars);
@@ -204,6 +215,14 @@ class CandidateService
     protected function onDeclined(Candidate $candidate): void
     {
         SendCandidateEmail::dispatchSync($candidate, 'declined_followup');
+
+        $this->notifyAdmins(
+            '❌ Offer Declined',
+            "{$candidate->full_name} has declined the offer.",
+            'offer_declined',
+            $candidate,
+            $candidate->full_name
+        );
     }
 
     protected function onOnboarding(Candidate $candidate): void

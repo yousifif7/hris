@@ -135,6 +135,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::post('/settings/apply-link/regenerate', [SettingsController::class, 'regenerateApplyLink']);
     Route::get('/settings/automations', [SettingsController::class, 'automationRules']);
     Route::get('/settings/email-templates', [SettingsController::class, 'emailTemplates']);
+    Route::get('/settings/email-templates/{template}', [SettingsController::class, 'showEmailTemplate']);
     Route::post('/settings/email-templates', [SettingsController::class, 'createEmailTemplate']);
     Route::put('/settings/email-templates/{template}', [SettingsController::class, 'updateEmailTemplate']);
     Route::delete('/settings/email-templates/{template}', [SettingsController::class, 'destroyEmailTemplate']);

@@ -17,6 +17,7 @@ class SettingsController extends Controller
     {
         return response()->json([
             'company_name'           => Setting::get('company_name', 'Wellness Behavioral Health'),
+            'app_url'                => Setting::get('app_url', ''),
             'timezone'               => Setting::get('timezone', 'America/Detroit'),
             'interview_duration'     => Setting::get('interview_duration', 20),
             'offer_deadline'         => Setting::get('offer_deadline', 20),
@@ -58,6 +59,14 @@ class SettingsController extends Controller
     public function emailTemplates(): JsonResponse
     {
         return response()->json(EmailTemplate::orderBy('category')->orderBy('name')->get());
+    }
+
+    /**
+     * Return a single email template.
+     */
+    public function showEmailTemplate(EmailTemplate $template): JsonResponse
+    {
+        return response()->json($template);
     }
 
     public function updateEmailTemplate(Request $request, EmailTemplate $template): JsonResponse

@@ -242,11 +242,35 @@ function openTaskModal(taskId, cid){
     document.getElementById('tdDocSection').style.display = needsDoc ? '' : 'none';
     document.getElementById('tdDocFile').value = '';
     var existDoc = document.getElementById('tdExistingDoc');
-    if(task.document_path){
-        existDoc.style.display = '';
-        existDoc.innerHTML = '📎 <a href="/storage/'+esc(task.document_path)+'" target="_blank" style="color:var(--primary)">View existing document</a>';
+    if (task.document_path) {
+      existDoc.style.display = '';
+      // Support single path or multiple paths (comma/newline separated or array)
+      var paths = [];
+      if (Array.isArray(task.document_path)) {
+        paths = task.document_path;
+      } else if (typeof task.document_path === 'string') {
+        paths = task.document_path.split(/[,\n]+/).map(function(p){ return p.trim(); }).filter(Boolean);
+      } else {
+        paths = [task.document_path];
+      }
+
+      var html = paths.map(function(p){
+        // If file was stored directly in public (e.g. onboarding/ or resumes/), link to '/path'
+        var isPublicDirect = /^(onboarding|resumes)\//i.test(p);
+        var url = (isPublicDirect ? '/' + esc(p) : '/' + esc(p));
+        var parts = (p||'').split('/');
+        var name = parts[parts.length-1] || p;
+        var ext = (name.split('.').pop()||'').toLowerCase();
+        var preview = '';
+        if(['jpg','jpeg','png','gif'].indexOf(ext) !== -1){
+          preview = '<div style="margin-top:8px"><img src="'+url+'" style="max-width:100%;border-radius:6px;border:1px solid var(--border)"></div>';
+        }
+        return '📎 <a href="'+url+'" target="_blank" style="color:var(--primary)">'+esc(name)+'</a>'+preview;
+      }).join('<br>');
+
+      existDoc.innerHTML = html;
     } else {
-        existDoc.style.display = 'none';
+      existDoc.style.display = 'none';
     }
 
     /* Hint */
@@ -283,7 +307,9 @@ async function toggleCurrentTask(){
     if(needsDoc && fileInput.files.length){
       var fd = new FormData();
       fd.append('document', fileInput.files[0]);
-      r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', { method: 'PATCH', body: fd });
+      // Use POST with method override so PHP/Laravel properly parses multipart file uploads
+      fd.append('_method', 'PATCH');
+      r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', { method: 'POST', body: fd });
     } else {
       r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', {method:'PATCH'});
     }

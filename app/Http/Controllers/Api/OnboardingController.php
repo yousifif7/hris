@@ -9,6 +9,7 @@ use App\Models\OnboardingTemplate;
 use App\Services\CandidateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 class OnboardingController extends Controller
 {
@@ -44,7 +45,17 @@ class OnboardingController extends Controller
         ]);
 
         if ($request->hasFile('document')) {
-            $path = $request->file('document')->store("onboarding/{$task->candidate_id}", 'private');
+            // Store uploaded onboarding documents directly under public/onboarding/{candidate_id}
+            $dir = public_path("onboarding/{$task->candidate_id}");
+            if (! File::exists($dir)) {
+                File::makeDirectory($dir, 0755, true, true);
+            }
+
+            $file = $request->file('document');
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName());
+            $file->move($dir, $filename);
+
+            $path = "onboarding/{$task->candidate_id}/{$filename}";
             $task->update(['document_path' => $path]);
         }
 
