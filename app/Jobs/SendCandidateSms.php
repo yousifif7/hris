@@ -77,7 +77,7 @@ class SendCandidateSms implements ShouldQueue
             'role'                 => $this->candidate->category?->name ?? 'the open position',
             'company_name'         => Setting::get('company_name', 'Wellness Behavioral Health'),
             'hr_name'              => $this->candidate->assignedTo?->full_name ?? 'HR Team',
-            'scheduling_link'      => config('app.url') . '/schedule/' . $this->candidate->id,
+            'scheduling_link'      => (Setting::get('app_url', config('app.url'))) . '/schedule/' . ($this->candidate->schedule_token ?? $this->candidate->id),
             'today'                => now()->format('M d, Y'),
         ];
 

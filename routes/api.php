@@ -177,6 +177,22 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
         auth()->user()->notifications()->delete();
         return response()->json(['ok' => true]);
     });
+
+    // Automations heartbeat — runs at most once per hour, triggered by the frontend poll
+    Route::post('/automations/run', function () {
+        $cacheKey = 'automations_last_run';
+        $lastRun  = \Illuminate\Support\Facades\Cache::get($cacheKey);
+
+        if ($lastRun && now()->diffInMinutes($lastRun) < 60) {
+            return response()->json(['ran' => false, 'next_in_minutes' => 60 - now()->diffInMinutes($lastRun)]);
+        }
+
+        \Illuminate\Support\Facades\Artisan::call('app:process-automations');
+
+        \Illuminate\Support\Facades\Cache::put($cacheKey, now(), now()->addHours(2));
+
+        return response()->json(['ran' => true, 'at' => now()->toTimeString()]);
+    });
 });
 
 /*

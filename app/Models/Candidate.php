@@ -19,7 +19,7 @@ class Candidate extends Model
         'first_name', 'last_name', 'email', 'phone',
         'job_category_id', 'source', 'status', 'assigned_to',
         'notes', 'resume_text', 'resume_file',
-        'invite_sent_at', 'last_followup_at', 'followup_count',
+        'invite_sent_at', 'schedule_token', 'last_followup_at', 'followup_count',
     ];
 
     protected function casts(): array

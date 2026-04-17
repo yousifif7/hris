@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PublicApplyController;
 use App\Http\Controllers\PublicOfferController;
+use App\Http\Controllers\PublicScheduleController;
 use Illuminate\Support\Facades\Route;
 
 // Public career application form (token-masked URL)
@@ -10,6 +11,11 @@ Route::get('/apply/{token}', [PublicApplyController::class, 'show'])->name('publ
 // Public offer acceptance page (candidate-facing, no auth)
 Route::get('/offer/{token}', [PublicOfferController::class, 'show'])->name('public.offer');
 Route::post('/offer/{token}/respond', [PublicOfferController::class, 'respond'])->name('public.offer.respond');
+
+// Public interview self-scheduling (candidate-facing, no auth)
+Route::get('/schedule/{token}', [PublicScheduleController::class, 'show'])->name('public.schedule');
+Route::post('/schedule/{token}/book', [PublicScheduleController::class, 'book'])->name('public.schedule.book');
+Route::get('/schedule/{token}/confirmed', [PublicScheduleController::class, 'confirmed'])->name('public.schedule.confirmed');
 
 // Root: redirect based on auth state (JS handles role-based redirect after /me)
 Route::get('/', fn() => redirect('/login'));

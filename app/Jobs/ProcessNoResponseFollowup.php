@@ -39,18 +39,17 @@ class ProcessNoResponseFollowup implements ShouldQueue
         } elseif ($daysSince >= $followupDays && $candidate->followup_count === 0) {
             // 5 days no response → send an SMS text (per workflow spec)
             if ($candidate->phone) {
-                SendCandidateSms::dispatch($candidate, 'sms_followup');
+                SendCandidateSms::dispatchSync($candidate, 'sms_followup');
             } else {
                 // Fallback to email if no phone number on file
                 Log::info("[ProcessNoResponseFollowup] Candidate #{$candidate->id} has no phone — sending follow-up email instead.");
-                SendCandidateEmail::dispatch($candidate, 'followup');
+                SendCandidateEmail::dispatchSync($candidate, 'followup');
             }
             $candidate->update([
                 'followup_count'   => $candidate->followup_count + 1,
                 'last_followup_at' => now(),
             ]);
-            // Re-check at queue deadline
-            static::dispatch($candidate)->delay(now()->addDays($followupDays));
+            // The scheduler (app:process-automations) handles the next daily check.
         }
     }
 }

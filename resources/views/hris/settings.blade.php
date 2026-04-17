@@ -9,6 +9,7 @@
       <div class="section-title">⚙ System Settings</div>
       <form id="settingsForm" onsubmit="saveSettings(event)">
         <div class="form-group"><label>Company Name</label><input type="text" id="sCompanyName" placeholder="Acme Corp"></div>
+        <div class="form-group"><label>Website / App URL <span style="font-size:11px;color:var(--text3)">(used in email links, e.g. https://yoursite.com)</span></label><input type="url" id="sAppUrl" placeholder="https://yoursite.com"></div>
         <div class="form-group"><label>Timezone</label>
           <select id="sTimezone">
             <option value="America/New_York">Eastern (ET)</option>
@@ -180,6 +181,7 @@ async function loadSettings(){
     var s = data.settings||data||{};
     var set = function(id,val){ var el=document.getElementById(id); if(el&&val!=null) el.value=val; };
     set('sCompanyName',   s.company_name);
+    set('sAppUrl',        s.app_url);
     set('sTimezone',      s.timezone);
     set('sInterviewDur',  s.interview_duration||45);
     set('sOfferDeadline', s.offer_deadline||7);
@@ -207,6 +209,7 @@ async function saveSettings(e){
     e.preventDefault();
     var payload = {
         company_name:            document.getElementById('sCompanyName').value,
+        app_url:                 document.getElementById('sAppUrl').value,
         timezone:                document.getElementById('sTimezone').value,
         interview_duration:      parseInt(document.getElementById('sInterviewDur').value)||45,
         offer_deadline:          parseInt(document.getElementById('sOfferDeadline').value)||7,

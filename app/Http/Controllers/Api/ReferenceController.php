@@ -28,7 +28,7 @@ class ReferenceController extends Controller
         $ref = $candidate->references()->create($data);
 
         // Auto-send reference request email
-        SendReferenceRequest::dispatch($ref);
+        SendReferenceRequest::dispatchSync($ref);
 
         return response()->json($ref, 201);
     }

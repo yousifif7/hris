@@ -921,6 +921,9 @@ document.addEventListener('DOMContentLoaded', async function(){
             loadNotifications();
         }
         updateReviewBadge();
+
+        // Trigger automations (throttled server-side to once per hour)
+        apiFetch('/api/automations/run', {method:'POST'});
     }, 30000);
 
     // Global search

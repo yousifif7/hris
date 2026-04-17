@@ -281,15 +281,11 @@ async function toggleCurrentTask(){
     var needsDoc  = document.getElementById('tdDocSection').style.display !== 'none';
     var r;
     if(needsDoc && fileInput.files.length){
-        var fd = new FormData();
-        fd.append('document', fileInput.files[0]);
-        r = await fetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', {
-            method:  'PATCH',
-            headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content||'', 'Accept':'application/json'},
-            body:    fd,
-        });
+      var fd = new FormData();
+      fd.append('document', fileInput.files[0]);
+      r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', { method: 'PATCH', body: fd });
     } else {
-        r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', {method:'PATCH'});
+      r = await apiFetch('/api/onboarding-tasks/'+_tdTask.id+'/toggle', {method:'PATCH'});
     }
 
     btn.disabled = false;

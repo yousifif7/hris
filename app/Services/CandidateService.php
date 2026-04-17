@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\OnboardingTemplate;
 use App\Models\ActivityLog;
 use App\Jobs\SendCandidateEmail;
-use App\Jobs\ProcessNoResponseFollowup;
 use App\Notifications\AdminActivityNotification;
 use App\Models\EmailTemplate;
 use App\Models\Offer;
@@ -125,25 +124,25 @@ class CandidateService
 
     protected function onInviteSent(Candidate $candidate): void
     {
-        $candidate->update(['invite_sent_at' => now()]);
-        SendCandidateEmail::dispatch($candidate, 'invite');
+        // Generate a unique token for the candidate's scheduling link
+        if (! $candidate->schedule_token) {
+            $candidate->update(['schedule_token' => \Illuminate\Support\Str::uuid()->toString()]);
+        }
 
-        // Schedule no-response follow-up check
-        $followupDays = (int) \App\Models\Setting::get('followup_days', 5);
-        ProcessNoResponseFollowup::dispatch($candidate)
-            ->delay(now()->addDays($followupDays));
+        $candidate->update(['invite_sent_at' => now()]);
+        SendCandidateEmail::dispatchSync($candidate, 'invite');
+        // No-response follow-up is handled by the daily scheduler (app:process-automations).
     }
 
     protected function onInterviewScheduled(Candidate $candidate): void
     {
-        SendCandidateEmail::dispatch($candidate, 'interview_confirmation');
+        SendCandidateEmail::dispatchSync($candidate, 'interview_confirmation');
     }
 
     protected function onPreScreeningPassed(Candidate $candidate): void
     {
-        // Send application, BG consent, reference forms after 2-day delay
-        SendCandidateEmail::dispatch($candidate, 'prescreening')
-            ->delay(now()->addDays(2));
+        // Send application, BG consent, reference forms immediately
+        SendCandidateEmail::dispatchSync($candidate, 'prescreening');
 
         // Create background check records
         foreach (['mdhhs', 'sam_oig', 'npdb'] as $type) {
@@ -178,12 +177,12 @@ class CandidateService
             $extraVars['offer_link'] = config('app.url') . '/offer/' . $offer->token;
         }
 
-        SendCandidateEmail::dispatch($candidate, 'offer', $extraVars);
+        SendCandidateEmail::dispatchSync($candidate, 'offer', $extraVars);
     }
 
     protected function onOfferAccepted(Candidate $candidate): void
     {
-        SendCandidateEmail::dispatch($candidate, 'onboarding');
+        SendCandidateEmail::dispatchSync($candidate, 'onboarding');
         $this->createOnboardingTasks($candidate);
 
         // Notify HR staff assigned to this candidate
@@ -199,12 +198,12 @@ class CandidateService
 
     protected function onRejected(Candidate $candidate): void
     {
-        SendCandidateEmail::dispatch($candidate, 'reject');
+        SendCandidateEmail::dispatchSync($candidate, 'reject');
     }
 
     protected function onDeclined(Candidate $candidate): void
     {
-        SendCandidateEmail::dispatch($candidate, 'declined_followup');
+        SendCandidateEmail::dispatchSync($candidate, 'declined_followup');
     }
 
     protected function onOnboarding(Candidate $candidate): void
@@ -253,7 +252,7 @@ class CandidateService
             'is_active'       => true,
         ]);
 
-        SendCandidateEmail::dispatch($candidate, 'portal_credentials', [
+        SendCandidateEmail::dispatchSync($candidate, 'portal_credentials', [
             'login_url'     => config('app.url') . '/login',
             'login_email'   => $candidate->email,
             'temp_password' => $tempPassword,
@@ -352,7 +351,7 @@ class CandidateService
                 ]
             );
 
-            SendCandidateEmail::dispatch($candidate, 'portal_credentials', [
+            SendCandidateEmail::dispatchSync($candidate, 'portal_credentials', [
                 'login_url'     => config('app.url') . '/login',
                 'login_email'   => $candidate->email,
                 'temp_password' => $tempPassword,

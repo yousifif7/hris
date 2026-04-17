@@ -41,7 +41,7 @@ class SendCandidateEmail implements ShouldQueue
             'company_name'         => Setting::get('company_name', 'Wellness Behavioral Health'),
             'hr_name'              => $this->candidate->assignedTo?->full_name ?? 'HR Team',
             'hr_email'             => $this->candidate->assignedTo?->email ?? '',
-            'scheduling_link'      => config('app.url') . '/schedule/' . $this->candidate->id,
+            'scheduling_link'      => (Setting::get('app_url', config('app.url'))) . '/schedule/' . ($this->candidate->schedule_token ?? $this->candidate->id),
             'today'                => now()->format('M d, Y'),
         ];
 
@@ -52,7 +52,7 @@ class SendCandidateEmail implements ShouldQueue
             $vars['offer_start_date']      = $offer->start_date?->format('M d, Y') ?? 'TBD';
             $vars['offer_orientation_date']= $offer->orientation_date?->format('M d, Y') ?? 'TBD';
             $vars['offer_link']            = $offer->token
-                ? config('app.url') . '/offer/' . $offer->token
+                ? (Setting::get('app_url', config('app.url'))) . '/offer/' . $offer->token
                 : '';
             // Backwards compat
             $vars['pay_rate']        = $vars['offer_pay_rate'];

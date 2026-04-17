@@ -303,7 +303,7 @@ class MessageController extends Controller
             'sent_at'      => now(),
         ]);
 
-        SendMessageJob::dispatch($message);
+        SendMessageJob::dispatchSync($message);
 
         return response()->json(['ok' => true, 'message_id' => $message->id]);
     }
@@ -364,7 +364,7 @@ class MessageController extends Controller
             'sent_at'      => now(),
         ]);
 
-        SendMessageJob::dispatch($message);
+        SendMessageJob::dispatchSync($message);
 
         return response()->json($message, 201);
     }
@@ -480,7 +480,7 @@ class MessageController extends Controller
                 'sent_at'      => now(),
             ]);
 
-            SendMessageJob::dispatch($message);
+            SendMessageJob::dispatchSync($message);
             $sent++;
         }
 
