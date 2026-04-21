@@ -322,7 +322,7 @@ function In(f,l){ return ((f||'')[0]||'').toUpperCase()+((l||'')[0]||'').toUpper
 function fD(dt){ if(!dt) return 'â€”'; var d=new Date(dt.replace(' ','T')); return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
 function fDate(dt){ if(!dt) return 'â€”'; return new Date(dt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 
-var SL={needs_review:'Needs Review',invite_sent:'Invite Sent',no_response:'No Response',interview_scheduled:'Interview Scheduled',post_interview_review:'Post-Interview Review',pre_screening_passed:'Pre-Screening Passed',awaiting_background_check:'Awaiting Background Check',offer_sent:'Offer Sent',offer_accepted:'Offer Accepted',rejected:'Rejected',applicant_declined:'Applicant Declined',queue:'Queue',onboarding:'Onboarding',hired:'Hired'};
+var SL={needs_review:'Needs Review',invite_sent:'Invite Sent',no_response:'No Response',interview_scheduled:'Interview Scheduled',post_interview_review:'Post-Interview (Application Pending)',pre_screening_passed:'Pre-Screening Passed',awaiting_background_check:'Awaiting Background Check',offer_sent:'Offer Sent',offer_accepted:'Offer Accepted',rejected:'Rejected',applicant_declined:'Applicant Declined',queue:'Queue',onboarding:'Onboarding',hired:'Hired'};
 var SB={needs_review:'needs-review',invite_sent:'invite-sent',no_response:'queue',interview_scheduled:'interview',post_interview_review:'post-interview',pre_screening_passed:'prescreening',awaiting_background_check:'bg-check',offer_sent:'offer-sent',offer_accepted:'offer-accepted',rejected:'rejected',applicant_declined:'declined',queue:'queue',onboarding:'onboarding',hired:'offer-accepted'};
 function B(s){ var lbl=SL[s]||s; return '<span class="badge badge-'+(SB[s]||'queue')+'">'+esc(lbl)+'</span>'; }
 
@@ -387,7 +387,7 @@ async function loadNotifications(){
     var unread = data.filter(function(n){ return !n.read_at; });
     if(dot) dot.style.display = unread.length ? 'block' : 'none';
     if(!data.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No notifications yet.</div>'; return; }
-    var icons = {new_candidate:'📋', status_changed:'🔄', converted_to_employee:'🎉', reference_received:'📨', background_check:'🔍', training_expiring:'⏰'};
+    var icons = {new_candidate:'📋', status_changed:'🔄', converted_to_employee:'🎉', reference_received:'📨', background_check:'🔍', training_expiring:'⏰', pre_screening_submitted:'📝'};
     list.innerHTML = data.map(function(n){
         var d = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
         var icon = icons[d.type] || '🔔';

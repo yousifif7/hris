@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\PublicApplyController;
 use App\Http\Controllers\PublicOfferController;
+use App\Http\Controllers\PublicPreScreeningController;
 use App\Http\Controllers\PublicScheduleController;
+use App\Http\Controllers\PrescreenPrintController;
 use Illuminate\Support\Facades\Route;
 
 // Public career application form (token-masked URL)
@@ -16,6 +18,10 @@ Route::post('/offer/{token}/respond', [PublicOfferController::class, 'respond'])
 Route::get('/schedule/{token}', [PublicScheduleController::class, 'show'])->name('public.schedule');
 Route::post('/schedule/{token}/book', [PublicScheduleController::class, 'book'])->name('public.schedule.book');
 Route::get('/schedule/{token}/confirmed', [PublicScheduleController::class, 'confirmed'])->name('public.schedule.confirmed');
+
+// Public post-interview pre-screening form (candidate-facing, no auth)
+Route::get('/prescreen/{token}', [PublicPreScreeningController::class, 'show'])->name('public.prescreen');
+Route::post('/prescreen/{token}', [PublicPreScreeningController::class, 'submit'])->name('public.prescreen.submit');
 
 // Root: redirect based on auth state (JS handles role-based redirect after /me)
 Route::get('/', fn() => redirect('/login'));
@@ -38,4 +44,5 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');
+    Route::get('/candidates/{candidate}/application-print', [PrescreenPrintController::class, 'print'])->name('candidate.application.print');
 });

@@ -26,7 +26,7 @@ enum CandidateStatus: string
             self::INVITE_SENT              => 'Invite Sent',
             self::NO_RESPONSE              => 'No Response',
             self::INTERVIEW_SCHEDULED      => 'Interview Scheduled',
-            self::POST_INTERVIEW_REVIEW    => 'Needs Review (Post-Interview)',
+            self::POST_INTERVIEW_REVIEW    => 'Post-Interview (Application Pending)',
             self::PRE_SCREENING_PASSED     => 'Pre-Screening Passed',
             self::AWAITING_BACKGROUND_CHECK => 'Awaiting Background Check',
             self::OFFER_SENT               => 'Offer Sent',

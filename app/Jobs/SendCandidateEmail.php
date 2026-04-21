@@ -42,6 +42,9 @@ class SendCandidateEmail implements ShouldQueue
             'hr_name'              => $this->candidate->assignedTo?->full_name ?? 'HR Team',
             'hr_email'             => $this->candidate->assignedTo?->email ?? '',
             'scheduling_link'      => (Setting::get('app_url', config('app.url'))) . '/schedule/' . ($this->candidate->schedule_token ?? $this->candidate->id),
+            'prescreening_link'    => $this->candidate->prescreen_token
+                ? (Setting::get('app_url', config('app.url'))) . '/prescreen/' . $this->candidate->prescreen_token
+                : '',
             'today'                => now()->format('M d, Y'),
         ];
 
@@ -70,6 +73,25 @@ class SendCandidateEmail implements ShouldQueue
         // Use HTML body if available, else plain text
         $isHtml = ! empty($rendered['body_html']);
         $body   = $isHtml ? $rendered['body_html'] : $rendered['body'];
+        $attachments = [];
+
+        if ($this->templateSlug === 'prescreening') {
+            $pdfPath = Setting::get('prescreening_pdf_path', 'forms/post-interview-application.pdf');
+
+            if (! empty($pdfPath)) {
+                $absolutePath = str_starts_with($pdfPath, DIRECTORY_SEPARATOR)
+                    ? $pdfPath
+                    : public_path(trim($pdfPath, '/\\'));
+
+                if (is_file($absolutePath)) {
+                    $attachments[] = [
+                        'path' => $absolutePath,
+                        'name' => 'Post-Interview-Application.pdf',
+                        'mime' => 'application/pdf',
+                    ];
+                }
+            }
+        }
 
         try {
             MailService::send(
@@ -79,6 +101,7 @@ class SendCandidateEmail implements ShouldQueue
                 isHtml: $isHtml,
                 fromEmail: $fromEmail,
                 fromName: $fromName,
+                attachments: $attachments,
             );
 
             $this->candidate->activityLogs()->create([

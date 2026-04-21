@@ -119,6 +119,7 @@ class CandidateService
         match ($newStatus) {
             CandidateStatus::INVITE_SENT => $this->onInviteSent($candidate),
             CandidateStatus::INTERVIEW_SCHEDULED => $this->onInterviewScheduled($candidate),
+            CandidateStatus::POST_INTERVIEW_REVIEW => $this->onPostInterviewReview($candidate),
             CandidateStatus::PRE_SCREENING_PASSED => $this->onPreScreeningPassed($candidate),
             CandidateStatus::OFFER_SENT => $this->onOfferSent($candidate),
             CandidateStatus::OFFER_ACCEPTED => $this->onOfferAccepted($candidate),
@@ -149,11 +150,17 @@ class CandidateService
         SendCandidateEmail::dispatchSync($candidate, 'interview_confirmation');
     }
 
+    protected function onPostInterviewReview(Candidate $candidate): void
+    {
+        if (! $candidate->prescreen_token) {
+            $candidate->update(['prescreen_token' => Str::uuid()->toString()]);
+        }
+
+        SendCandidateEmail::dispatchSync($candidate, 'prescreening');
+    }
+
     protected function onPreScreeningPassed(Candidate $candidate): void
     {
-        // Send application, BG consent, reference forms immediately
-        SendCandidateEmail::dispatchSync($candidate, 'prescreening');
-
         // Create background check records
         foreach (['mdhhs', 'sam_oig', 'npdb'] as $type) {
             $candidate->backgroundChecks()->firstOrCreate(

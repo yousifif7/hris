@@ -12,7 +12,7 @@
 async function pageRefresh(){ await loadScreening(); }
 
 async function loadScreening(){
-    var r = await apiFetch('/api/candidates?status=pre_screening_passed,awaiting_background_check&include=backgroundChecks,references&per_page=50');
+    var r = await apiFetch('/api/candidates?status=pre_screening_passed,awaiting_background_check&include=backgroundChecks,references,preScreening&per_page=50');
     if(!r) return;
     var data = await r.json();
     var items = data.data || [];
@@ -31,6 +31,31 @@ function renderScreeningCard(c){
     var bg = c.background_checks || [];
     var refs = c.references || [];
     var checks = ['mdhhs','sam_oig','npdb'];
+    var prescreenSection = '';
+    if (c.pre_screening) {
+        var ps = c.pre_screening;
+        var formUrl = ps.uploaded_form_path ? '/' + String(ps.uploaded_form_path).replace(/^\/+/, '') : '';
+        prescreenSection = '<div style="margin-bottom:14px;padding:12px;background:var(--bg2);border-radius:8px;border-left:3px solid var(--blue)">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+            +'<span style="font-weight:600;font-size:13px">📋 Application Form</span>'
+            +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+              +(formUrl?'<button class="btn btn-blue btn-sm" onclick="openUploadedForm(\''+esc(formUrl)+'\')">📄 Open PDF</button>':'')
+              +(formUrl?'<button class="btn btn-secondary btn-sm" onclick="downloadUploadedForm(\''+esc(formUrl)+'\',\''+esc(ps.uploaded_form_name || 'completed-form.pdf')+'\')">⬇ Download</button>':'')
+              +'<button class="btn btn-secondary btn-sm" onclick="printApplicationForm('+c.id+')">🖨️ Print Summary</button>'
+            +'</div>'
+          +'</div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2)">'
+            +(ps.education_level?'<div><span style="color:var(--text3)">Education:</span> '+esc(ps.education_level)+'</div>':'')
+            +(ps.years_experience!=null?'<div><span style="color:var(--text3)">Experience:</span> '+esc(ps.years_experience)+' yrs</div>':'')
+            +(ps.availability?'<div><span style="color:var(--text3)">Availability:</span> '+esc(ps.availability)+'</div>':'')
+            +(ps.earliest_start_date?'<div><span style="color:var(--text3)">Start Date:</span> '+esc(ps.earliest_start_date)+'</div>':'')
+            +(ps.licenses?'<div style="grid-column:span 2"><span style="color:var(--text3)">Licenses:</span> '+esc(ps.licenses)+'</div>':'')
+            +(ps.additional_notes?'<div style="grid-column:span 2"><span style="color:var(--text3)">Notes:</span> '+esc(ps.additional_notes)+'</div>':'')
+            +(ps.uploaded_form_name?'<div style="grid-column:span 2"><span style="color:var(--text3)">Uploaded PDF:</span> '+esc(ps.uploaded_form_name)+'</div>':'')
+          +'</div>'
+        +'</div>';
+    }
+
     var bgRows = checks.map(function(type){
         var found = bg.find(function(b){ return b.check_type===type; });
         var status = found ? found.status : 'pending';
@@ -63,6 +88,7 @@ function renderScreeningCard(c){
         +'<div style="font-size:12px;color:var(--text3)">'+(c.category?esc(c.category.name):'—')+' · '+B(c.status)+'</div></div>'
         +(allDone?'<span class="badge badge-offer-accepted" style="margin-left:auto">✅ All Checks Clear</span>':'')
       +'</div>'
+      +prescreenSection
       +'<div class="bg-check-grid">'+bgRows+refRow+'</div>'
       +'<div style="margin-top:12px;display:flex;gap:8px">'
         +(allDone?'<button class="btn btn-primary btn-sm" onclick="openOfferModal('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">✅ Approve → Send Offer</button>':'')
@@ -85,6 +111,24 @@ async function rejectCandidate(id){
     if(!r) return;
     toast('✗ Candidate rejected.', 'error');
     loadScreening();
+}
+
+function printApplicationForm(candidateId){
+    var token = getToken();
+  window.open('/hris/candidates/'+candidateId+'/application-print?token='+encodeURIComponent(token), '_blank');
+}
+
+function openUploadedForm(url){
+  window.open(url, '_blank');
+}
+
+function downloadUploadedForm(url, filename){
+  var link = document.createElement('a');
+  link.href = url;
+  link.download = filename || 'completed-form.pdf';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 document.addEventListener('DOMContentLoaded', loadScreening);

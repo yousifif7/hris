@@ -56,18 +56,31 @@ class MailService
         ?string $fromName  = null,
         ?string $cc        = null,
         ?string $bcc       = null,
+        array   $attachments = [],
     ): void {
         static::configure();
 
         $from      = $fromEmail ?: Setting::get('smtp_from_email', 'no-reply@example.com');
         $name      = $fromName  ?: Setting::get('smtp_from_name', 'HR Team');
 
-        $callback = function ($mail) use ($to, $subject, $from, $name, $cc, $bcc) {
+        $callback = function ($mail) use ($to, $subject, $from, $name, $cc, $bcc, $attachments) {
             $mail->to($to)
                  ->from($from, $name)
                  ->subject($subject);
             if ($cc)  $mail->cc($cc);
             if ($bcc) $mail->bcc($bcc);
+
+            foreach ($attachments as $attachment) {
+                $path = $attachment['path'] ?? null;
+                if (! $path || ! is_file($path)) {
+                    continue;
+                }
+
+                $mail->attach($path, [
+                    'as' => $attachment['name'] ?? basename($path),
+                    'mime' => $attachment['mime'] ?? 'application/pdf',
+                ]);
+            }
         };
 
         $mailer = Mail::mailer('smtp');

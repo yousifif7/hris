@@ -53,6 +53,7 @@ class EmailTemplate extends Model
             ['token' => '{{offer_orientation_date}}','label' => 'Offer Orientation Date',       'group' => 'Offer'],
             ['token' => '{{offer_link}}',            'label' => 'Public Offer Acceptance Link', 'group' => 'Offer'],
             ['token' => '{{scheduling_link}}',       'label' => 'Interview Scheduling Link',    'group' => 'Interview'],
+            ['token' => '{{prescreening_link}}',     'label' => 'Public Pre-Screening Form Link', 'group' => 'Interview'],
             ['token' => '{{today}}',                 'label' => "Today's Date",                 'group' => 'System'],
             ['token' => '{{login_url}}',             'label' => 'Employee Portal Login URL',    'group' => 'Onboarding'],
             ['token' => '{{temp_password}}',         'label' => 'Temporary Portal Password',   'group' => 'Onboarding'],

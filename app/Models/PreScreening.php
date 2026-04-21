@@ -9,7 +9,7 @@ class PreScreening extends Model
     protected $fillable = [
         'candidate_id', 'education_level', 'years_experience',
         'licenses', 'availability', 'earliest_start_date',
-        'additional_notes', 'screened_by',
+        'additional_notes', 'uploaded_form_path', 'uploaded_form_name', 'screened_by',
     ];
 
     protected function casts(): array
