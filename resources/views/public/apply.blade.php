@@ -182,11 +182,75 @@
       </div>
     </div>
 
+    <div class="form-group">
+      <label>Street Address</label>
+      <input id="aAddr" placeholder="123 Main St">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>City</label>
+        <input id="aCity" placeholder="Detroit">
+      </div>
+      <div class="form-group">
+        <label>State / Province</label>
+        <input id="aState" placeholder="MI">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Postal Code</label>
+        <input id="aPostal" placeholder="48201">
+      </div>
+      <div class="form-group">
+        <label>LinkedIn Profile</label>
+        <input id="aLinkedIn" type="url" placeholder="https://linkedin.com/in/jane-doe">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Years of Experience</label>
+        <input id="aYears" type="number" min="0" max="60" placeholder="3">
+      </div>
+      <div class="form-group">
+        <label>Desired Pay (optional)</label>
+        <input id="aPay" type="number" min="0" step="0.01" placeholder="24.50">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Earliest Start Date</label>
+        <input id="aStart" type="date">
+      </div>
+      <div class="form-group">
+        <label>Authorized to work in the U.S.?</label>
+        <select id="aAuth">
+          <option value="">Select...</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Position -->
     <div class="form-group">
       <label>Position / Category of Interest</label>
       <select id="aC">
         <option value="">Select a category...</option>
+      </select>
+    </div>
+
+    <!-- Education Level -->
+    <div class="form-group">
+      <label>Highest Level of Education</label>
+      <select id="aEdu">
+        <option value="">Select education level...</option>
+        <option value="high-school">High School / GED</option>
+        <option value="associates">Associate's Degree</option>
+        <option value="bachelors">Bachelor's Degree</option>
+        <option value="masters">Master's Degree</option>
+        <option value="doctorate">Doctorate (Ph.D. / M.D.)</option>
+        <option value="other">Other</option>
       </select>
     </div>
 
@@ -294,11 +358,31 @@ async function submitApplication(){
   fd.append('last_name', l);
   var email = document.getElementById('aE').value.trim();
   var phone = document.getElementById('aP').value.trim();
+  var streetAddress = document.getElementById('aAddr').value.trim();
+  var city = document.getElementById('aCity').value.trim();
+  var state = document.getElementById('aState').value.trim();
+  var postalCode = document.getElementById('aPostal').value.trim();
+  var linkedIn = document.getElementById('aLinkedIn').value.trim();
+  var yearsExperience = document.getElementById('aYears').value.trim();
+  var desiredPay = document.getElementById('aPay').value.trim();
+  var earliestStart = document.getElementById('aStart').value;
+  var workAuth = document.getElementById('aAuth').value;
   var cat   = document.getElementById('aC').value;
+  var edu   = document.getElementById('aEdu').value;
   var text  = document.getElementById('aR').value.trim();
   if(email) fd.append('email', email);
   if(phone) fd.append('phone', phone);
+  if(streetAddress) fd.append('street_address', streetAddress);
+  if(city) fd.append('city', city);
+  if(state) fd.append('state', state);
+  if(postalCode) fd.append('postal_code', postalCode);
+  if(linkedIn) fd.append('linkedin_url', linkedIn);
+  if(yearsExperience !== '') fd.append('years_experience', yearsExperience);
+  if(desiredPay !== '') fd.append('desired_pay', desiredPay);
+  if(earliestStart) fd.append('earliest_start_date', earliestStart);
+  if(workAuth !== '') fd.append('is_authorized_to_work', workAuth);
   if(cat)   fd.append('job_category_id', cat);
+  if(edu)   fd.append('education_level', edu);
   if(text)  fd.append('resume_text', text);
   if(selectedFile) fd.append('resume_file', selectedFile);
   fd.append('source', 'Website');

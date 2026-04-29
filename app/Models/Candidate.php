@@ -17,8 +17,10 @@ class Candidate extends Model
 
     protected $fillable = [
         'first_name', 'last_name', 'email', 'phone',
+        'street_address', 'city', 'state', 'postal_code',
         'job_category_id', 'source', 'status', 'assigned_to',
         'notes', 'resume_text', 'resume_file',
+        'linkedin_url', 'years_experience', 'education_level', 'is_authorized_to_work', 'desired_pay', 'earliest_start_date',
         'invite_sent_at', 'schedule_token', 'prescreen_token', 'last_followup_at', 'followup_count',
     ];
 
@@ -28,6 +30,8 @@ class Candidate extends Model
             'status'           => CandidateStatus::class,
             'invite_sent_at'   => 'datetime',
             'last_followup_at' => 'datetime',
+            'is_authorized_to_work' => 'boolean',
+            'earliest_start_date' => 'date',
         ];
     }
 
@@ -51,6 +55,11 @@ class Candidate extends Model
     public function interviews(): HasMany
     {
         return $this->hasMany(Interview::class);
+    }
+
+    public function interviewAvailabilitySlots(): HasMany
+    {
+        return $this->hasMany(InterviewAvailabilitySlot::class);
     }
 
     public function backgroundChecks(): HasMany

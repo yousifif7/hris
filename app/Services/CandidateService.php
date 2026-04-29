@@ -31,12 +31,22 @@ class CandidateService
             'last_name'       => $data['last_name'],
             'email'           => $data['email'] ?? null,
             'phone'           => $data['phone'] ?? null,
+            'street_address'  => $data['street_address'] ?? null,
+            'city'            => $data['city'] ?? null,
+            'state'           => $data['state'] ?? null,
+            'postal_code'     => $data['postal_code'] ?? null,
             'job_category_id' => $data['job_category_id'] ?? null,
             'source'          => $data['source'] ?? 'Website',
             'status'          => CandidateStatus::NEEDS_REVIEW,
             'assigned_to'     => $assignee?->id,
             'notes'           => $data['notes'] ?? null,
             'resume_text'     => $data['resume_text'] ?? null,
+            'linkedin_url'    => $data['linkedin_url'] ?? null,
+            'education_level' => $data['education_level'] ?? null,
+            'years_experience' => $data['years_experience'] ?? null,
+            'is_authorized_to_work' => $data['is_authorized_to_work'] ?? null,
+            'desired_pay'     => $data['desired_pay'] ?? null,
+            'earliest_start_date' => $data['earliest_start_date'] ?? null,
         ]);
 
         // Handle resume file upload

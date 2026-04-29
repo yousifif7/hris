@@ -21,10 +21,27 @@ class CandidateController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Candidate::with(['category', 'assignedTo:id,first_name,last_name']);
+        $with = ['category', 'assignedTo:id,first_name,last_name'];
+
+        // Allow callers to request extra relations (e.g. screening page needs checks/refs)
+        $allowed = ['backgroundChecks', 'references', 'preScreening', 'interviews'];
+        if ($request->filled('include')) {
+            foreach (explode(',', $request->include) as $rel) {
+                if (in_array($rel, $allowed)) {
+                    $with[] = $rel;
+                }
+            }
+        }
+
+        $query = Candidate::with($with);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = array_filter(array_map('trim', explode(',', $request->status)));
+            if (count($statuses) > 1) {
+                $query->whereIn('status', $statuses);
+            } else {
+                $query->where('status', $statuses[0]);
+            }
         }
 
         if ($request->filled('category')) {
@@ -63,11 +80,21 @@ class CandidateController extends Controller
             'last_name'       => 'required|string|max:255',
             'email'           => 'nullable|email|max:255',
             'phone'           => 'nullable|string|max:50',
+            'street_address'  => 'nullable|string|max:255',
+            'city'            => 'nullable|string|max:120',
+            'state'           => 'nullable|string|max:120',
+            'postal_code'     => 'nullable|string|max:20',
             'job_category_id' => 'nullable|exists:job_categories,id',
+            'education_level' => 'nullable|string|max:50',
             'source'          => 'required|string|max:100',
             'notes'           => 'nullable|string',
             'resume_text'     => 'nullable|string',
             'resume_file'     => 'nullable|file|mimes:pdf,doc,docx,txt|max:10240',
+            'linkedin_url'    => 'nullable|url|max:255',
+            'years_experience' => 'nullable|integer|min:0|max:60',
+            'is_authorized_to_work' => 'nullable|boolean',
+            'desired_pay'     => 'nullable|numeric|min:0|max:999999.99',
+            'earliest_start_date' => 'nullable|date',
         ]);
 
         $candidate = $this->service->create(
@@ -105,10 +132,20 @@ class CandidateController extends Controller
             'last_name'       => 'sometimes|string|max:255',
             'email'           => 'sometimes|nullable|email',
             'phone'           => 'sometimes|nullable|string|max:50',
+            'street_address'  => 'sometimes|nullable|string|max:255',
+            'city'            => 'sometimes|nullable|string|max:120',
+            'state'           => 'sometimes|nullable|string|max:120',
+            'postal_code'     => 'sometimes|nullable|string|max:20',
             'job_category_id' => 'sometimes|nullable|exists:job_categories,id',
             'notes'           => 'sometimes|nullable|string',
             'resume_text'     => 'sometimes|nullable|string',
             'assigned_to'     => 'sometimes|nullable|exists:users,id',
+            'linkedin_url'    => 'sometimes|nullable|url|max:255',
+            'years_experience' => 'sometimes|nullable|integer|min:0|max:60',
+            'education_level' => 'sometimes|nullable|string|max:50',
+            'is_authorized_to_work' => 'sometimes|nullable|boolean',
+            'desired_pay'     => 'sometimes|nullable|numeric|min:0|max:999999.99',
+            'earliest_start_date' => 'sometimes|nullable|date',
         ]);
 
         $candidate->update($validated);
@@ -158,7 +195,7 @@ class CandidateController extends Controller
     public function reviewQueue(): JsonResponse
     {
         $candidates = Candidate::needsReview()
-            ->with(['category', 'assignedTo', 'interviews'])
+            ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -221,8 +258,13 @@ class CandidateController extends Controller
     public function convertToEmployee(Request $request, Candidate $candidate): JsonResponse
     {
         $data = $request->validate([
-            'department' => 'nullable|string',
-            'start_date' => 'nullable|date',
+            'department'              => 'nullable|string',
+            'start_date'              => 'nullable|date',
+            'access_info'             => 'nullable|array',
+            'access_info.email_login' => 'nullable|string|max:255',
+            'access_info.temp_password' => 'nullable|string|max:255',
+            'access_info.door_code'   => 'nullable|string|max:255',
+            'access_info.wifi_password' => 'nullable|string|max:255',
         ]);
 
         $employee = $this->service->convertToEmployee($candidate, $data);

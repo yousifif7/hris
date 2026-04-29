@@ -55,9 +55,17 @@ async function loadQueue(){
 
 async function setStatus(id, status){
     var name = (arguments[2]||'this candidate');
+
+  if(status === 'invite_sent'){
+    openInterviewAvailability(id, name, function(){
+      loadQueue();
+      updateReviewBadge();
+    });
+    return;
+  }
+
     var confirmMsgs = {
         rejected:         'Reject '+name+'?\n\nThis will send a rejection email.',
-        invite_sent:      'Invite '+name+' to an interview?\n\nA confirmation email will be sent.',
         pre_screening_passed: 'Move '+name+' to screening?',
         queue:            'Move '+name+' to queue for later?'
     };
@@ -68,7 +76,6 @@ async function setStatus(id, status){
     var c = await r.json();
     var toastMsgs = {
         rejected:             '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
-        invite_sent:          '✉ Interview invite sent to '+esc(c.first_name+' '+c.last_name)+'!',
         pre_screening_passed: '✓ '+esc(c.first_name+' '+c.last_name)+' moved to screening.',
         queue:                '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.'
     };

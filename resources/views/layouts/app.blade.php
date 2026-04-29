@@ -652,6 +652,12 @@ async function viewCandidate(id){
           +'<div><span style="color:var(--text3)">Phone</span><br>'+esc(c.phone||'â€”')+'</div>'
           +'<div><span style="color:var(--text3)">Category</span><br>'+esc(c.category?c.category.name:'â€”')+'</div>'
           +'<div><span style="color:var(--text3)">Source</span><br>'+esc(c.source||'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">Address</span><br>'+esc([c.street_address,c.city,c.state,c.postal_code].filter(Boolean).join(', ')||'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">LinkedIn</span><br>'+(c.linkedin_url?'<a href="'+esc(c.linkedin_url)+'" target="_blank" rel="noopener">Profile</a>':'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">Experience</span><br>'+esc((c.years_experience!=null?c.years_experience+' years':'â€”'))+'</div>'
+                    +'<div><span style="color:var(--text3)">Work Authorization</span><br>'+esc(c.is_authorized_to_work===null?'â€”':(c.is_authorized_to_work?'Yes':'No'))+'</div>'
+                    +'<div><span style="color:var(--text3)">Desired Pay</span><br>'+esc(c.desired_pay?('$'+Number(c.desired_pay).toFixed(2)):'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">Earliest Start</span><br>'+esc(c.earliest_start_date?fDate(c.earliest_start_date):'â€”')+'</div>'
           +'<div><span style="color:var(--text3)">Applied</span><br>'+esc(fDate(c.created_at))+'</div>'
           +'<div><span style="color:var(--text3)">Assigned</span><br>'+esc(c.assigned_to?c.assigned_to.first_name+' '+c.assigned_to.last_name:'â€”')+'</div>'
         +'</div>'
@@ -678,6 +684,15 @@ async function cdAction(id, forceStatus){
     if(st === 'offer_sent'){
         closeModal('candidateDetail');
         openOfferModal(id, name);
+        return;
+    }
+
+    if(st === 'invite_sent'){
+        closeModal('candidateDetail');
+        openInterviewAvailability(id, name, function(){
+            if(typeof pageRefresh === 'function') pageRefresh();
+            updateReviewBadge();
+        });
         return;
     }
 

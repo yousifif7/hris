@@ -89,12 +89,13 @@ button{cursor:pointer;border:none}
 
       <form method="POST" action="/schedule/{{ $token }}/book" id="bookForm">
         @csrf
-        <input type="hidden" name="scheduled_at" id="scheduledAt">
+        <input type="hidden" name="slot_id" id="slotId">
 
         {{-- Step 1: Pick a date --}}
         <div class="step" id="stepDate">
           <h3>1 — Pick a date</h3>
           <div class="date-grid" id="dateGrid"></div>
+          <p id="noSlotsMsg" style="display:none;color:var(--text3);font-size:12px;margin-top:8px">No availability has been published yet. Please check back soon.</p>
         </div>
 
         <hr class="step-divider">
@@ -123,30 +124,55 @@ button{cursor:pointer;border:none}
 
 <script>
 (function(){
+  var slots = [
+    @foreach($slots as $slot)
+      {
+        id: {{ $slot->id }},
+        starts_at: "{{ $slot->starts_at->toIso8601String() }}",
+        ends_at: "{{ $slot->ends_at->toIso8601String() }}"
+      }@if(! $loop->last),@endif
+    @endforeach
+  ];
+
   var selectedDate = null;
   var selectedTime = null;
+  var selectedSlotId = null;
 
-  // Generate next 14 business days
   var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var dateGrid = document.getElementById('dateGrid');
-  var d = new Date();
-  d.setDate(d.getDate() + 1); // start tomorrow
-  var count = 0;
-  while(count < 14){
-    var dow = d.getDay();
-    if(dow !== 0 && dow !== 6){ // skip weekends
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'date-btn';
-      var iso = d.toISOString().split('T')[0];
-      btn.dataset.date = iso;
-      btn.innerHTML = '<span class="day-name">'+days[dow]+'</span>' + months[d.getMonth()] + ' ' + d.getDate();
-      btn.addEventListener('click', function(){ selectDate(this); });
-      dateGrid.appendChild(btn);
-      count++;
-    }
-    d.setDate(d.getDate() + 1);
+
+  var groupedByDate = {};
+  slots.forEach(function(slot){
+    var dt = new Date(slot.starts_at);
+    var key = dt.toISOString().slice(0, 10);
+    if(!groupedByDate[key]) groupedByDate[key] = [];
+    groupedByDate[key].push(slot);
+  });
+
+  var sortedDates = Object.keys(groupedByDate).sort();
+  if(!sortedDates.length){
+    document.getElementById('noSlotsMsg').style.display = 'block';
+    return;
+  }
+
+  sortedDates.forEach(function(dateKey){
+    var d = new Date(dateKey + 'T12:00:00');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'date-btn';
+    btn.dataset.date = dateKey;
+    btn.innerHTML = '<span class="day-name">'+days[d.getDay()]+'</span>' + months[d.getMonth()] + ' ' + d.getDate();
+    btn.addEventListener('click', function(){ selectDate(this); });
+    dateGrid.appendChild(btn);
+  });
+
+  function fmtTime(dt){
+    var h = dt.getHours();
+    var m = dt.getMinutes();
+    var ampm = h < 12 ? 'AM' : 'PM';
+    var h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+    return h12 + ':' + String(m).padStart(2, '0') + ' ' + ampm;
   }
 
   function selectDate(btn){
@@ -154,26 +180,25 @@ button{cursor:pointer;border:none}
     btn.classList.add('selected');
     selectedDate = btn.dataset.date;
     selectedTime = null;
+    selectedSlotId = null;
 
-    // Build time slots 9am–5pm, every 30 min
     var timeGrid = document.getElementById('timeGrid');
     timeGrid.innerHTML = '';
-    for(var h = 9; h < 17; h++){
-      [0, 30].forEach(function(m){
-        var ampm = h < 12 ? 'AM' : 'PM';
-        var h12 = h <= 12 ? h : h - 12;
-        var label = h12 + ':' + (m === 0 ? '00' : '30') + ' ' + ampm;
-        var tb = document.createElement('button');
-        tb.type = 'button';
-        tb.className = 'time-btn';
-        tb.textContent = label;
-        var hh = String(h).padStart(2,'0');
-        var mm = m === 0 ? '00' : '30';
-        tb.dataset.time = hh + ':' + mm;
-        tb.addEventListener('click', function(){ selectTime(this, selectedDate); });
-        timeGrid.appendChild(tb);
-      });
-    }
+
+    (groupedByDate[selectedDate] || []).sort(function(a,b){
+      return new Date(a.starts_at) - new Date(b.starts_at);
+    }).forEach(function(slot){
+      var startsAt = new Date(slot.starts_at);
+      var endsAt = new Date(slot.ends_at);
+      var tb = document.createElement('button');
+      tb.type = 'button';
+      tb.className = 'time-btn';
+      tb.textContent = fmtTime(startsAt) + ' - ' + fmtTime(endsAt);
+      tb.dataset.slotId = slot.id;
+      tb.dataset.time = startsAt.toISOString();
+      tb.addEventListener('click', function(){ selectTime(this, startsAt, endsAt); });
+      timeGrid.appendChild(tb);
+    });
 
     var stepTime = document.getElementById('stepTime');
     stepTime.style.opacity = '1';
@@ -182,25 +207,20 @@ button{cursor:pointer;border:none}
     document.getElementById('btnConfirm').classList.remove('active');
   }
 
-  function selectTime(btn, date){
+  function selectTime(btn, startsAt, endsAt){
     document.querySelectorAll('.time-btn').forEach(function(b){ b.classList.remove('selected'); });
     btn.classList.add('selected');
     selectedTime = btn.dataset.time;
+    selectedSlotId = btn.dataset.slotId;
 
-    var dt = date + 'T' + selectedTime + ':00';
-    document.getElementById('scheduledAt').value = dt;
+    document.getElementById('slotId').value = selectedSlotId;
 
     // Build human-readable summary
-    var parsed = new Date(dt);
     var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var h = parsed.getHours();
-    var m = parsed.getMinutes();
-    var ampm = h < 12 ? 'AM' : 'PM';
-    var h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
-    var timeStr = h12 + ':' + (m === 0 ? '00' : '30') + ' ' + ampm;
     document.getElementById('summaryText').textContent =
-      dayNames[parsed.getDay()] + ', ' + monthNames[parsed.getMonth()] + ' ' + parsed.getDate() + ' at ' + timeStr;
+      dayNames[startsAt.getDay()] + ', ' + monthNames[startsAt.getMonth()] + ' ' + startsAt.getDate() + ' at '
+      + fmtTime(startsAt) + ' - ' + fmtTime(endsAt);
 
     document.getElementById('summaryBox').style.display = 'block';
     document.getElementById('btnConfirm').classList.add('active');

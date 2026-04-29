@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\CandidateStatus;
 use App\Models\Candidate;
 use App\Models\Interview;
+use App\Models\InterviewAvailabilitySlot;
 use App\Models\Setting;
 use App\Services\CandidateService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PublicScheduleController extends Controller
 {
@@ -31,10 +33,17 @@ class PublicScheduleController extends Controller
             ->where('status', 'scheduled')
             ->first();
 
+        $slots = InterviewAvailabilitySlot::where('candidate_id', $candidate->id)
+            ->whereNull('booked_interview_id')
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->get();
+
         return view('public.schedule', [
             'candidate'   => $candidate,
             'token'       => $token,
             'existing'    => $existing,
+            'slots'       => $slots,
             'company'     => Setting::get('company_name', 'Our Company'),
         ]);
     }
@@ -53,7 +62,7 @@ class PublicScheduleController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'scheduled_at' => 'required|date|after:now',
+            'slot_id' => 'required|integer|exists:interview_availability_slots,id',
         ]);
 
         // Prevent double-booking
@@ -65,13 +74,35 @@ class PublicScheduleController extends Controller
             return back()->with('error', 'You have already booked an interview.');
         }
 
-        Interview::create([
-            'candidate_id'     => $candidate->id,
-            'scheduled_at'     => $data['scheduled_at'],
-            'duration_minutes' => 20,
-            'type'             => 'zoom',
-            'status'           => 'scheduled',
-        ]);
+        $booked = DB::transaction(function () use ($candidate, $data) {
+            $slot = InterviewAvailabilitySlot::where('id', $data['slot_id'])
+                ->where('candidate_id', $candidate->id)
+                ->whereNull('booked_interview_id')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $slot || $slot->starts_at->isPast()) {
+                return false;
+            }
+
+            $duration = max(5, $slot->starts_at->diffInMinutes($slot->ends_at));
+
+            $interview = Interview::create([
+                'candidate_id'     => $candidate->id,
+                'scheduled_at'     => $slot->starts_at,
+                'duration_minutes' => $duration,
+                'type'             => Setting::get('default_interview_type', 'zoom'),
+                'status'           => 'scheduled',
+            ]);
+
+            $slot->update(['booked_interview_id' => $interview->id]);
+
+            return true;
+        });
+
+        if (! $booked) {
+            return back()->with('error', 'That interview slot is no longer available. Please choose another one.');
+        }
 
         $this->candidateService->changeStatus($candidate, CandidateStatus::INTERVIEW_SCHEDULED);
 

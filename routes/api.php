@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
+use App\Http\Controllers\Api\InterviewAvailabilitySlotController;
 use App\Http\Controllers\Api\JobCategoryController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OfferController;
@@ -83,6 +84,9 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     // Interviews
     Route::apiResource('interviews', InterviewController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('/interviews/{interview}/complete', [InterviewController::class, 'complete']);
+    Route::get('/candidates/{candidate}/interview-slots', [InterviewAvailabilitySlotController::class, 'index']);
+    Route::post('/candidates/{candidate}/interview-slots', [InterviewAvailabilitySlotController::class, 'store']);
+    Route::delete('/interview-slots/{slot}', [InterviewAvailabilitySlotController::class, 'destroy']);
 
     // Background checks
     Route::get('/candidates/{candidate}/background-checks', [BackgroundCheckController::class, 'index']);

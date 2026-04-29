@@ -80,11 +80,20 @@ class CandidateController extends Controller
             'last_name'       => 'required|string|max:255',
             'email'           => 'nullable|email|max:255',
             'phone'           => 'nullable|string|max:50',
+            'street_address'  => 'nullable|string|max:255',
+            'city'            => 'nullable|string|max:120',
+            'state'           => 'nullable|string|max:120',
+            'postal_code'     => 'nullable|string|max:20',
             'job_category_id' => 'nullable|exists:job_categories,id',
             'source'          => 'required|string|max:100',
             'notes'           => 'nullable|string',
             'resume_text'     => 'nullable|string',
             'resume_file'     => 'nullable|file|mimes:pdf,doc,docx,txt|max:10240',
+            'linkedin_url'    => 'nullable|url|max:255',
+            'years_experience' => 'nullable|integer|min:0|max:60',
+            'is_authorized_to_work' => 'nullable|boolean',
+            'desired_pay'     => 'nullable|numeric|min:0|max:999999.99',
+            'earliest_start_date' => 'nullable|date',
         ]);
 
         $candidate = $this->service->create(
@@ -122,10 +131,19 @@ class CandidateController extends Controller
             'last_name'       => 'sometimes|string|max:255',
             'email'           => 'sometimes|nullable|email',
             'phone'           => 'sometimes|nullable|string|max:50',
+            'street_address'  => 'sometimes|nullable|string|max:255',
+            'city'            => 'sometimes|nullable|string|max:120',
+            'state'           => 'sometimes|nullable|string|max:120',
+            'postal_code'     => 'sometimes|nullable|string|max:20',
             'job_category_id' => 'sometimes|nullable|exists:job_categories,id',
             'notes'           => 'sometimes|nullable|string',
             'resume_text'     => 'sometimes|nullable|string',
             'assigned_to'     => 'sometimes|nullable|exists:users,id',
+            'linkedin_url'    => 'sometimes|nullable|url|max:255',
+            'years_experience' => 'sometimes|nullable|integer|min:0|max:60',
+            'is_authorized_to_work' => 'sometimes|nullable|boolean',
+            'desired_pay'     => 'sometimes|nullable|numeric|min:0|max:999999.99',
+            'earliest_start_date' => 'sometimes|nullable|date',
         ]);
 
         $candidate->update($validated);
