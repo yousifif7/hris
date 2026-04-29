@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\CandidateStatus;
 use App\Models\Candidate;
+use App\Models\InterviewAvailabilitySlot;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\OnboardingTemplate;
 use App\Models\ActivityLog;
@@ -47,6 +49,7 @@ class CandidateService
             'is_authorized_to_work' => $data['is_authorized_to_work'] ?? null,
             'desired_pay'     => $data['desired_pay'] ?? null,
             'earliest_start_date' => $data['earliest_start_date'] ?? null,
+            'availability'    => $data['availability'] ?? null,
         ]);
 
         // Handle resume file upload
@@ -151,8 +154,73 @@ class CandidateService
         }
 
         $candidate->update(['invite_sent_at' => now()]);
+        $this->generateAvailabilitySlots($candidate);
         SendCandidateEmail::dispatchSync($candidate, 'invite');
         // No-response follow-up is handled by the daily scheduler (app:process-automations).
+    }
+
+    /**
+     * Expand the weekly availability template into concrete InterviewAvailabilitySlot
+     * records for the next 30 days. Existing unbooked future slots are cleared first
+     * so re-sending an invite regenerates a fresh set.
+     */
+    protected function generateAvailabilitySlots(Candidate $candidate): void
+    {
+        $weekly   = json_decode(Setting::get('weekly_availability', '{}'), true);
+        $duration = (int) Setting::get('interview_duration', 45);
+
+        if (empty($weekly) || $duration < 5) {
+            return;
+        }
+
+        $timezone = Setting::get('timezone', 'America/New_York');
+        $now      = now($timezone);
+
+        // Clear any existing unbooked future slots to avoid duplicates on resend
+        InterviewAvailabilitySlot::where('candidate_id', $candidate->id)
+            ->whereNull('booked_interview_id')
+            ->where('starts_at', '>', $now)
+            ->delete();
+
+        $lookahead = $now->copy()->addDays(30)->endOfDay();
+        $current   = $now->copy()->startOfDay();
+        $slots     = [];
+
+        while ($current->lessThanOrEqualTo($lookahead)) {
+            $dayName = strtolower($current->format('l')); // 'monday', 'tuesday', …
+            $config  = $weekly[$dayName] ?? null;
+
+            if ($config && ! empty($config['enabled']) && ! empty($config['start']) && ! empty($config['end'])) {
+                [$startH, $startM] = explode(':', $config['start']);
+                [$endH,   $endM]   = explode(':', $config['end']);
+
+                $slotStart = $current->copy()->setHour((int) $startH)->setMinute((int) $startM)->setSecond(0);
+                $dayEnd    = $current->copy()->setHour((int) $endH)->setMinute((int) $endM)->setSecond(0);
+
+                while ($slotStart->copy()->addMinutes($duration)->lessThanOrEqualTo($dayEnd)) {
+                    $slotEnd = $slotStart->copy()->addMinutes($duration);
+
+                    if ($slotEnd->isAfter($now)) {
+                        $slots[] = [
+                            'candidate_id' => $candidate->id,
+                            'starts_at'    => $slotStart->copy()->utc(),
+                            'ends_at'      => $slotEnd->copy()->utc(),
+                            'created_by'   => auth()->id(),
+                            'created_at'   => now(),
+                            'updated_at'   => now(),
+                        ];
+                    }
+
+                    $slotStart->addMinutes($duration);
+                }
+            }
+
+            $current->addDay();
+        }
+
+        if (! empty($slots)) {
+            InterviewAvailabilitySlot::insert($slots);
+        }
     }
 
     protected function onInterviewScheduled(Candidate $candidate): void

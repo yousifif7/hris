@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interview Confirmed — {{ $company }}</title>
+<title>Interview Confirmed - {{ $company }}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -34,15 +34,15 @@ body{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#f0f4ff 
     <div class="detail-box">
       <div class="detail-row">
         <span class="lbl">Date & Time</span>
-        <span class="val">{{ $interview->scheduled_at->format('l, F j, Y \a\t g:i A') }}</span>
+        <span class="val">{{ $scheduledLocal?->format('l, F j, Y \a\t g:i A') }} ({{ $scheduledLocal?->format('T') }})</span>
       </div>
       <div class="detail-row">
         <span class="lbl">Duration</span>
-        <span class="val">15–20 minutes</span>
+        <span class="val">{{ (int) ($interview->duration_minutes ?? 0) > 0 ? (int) $interview->duration_minutes.' minutes' : 'N/A' }}</span>
       </div>
       <div class="detail-row">
         <span class="lbl">Format</span>
-        <span class="val">Zoom</span>
+        <span class="val">{{ $displayType }}</span>
       </div>
       <div class="detail-row">
         <span class="lbl">Company</span>
@@ -50,7 +50,7 @@ body{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#f0f4ff 
       </div>
     </div>
     <p class="note">We'll send you the Zoom meeting link via email before your interview. If you have any questions, please reach out to your HR contact.</p>
-    <p style="font-size:11px;color:var(--text3);margin-top:24px">{{ $company }} · Powered by HRPortal</p>
+    <p style="font-size:11px;color:var(--text3);margin-top:24px">{{ $company }} - Powered by HRPortal</p>
   </div>
 </div>
 </body>

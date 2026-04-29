@@ -56,14 +56,6 @@ async function loadQueue(){
 async function setStatus(id, status){
     var name = (arguments[2]||'this candidate');
 
-  if(status === 'invite_sent'){
-    openInterviewAvailability(id, name, function(){
-      loadQueue();
-      updateReviewBadge();
-    });
-    return;
-  }
-
     var confirmMsgs = {
         rejected:         'Reject '+name+'?\n\nThis will send a rejection email.',
         pre_screening_passed: 'Move '+name+' to screening?',

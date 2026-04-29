@@ -240,6 +240,20 @@
       </select>
     </div>
 
+    <!-- Availability -->
+    <div class="form-group">
+      <label>Availability</label>
+      <select id="aAvailability">
+        <option value="">Select availability...</option>
+        <option value="full_time">Full-Time</option>
+        <option value="part_time">Part-Time</option>
+        {{-- <option value="contract">Contract</option>
+        <option value="temporary">Temporary</option>
+        <option value="internship">Internship</option> --}}
+        <option value="remote">Remote</option>
+      </select>
+    </div>
+
     <!-- Education Level -->
     <div class="form-group">
       <label>Highest Level of Education</label>
@@ -368,6 +382,7 @@ async function submitApplication(){
   var earliestStart = document.getElementById('aStart').value;
   var workAuth = document.getElementById('aAuth').value;
   var cat   = document.getElementById('aC').value;
+  var availability = document.getElementById('aAvailability') ? document.getElementById('aAvailability').value : '';
   var edu   = document.getElementById('aEdu').value;
   var text  = document.getElementById('aR').value.trim();
   if(email) fd.append('email', email);
@@ -382,6 +397,7 @@ async function submitApplication(){
   if(earliestStart) fd.append('earliest_start_date', earliestStart);
   if(workAuth !== '') fd.append('is_authorized_to_work', workAuth);
   if(cat)   fd.append('job_category_id', cat);
+  if(availability) fd.append('availability', availability);
   if(edu)   fd.append('education_level', edu);
   if(text)  fd.append('resume_text', text);
   if(selectedFile) fd.append('resume_file', selectedFile);

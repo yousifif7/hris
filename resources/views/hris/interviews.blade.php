@@ -146,7 +146,7 @@ function openEditInterview(id){
     var i = _allInterviews.find(function(x){ return x.id===id; });
     if(!i) return;
     document.getElementById('editIntId').value        = i.id;
-    document.getElementById('editIntDate').value      = i.scheduled_at ? i.scheduled_at.replace(' ','T').substring(0,16) : '';
+  document.getElementById('editIntDate').value      = toInputDateTimeInAppTz(i.scheduled_at);
     document.getElementById('editIntDur').value       = i.duration_minutes||20;
     document.getElementById('editIntType').value      = i.type||'zoom';
     document.getElementById('editIntLink').value      = i.meeting_link||'';

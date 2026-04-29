@@ -316,11 +316,58 @@ async function apiFetch(url, opts){
 /* â”€â”€ Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+var APP_TZ = @json(config('app.timezone', 'UTC'));
+
 var CLR=['#5b4cdb','#e5508c','#00875a','#ff991f','#0065ff','#ff8b00','#7b68ee','#36b37e'];
 function Cl(id){ return CLR[(+id||0)%CLR.length]; }
 function In(f,l){ return ((f||'')[0]||'').toUpperCase()+((l||'')[0]||'').toUpperCase(); }
-function fD(dt){ if(!dt) return 'â€”'; var d=new Date(dt.replace(' ','T')); return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
-function fDate(dt){ if(!dt) return 'â€”'; return new Date(dt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function parseApiDateTime(dt){
+    if(!dt) return null;
+    var s = String(dt).trim().replace(' ', 'T');
+    // If API timestamp has no timezone offset, treat it as UTC.
+    if(!/(Z|[+-]\d{2}:?\d{2})$/.test(s)) s += 'Z';
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+function fmtInAppTz(d, opts){
+    var o = Object.assign({ timeZone: APP_TZ }, opts || {});
+    return new Intl.DateTimeFormat('en-US', o).format(d);
+}
+function fD(dt){
+    var d = parseApiDateTime(dt);
+    if(!d) return '—';
+    return fmtInAppTz(d,{weekday:'short',month:'short',day:'numeric'})+' '+fmtInAppTz(d,{hour:'numeric',minute:'2-digit',hour12:true});
+}
+function fDate(dt){
+    var d = parseApiDateTime(dt);
+    if(!d) return '—';
+    return fmtInAppTz(d,{month:'short',day:'numeric',year:'numeric'});
+}
+function toInputDateTimeInAppTz(dt){
+    var d = parseApiDateTime(dt);
+    if(!d) return '';
+    var parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: APP_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).formatToParts(d);
+    var map = {};
+    parts.forEach(function(p){ map[p.type] = p.value; });
+    return map.year+'-'+map.month+'-'+map.day+'T'+map.hour+':'+map.minute;
+}
+
+function dateKeyInAppTz(dt){
+    var d = parseApiDateTime(dt);
+    if(!d) return null;
+    var parts = new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+    var map = {};
+    parts.forEach(function(p){ map[p.type] = p.value; });
+    return map.year+'-'+map.month+'-'+map.day;
+}
 
 var SL={needs_review:'Needs Review',invite_sent:'Invite Sent',no_response:'No Response',interview_scheduled:'Interview Scheduled',post_interview_review:'Post-Interview (Application Pending)',pre_screening_passed:'Pre-Screening Passed',awaiting_background_check:'Awaiting Background Check',offer_sent:'Offer Sent',offer_accepted:'Offer Accepted',rejected:'Rejected',applicant_declined:'Applicant Declined',queue:'Queue',onboarding:'Onboarding',hired:'Hired'};
 var SB={needs_review:'needs-review',invite_sent:'invite-sent',no_response:'queue',interview_scheduled:'interview',post_interview_review:'post-interview',pre_screening_passed:'prescreening',awaiting_background_check:'bg-check',offer_sent:'offer-sent',offer_accepted:'offer-accepted',rejected:'rejected',applicant_declined:'declined',queue:'queue',onboarding:'onboarding',hired:'offer-accepted'};
@@ -488,11 +535,12 @@ function renderMiniCal(){
     var today = new Date();
     lbl.textContent = _calViewDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
 
-    // Build event map: 'YYYY-MM-DD' -> count
+    // Build event map: 'YYYY-MM-DD' in APP_TZ -> count
     var evtMap = {};
     _calInterviews.forEach(function(i){
         if(!i.scheduled_at) return;
-        var key = (i.scheduled_at+'').substring(0,10);
+        var key = dateKeyInAppTz(i.scheduled_at);
+        if(!key) return;
         evtMap[key] = (evtMap[key]||0)+1;
     });
 
@@ -537,13 +585,13 @@ function renderCalDayList(){
     var list;
     if(_calSelDay){
         list = _calInterviews.filter(function(i){
-            return i.scheduled_at && (i.scheduled_at+'').substring(0,10)===_calSelDay;
+            return i.scheduled_at && dateKeyInAppTz(i.scheduled_at)===_calSelDay;
         });
     } else {
         var now = Date.now();
         list = _calInterviews
-            .filter(function(i){ return i.scheduled_at && +new Date((i.scheduled_at+'').replace(' ','T'))>=now; })
-            .sort(function(a,b){ return +new Date((a.scheduled_at+'').replace(' ','T'))- +new Date((b.scheduled_at+'').replace(' ','T')); })
+            .filter(function(i){ var d = parseApiDateTime(i.scheduled_at); return d && d.getTime()>=now; })
+            .sort(function(a,b){ var da=parseApiDateTime(a.scheduled_at), db=parseApiDateTime(b.scheduled_at); return (da?da.getTime():0) - (db?db.getTime():0); })
             .slice(0,5);
     }
     if(!list.length){
@@ -552,9 +600,10 @@ function renderCalDayList(){
     }
     el.innerHTML='<div class="cal-int-list">'+list.map(function(i){
         var c  = i.candidate||{};
-        var dt = new Date((i.scheduled_at+'').replace(' ','T'));
-        var tm = dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-        var pre = _calSelDay ? '' : dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' ';
+        var dt = parseApiDateTime(i.scheduled_at);
+        if(!dt) return '';
+        var tm = fmtInAppTz(dt,{hour:'numeric',minute:'2-digit',hour12:true});
+        var pre = _calSelDay ? '' : fmtInAppTz(dt,{month:'short',day:'numeric'})+' ';
         return '<div class="cal-int-item" onclick="viewCandidate('+c.id+')">'
             +'<div class="cal-int-name">'+esc((c.first_name||'')+' '+(c.last_name||''))+'</div>'
             +'<div class="cal-int-meta">'+pre+tm+' - '+esc(i.type||'zoom')+'</div>'
@@ -641,6 +690,22 @@ async function viewCandidate(id){
         }).join('')+'</div>';
     }
 
+    var availabilityRaw = c.availability || (c.pre_screening && c.pre_screening.availability ? c.pre_screening.availability : null);
+    var availabilityLabel = '—';
+    if (availabilityRaw) {
+        var availabilityMap = {
+            full_time: 'Full-Time',
+            part_time: 'Part-Time',
+            contract: 'Contract',
+            temporary: 'Temporary',
+            internship: 'Internship',
+            remote: 'Remote',
+            either: 'Either',
+            contractor: 'Contractor (1099)'
+        };
+        availabilityLabel = availabilityMap[availabilityRaw] || availabilityRaw.replace(/_/g, ' ').replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
+    }
+
     document.getElementById('detailBody').innerHTML=
       '<div style="display:flex;gap:20px;flex-wrap:wrap">'
       +'<div style="flex:1;min-width:260px">'
@@ -648,18 +713,19 @@ async function viewCandidate(id){
           +'<div style="width:52px;height:52px;border-radius:50%;background:'+Cl(c.id)+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">'+In(c.first_name,c.last_name)+'</div>'
           +'<div>'+B(c.status)+'</div></div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:14px">'
-          +'<div><span style="color:var(--text3)">Email</span><br>'+esc(c.email||'â€”')+'</div>'
-          +'<div><span style="color:var(--text3)">Phone</span><br>'+esc(c.phone||'â€”')+'</div>'
-          +'<div><span style="color:var(--text3)">Category</span><br>'+esc(c.category?c.category.name:'â€”')+'</div>'
-          +'<div><span style="color:var(--text3)">Source</span><br>'+esc(c.source||'â€”')+'</div>'
-                    +'<div><span style="color:var(--text3)">Address</span><br>'+esc([c.street_address,c.city,c.state,c.postal_code].filter(Boolean).join(', ')||'â€”')+'</div>'
-                    +'<div><span style="color:var(--text3)">LinkedIn</span><br>'+(c.linkedin_url?'<a href="'+esc(c.linkedin_url)+'" target="_blank" rel="noopener">Profile</a>':'â€”')+'</div>'
-                    +'<div><span style="color:var(--text3)">Experience</span><br>'+esc((c.years_experience!=null?c.years_experience+' years':'â€”'))+'</div>'
-                    +'<div><span style="color:var(--text3)">Work Authorization</span><br>'+esc(c.is_authorized_to_work===null?'â€”':(c.is_authorized_to_work?'Yes':'No'))+'</div>'
-                    +'<div><span style="color:var(--text3)">Desired Pay</span><br>'+esc(c.desired_pay?('$'+Number(c.desired_pay).toFixed(2)):'â€”')+'</div>'
-                    +'<div><span style="color:var(--text3)">Earliest Start</span><br>'+esc(c.earliest_start_date?fDate(c.earliest_start_date):'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">Email</span><br>'+esc(c.email||'—')+'</div>'
+                    +'<div><span style="color:var(--text3)">Phone</span><br>'+esc(c.phone||'—')+'</div>'
+                    +'<div><span style="color:var(--text3)">Category</span><br>'+esc(c.category?c.category.name:'—')+'</div>'
+                    +'<div><span style="color:var(--text3)">Source</span><br>'+esc(c.source||'—')+'</div>'
+                                        +'<div><span style="color:var(--text3)">Address</span><br>'+esc([c.street_address,c.city,c.state,c.postal_code].filter(Boolean).join(', ')||'—')+'</div>'
+                                        +'<div><span style="color:var(--text3)">LinkedIn</span><br>'+(c.linkedin_url?'<a href="'+esc(c.linkedin_url)+'" target="_blank" rel="noopener">Profile</a>':'—')+'</div>'
+                                        +'<div><span style="color:var(--text3)">Experience</span><br>'+esc((c.years_experience!=null?c.years_experience+' years':'—'))+'</div>'
+                                        +'<div><span style="color:var(--text3)">Work Authorization</span><br>'+esc(c.is_authorized_to_work===null?'—':(c.is_authorized_to_work?'Yes':'No'))+'</div>'
+                                                                                +'<div><span style="color:var(--text3)">Desired Pay</span><br>'+esc(c.desired_pay?('$'+Number(c.desired_pay).toFixed(2)):'—')+'</div>'
+                                                                                +'<div><span style="color:var(--text3)">Earliest Start</span><br>'+esc(c.earliest_start_date?fDate(c.earliest_start_date):'—')+'</div>'
+                                                                                +'<div><span style="color:var(--text3)">Availability</span><br>'+esc(availabilityLabel)+'</div>'
           +'<div><span style="color:var(--text3)">Applied</span><br>'+esc(fDate(c.created_at))+'</div>'
-          +'<div><span style="color:var(--text3)">Assigned</span><br>'+esc(c.assigned_to?c.assigned_to.first_name+' '+c.assigned_to.last_name:'â€”')+'</div>'
+                    +'<div><span style="color:var(--text3)">Assigned</span><br>'+esc(c.assigned_to?c.assigned_to.first_name+' '+c.assigned_to.last_name:'—')+'</div>'
         +'</div>'
         +(c.resume_text?'<div class="form-group"><label>Resume</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12px;line-height:1.6;max-height:150px;overflow-y:auto;white-space:pre-wrap">'+esc(c.resume_text)+'</div></div>':'')
         +'<div class="form-group" style="margin-top:12px"><label>Change Status</label>'
@@ -684,15 +750,6 @@ async function cdAction(id, forceStatus){
     if(st === 'offer_sent'){
         closeModal('candidateDetail');
         openOfferModal(id, name);
-        return;
-    }
-
-    if(st === 'invite_sent'){
-        closeModal('candidateDetail');
-        openInterviewAvailability(id, name, function(){
-            if(typeof pageRefresh === 'function') pageRefresh();
-            updateReviewBadge();
-        });
         return;
     }
 

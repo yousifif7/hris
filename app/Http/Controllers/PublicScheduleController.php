@@ -21,6 +21,9 @@ class PublicScheduleController extends Controller
      */
     public function show(string $token)
     {
+        $timezone = config('app.timezone', 'UTC');
+        $nowUtc = now()->utc();
+
         $candidate = Candidate::where('schedule_token', $token)
             ->whereIn('status', [
                 CandidateStatus::INVITE_SENT->value,
@@ -28,14 +31,18 @@ class PublicScheduleController extends Controller
             ])
             ->firstOrFail();
 
-        // Already booked?
+        // Already booked? Only treat FUTURE interviews as blocking.
         $existing = Interview::where('candidate_id', $candidate->id)
             ->where('status', 'scheduled')
+            ->where('scheduled_at', '>=', $nowUtc)
+            ->orderBy('scheduled_at')
             ->first();
+
+        $existingLocal = $existing?->scheduled_at?->copy()->timezone($timezone);
 
         $slots = InterviewAvailabilitySlot::where('candidate_id', $candidate->id)
             ->whereNull('booked_interview_id')
-            ->where('starts_at', '>=', now())
+            ->where('starts_at', '>=', $nowUtc)
             ->orderBy('starts_at')
             ->get();
 
@@ -43,7 +50,9 @@ class PublicScheduleController extends Controller
             'candidate'   => $candidate,
             'token'       => $token,
             'existing'    => $existing,
+            'existingLocal' => $existingLocal,
             'slots'       => $slots,
+            'timezone'    => $timezone,
             'company'     => Setting::get('company_name', 'Our Company'),
         ]);
     }
@@ -54,6 +63,8 @@ class PublicScheduleController extends Controller
      */
     public function book(Request $request, string $token)
     {
+        $nowUtc = now()->utc();
+
         $candidate = Candidate::where('schedule_token', $token)
             ->whereIn('status', [
                 CandidateStatus::INVITE_SENT->value,
@@ -65,9 +76,10 @@ class PublicScheduleController extends Controller
             'slot_id' => 'required|integer|exists:interview_availability_slots,id',
         ]);
 
-        // Prevent double-booking
+        // Prevent double-booking against future scheduled interviews only.
         $already = Interview::where('candidate_id', $candidate->id)
             ->where('status', 'scheduled')
+            ->where('scheduled_at', '>=', $nowUtc)
             ->exists();
 
         if ($already) {
@@ -122,9 +134,16 @@ class PublicScheduleController extends Controller
             ->latest()
             ->firstOrFail();
 
+        $timezone = config('app.timezone', 'UTC');
+        $scheduledLocal = $interview->scheduled_at?->copy()->timezone($timezone);
+        $displayType = ucfirst(str_replace('_', ' ', $interview->type ?: Setting::get('default_interview_type', 'zoom')));
+
         return view('public.schedule-confirmed', [
             'candidate' => $candidate,
             'interview' => $interview,
+            'scheduledLocal' => $scheduledLocal,
+            'timezone' => $timezone,
+            'displayType' => $displayType,
             'company'   => Setting::get('company_name', 'Our Company'),
         ]);
     }

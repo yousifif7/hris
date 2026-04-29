@@ -132,6 +132,7 @@ async function pageRefresh(){ await loadFcInterviews(); }
 var _fcAll    = [];
 var _fcView   = 'month';
 var _fcDate   = new Date();
+var _fcTz     = @json(config('app.timezone', 'UTC'));
 
 /* ── Load data ──────────────────────────────────────────── */
 async function loadFcInterviews(){
@@ -139,7 +140,8 @@ async function loadFcInterviews(){
     if(!r) return;
     var data = await r.json();
     _fcAll = (data.data || []).map(function(i){
-        var raw = (i.scheduled_at+'').replace(' ','T');
+        var raw = String(i.scheduled_at || '').trim().replace(' ', 'T');
+        if(raw && !/(Z|[+-]\d{2}:?\d{2})$/.test(raw)) raw += 'Z';
         i._dt = new Date(raw);
         return i;
     });
@@ -179,11 +181,40 @@ function renderFc(){
 /* ── Helpers ────────────────────────────────────────────── */
 function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function pad(n){ return String(n).padStart(2,'0'); }
-function fmt12(d){ return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+function tzParts(d){
+    var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: _fcTz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        weekday: 'short'
+    }).formatToParts(d);
+    var out = {};
+    parts.forEach(function(p){ out[p.type] = p.value; });
+    return out;
+}
+function ymdTz(d){ var p = tzParts(d); return p.year+'-'+p.month+'-'+p.day; }
+function hourFracTz(d){ var p = tzParts(d); return parseInt(p.hour,10) + (parseInt(p.minute,10) / 60); }
+function fmt12(d){
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: _fcTz,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    }).format(d);
+}
+function fmtDateTz(d, opts){
+    var base = { timeZone: _fcTz };
+    for (var k in opts) base[k] = opts[k];
+    return new Intl.DateTimeFormat('en-US', base).format(d);
+}
 function evtStatusClass(i){ return 'status-'+(i.status||'scheduled'); }
 
 function evtsForDay(dateStr){
-    return _fcAll.filter(function(i){ return ymd(i._dt)===dateStr; })
+    return _fcAll.filter(function(i){ return ymdTz(i._dt)===dateStr; })
                  .sort(function(a,b){ return a._dt-b._dt; });
 }
 
@@ -192,7 +223,7 @@ function renderMonth(){
     var y = _fcDate.getFullYear(), m = _fcDate.getMonth();
     var today = new Date();
     document.getElementById('fcTitle').textContent =
-        _fcDate.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+        fmtDateTz(new Date(y, m, 1, 12, 0, 0), {month:'long',year:'numeric'}) + ' (' + _fcTz + ')';
 
     var firstDow  = new Date(y,m,1).getDay();
     var daysInMo  = new Date(y,m+1,0).getDate();
@@ -217,7 +248,7 @@ function renderMonth(){
     var bodyHtml = weeks.map(function(week){
         return '<div class="fc-week">'+week.map(function(cell){
             var ds     = ymd(cell.date);
-            var isToday = ymd(cell.date)===ymd(today);
+            var isToday = ymdTz(cell.date)===ymdTz(today);
             var evts   = evtsForDay(ds);
             var cls    = 'fc-cell'+(cell.cur?'':' other-month')+(isToday?' today':'');
             var numHtml = '<div class="fc-day-num">'
@@ -273,15 +304,15 @@ function renderWeek(){
         days.push(d);
     }
 
-    var range = days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})+
-                ' – '+days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    document.getElementById('fcTitle').textContent = range;
+    var range = fmtDateTz(days[0], {month:'short',day:'numeric'})+
+                ' - '+fmtDateTz(days[6], {month:'short',day:'numeric',year:'numeric'});
+    document.getElementById('fcTitle').textContent = range + ' (' + _fcTz + ')';
 
     var DN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var hdrHtml = '<div class="fc-wh-gutter"></div>'
         +days.map(function(d,i){
-            var isToday = ymd(d)===ymd(today);
-            return '<div class="fc-wh-day'+(isToday?' today':'')+'"><div class="wh-dn">'+DN[i]+'</div><div class="wh-dd">'+d.getDate()+'</div></div>';
+            var isToday = ymdTz(d)===ymdTz(today);
+            return '<div class="fc-wh-day'+(isToday?' today':'')+'"><div class="wh-dn">'+DN[i]+'</div><div class="wh-dd">'+fmtDateTz(d,{day:'numeric'})+'</div></div>';
         }).join('');
 
     // Hours rows (0-23)
@@ -297,7 +328,7 @@ function renderWeek(){
         var rows  = '';
         for(var h2=0;h2<24;h2++) rows+='<div class="fc-hour-line"></div>';
         var evtBlocks = evts.map(function(i){
-            var hr  = i._dt.getHours()+(i._dt.getMinutes()/60);
+            var hr  = hourFracTz(i._dt);
             var dur = (i.duration_minutes||30)/60;
             var top = hr*48;
             var ht  = Math.max(dur*48,20);
@@ -333,7 +364,7 @@ function renderDay(){
     var evts  = evtsForDay(ds);
 
     document.getElementById('fcTitle').textContent =
-        _fcDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+        fmtDateTz(_fcDate,{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + ' (' + _fcTz + ')';
 
     var timeColHtml = '';
     for(var h=0;h<24;h++){
@@ -345,7 +376,7 @@ function renderDay(){
     for(var h2=0;h2<24;h2++) rows+='<div class="fc-hour-line"></div>';
 
     var evtBlocks = evts.map(function(i){
-        var hr  = i._dt.getHours()+(i._dt.getMinutes()/60);
+        var hr  = hourFracTz(i._dt);
         var dur = (i.duration_minutes||30)/60;
         var top = hr*56;
         var ht  = Math.max(dur*56, 28);
@@ -354,8 +385,8 @@ function renderDay(){
         return '<div class="fc-week-evt '+evtStatusClass(i)+'" style="top:'+top+'px;height:'+ht+'px;left:4px;right:4px;font-size:12px" onclick="openEvtPopover(event,'+i.id+')" title="'+nm+'">'+fmt12(i._dt)+' — '+nm+'<div style="font-size:10px;opacity:.7;text-transform:capitalize">'+(i.type||'zoom')+(i.duration_minutes?' · '+i.duration_minutes+' min':'')+'</div></div>';
     }).join('');
 
-    var isToday = ds===ymd(today);
-    var hdrDate = _fcDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    var isToday = ds===ymdTz(today);
+    var hdrDate = fmtDateTz(_fcDate,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 
     document.getElementById('fcCanvas').innerHTML =
         '<div class="fc-day-view">'
@@ -371,7 +402,7 @@ function renderDay(){
     var body = document.querySelector('.fc-day-body');
     if(body){
         var firstEvt = evts[0];
-        var scrollHr = firstEvt ? firstEvt._dt.getHours()-1 : 8;
+        var scrollHr = firstEvt ? Math.floor(hourFracTz(firstEvt._dt))-1 : 8;
         body.scrollTop = Math.max(scrollHr,0)*56;
     }
 }
@@ -383,7 +414,7 @@ function openEvtPopover(e, id){
     if(!i) return;
     var c = i.candidate||{};
     document.getElementById('popName').textContent    = (c.first_name||'')+(c.last_name?' '+c.last_name:'');
-    document.getElementById('popTime').textContent    = i._dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+fmt12(i._dt);
+    document.getElementById('popTime').textContent    = fmtDateTz(i._dt,{weekday:'short',month:'short',day:'numeric'})+' '+fmt12(i._dt)+' ('+_fcTz+')';
     document.getElementById('popType').textContent    = (i.type||'zoom').charAt(0).toUpperCase()+(i.type||'zoom').slice(1).replace('_',' ');
     document.getElementById('popDur').textContent     = (i.duration_minutes||30)+' min';
     document.getElementById('popStatus').textContent  = (i.status||'scheduled').charAt(0).toUpperCase()+(i.status||'scheduled').slice(1).replace('_',' ');

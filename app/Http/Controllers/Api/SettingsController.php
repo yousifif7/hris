@@ -40,6 +40,8 @@ class SettingsController extends Controller
             'twilio_account_sid'     => Setting::get('twilio_account_sid', ''),
             'twilio_auth_token'      => Setting::get('twilio_auth_token', ''),
             'twilio_from_number'     => Setting::get('twilio_from_number', ''),
+            // Interview scheduling
+            'weekly_availability'    => Setting::get('weekly_availability', '{}'),
         ]);
     }
 

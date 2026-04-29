@@ -20,7 +20,7 @@ class Candidate extends Model
         'street_address', 'city', 'state', 'postal_code',
         'job_category_id', 'source', 'status', 'assigned_to',
         'notes', 'resume_text', 'resume_file',
-        'linkedin_url', 'years_experience', 'education_level', 'is_authorized_to_work', 'desired_pay', 'earliest_start_date',
+        'linkedin_url', 'years_experience', 'education_level', 'is_authorized_to_work', 'desired_pay', 'earliest_start_date', 'availability',
         'invite_sent_at', 'schedule_token', 'prescreen_token', 'last_followup_at', 'followup_count',
     ];
 

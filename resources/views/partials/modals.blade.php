@@ -79,26 +79,6 @@
   </div>
 </div></div>
 
-<div class="modal-overlay" id="modal-interviewAvailability"><div class="modal" style="max-width:620px">
-  <div class="modal-header"><h3>Candidate Scheduling Availability</h3><button onclick="closeModal('interviewAvailability')">✕</button></div>
-  <div class="modal-body">
-    <input type="hidden" id="avCandId">
-    <div class="form-group"><label>Candidate</label><input id="avCandName" disabled></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:14px">
-      <div class="form-group" style="margin:0"><label>Date</label><input type="date" id="avDate"></div>
-      <div class="form-group" style="margin:0"><label>Start Time</label><input type="time" id="avStart" value="09:00"></div>
-      <div class="form-group" style="margin:0"><label>End Time</label><input type="time" id="avEnd" value="09:30"></div>
-      <button class="btn btn-secondary btn-sm" onclick="addAvailabilitySlot()">+ Add</button>
-    </div>
-    <div id="avSlotList" style="display:grid;gap:8px"></div>
-    <div style="margin-top:10px;font-size:12px;color:var(--text3)">Add one or more available days and times. Candidate will only be able to choose from these slots.</div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-secondary" onclick="closeModal('interviewAvailability')">Cancel</button>
-    <button class="btn btn-primary" onclick="saveAvailabilityAndSendInvite()">Save Slots & Send Invite</button>
-  </div>
-</div></div>
-
 <div class="modal-overlay" id="modal-addReference"><div class="modal" style="max-width:480px">
   <div class="modal-header"><h3>Add Reference</h3><button onclick="closeModal('addReference')">✕</button></div>
   <div class="modal-body">
@@ -118,89 +98,6 @@
 
 <script>
 /* Modal action handlers used across multiple pages */
-var _availabilitySlots = [];
-var _availabilityDoneCb = null;
-
-function openInterviewAvailability(candId, candName, doneCb){
-  _availabilitySlots = [];
-  _availabilityDoneCb = doneCb || null;
-  document.getElementById('avCandId').value = candId;
-  document.getElementById('avCandName').value = candName;
-  document.getElementById('avDate').value = '';
-  document.getElementById('avStart').value = '09:00';
-  document.getElementById('avEnd').value = '09:30';
-  renderAvailabilitySlots();
-  openModal('interviewAvailability');
-}
-
-function addAvailabilitySlot(){
-  var d = document.getElementById('avDate').value;
-  var st = document.getElementById('avStart').value;
-  var en = document.getElementById('avEnd').value;
-  if(!d || !st || !en){ toast('Please select date and time range', 'error'); return; }
-  if(en <= st){ toast('End time must be after start time', 'error'); return; }
-  var startsAt = d + 'T' + st + ':00';
-  var endsAt = d + 'T' + en + ':00';
-  if(_availabilitySlots.some(function(s){ return s.starts_at===startsAt && s.ends_at===endsAt; })){
-    toast('This slot is already added', 'error');
-    return;
-  }
-  _availabilitySlots.push({starts_at: startsAt, ends_at: endsAt});
-  _availabilitySlots.sort(function(a,b){ return new Date(a.starts_at)-new Date(b.starts_at); });
-  renderAvailabilitySlots();
-}
-
-function removeAvailabilitySlot(idx){
-  _availabilitySlots.splice(idx, 1);
-  renderAvailabilitySlots();
-}
-
-function renderAvailabilitySlots(){
-  var wrap = document.getElementById('avSlotList');
-  if(!_availabilitySlots.length){
-    wrap.innerHTML = '<div style="padding:12px;border:1px dashed var(--border);border-radius:var(--radius);font-size:12px;color:var(--text3)">No slots added yet.</div>';
-    return;
-  }
-  wrap.innerHTML = _availabilitySlots.map(function(slot, idx){
-    var s = new Date(slot.starts_at);
-    var e = new Date(slot.ends_at);
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)">'
-      +'<div style="font-size:12px"><strong>'+esc(s.toLocaleDateString())+'</strong> · '+esc(s.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))+' - '+esc(e.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))+'</div>'
-      +'<button class="btn btn-danger btn-sm" onclick="removeAvailabilitySlot('+idx+')">Remove</button></div>';
-  }).join('');
-}
-
-async function saveAvailabilityAndSendInvite(){
-  var candId = document.getElementById('avCandId').value;
-  if(!candId){ toast('Candidate is required', 'error'); return; }
-  if(!_availabilitySlots.length){ toast('Add at least one availability slot', 'error'); return; }
-
-  var rSlots = await apiFetch('/api/candidates/'+candId+'/interview-slots', {
-    method:'POST',
-    body:JSON.stringify({ slots: _availabilitySlots })
-  });
-  if(!rSlots) return;
-  if(!rSlots.ok){
-    var es = await rSlots.json();
-    toast(es.message || (es.errors ? Object.values(es.errors).flat()[0] : 'Failed to save slots'), 'error');
-    return;
-  }
-
-  var rInvite = await apiFetch('/api/candidates/'+candId+'/status', {
-    method:'PATCH',
-    body:JSON.stringify({status:'invite_sent'})
-  });
-  if(!rInvite) return;
-  if(!rInvite.ok){
-    var ei = await rInvite.json();
-    toast(ei.message || (ei.errors ? Object.values(ei.errors).flat()[0] : 'Failed to send invite'), 'error');
-    return;
-  }
-
-  closeModal('interviewAvailability');
-  toast('Interview invite sent with selectable calendar slots!', 'success');
-  if(typeof _availabilityDoneCb === 'function') _availabilityDoneCb();
-}
 
 function openScheduleInterview(candId, candName){
     // Show fixed name input, hide select

@@ -46,6 +46,20 @@
 
   </div>
 
+  <!-- Interview Availability Schedule -->
+  <div class="card-section" style="margin-top:20px">
+    <div class="section-title">📅 Interview Availability Schedule</div>
+    <p style="font-size:13px;color:var(--text2);margin:0 0 16px">
+      Set your available hours for each day of the week. When a calendar invite is sent to a candidate,
+      the next 30 days of slots will be generated automatically based on these hours and the
+      <strong>Default Interview Duration</strong> set above.
+    </p>
+    <div id="availabilityGrid" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveWeeklyAvailability()">Save Availability Schedule</button>
+    </div>
+  </div>
+
   <!-- Email Templates -->
   <div class="card-section" style="margin-top:20px">
     <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -254,6 +268,11 @@ async function loadSettings(){
     // Twilio
     set('sTwilioSid',   s.twilio_account_sid);
     set('sTwilioFrom',  s.twilio_from_number);
+    // Weekly availability
+    try {
+        var wa = s.weekly_availability ? (typeof s.weekly_availability === 'string' ? JSON.parse(s.weekly_availability) : s.weekly_availability) : null;
+        renderAvailabilityGrid(wa);
+    } catch(e) { renderAvailabilityGrid(null); }
 }
 
 async function saveSettings(e){
@@ -297,7 +316,7 @@ async function loadHrTeam(){
     }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', pageRefresh);
+document.addEventListener('DOMContentLoaded', function(){ renderAvailabilityGrid(null); pageRefresh(); });
 
 async function saveSmtp(e){
     e.preventDefault();
@@ -533,6 +552,50 @@ async function deleteCategory(id, name){
     if(!r) return;
     toast('"'+name+'" deactivated.');
     loadCategories();
+}
+
+/* ---- Weekly Availability Schedule ---- */
+var AVAIL_DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+function renderAvailabilityGrid(weekly) {
+    var grid = document.getElementById('availabilityGrid');
+    if (!grid) return;
+    var weekdays = ['monday','tuesday','wednesday','thursday','friday'];
+    grid.innerHTML = AVAIL_DAYS.map(function(day) {
+        var cfg = (weekly && weekly[day]) || { enabled: weekdays.includes(day), start: '09:00', end: '17:00' };
+        var label = day.charAt(0).toUpperCase() + day.slice(1);
+        var timesStyle = cfg.enabled ? '' : 'opacity:0.4;pointer-events:none';
+        return '<div style="display:flex;align-items:center;gap:14px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">'
+          + '<input type="checkbox" id="avail_'+day+'_en"'+(cfg.enabled?' checked':'')+' onchange="toggleAvailDay(\''+day+'\')">'
+          + '<label for="avail_'+day+'_en" style="min-width:96px;font-weight:500;font-size:13px;cursor:pointer;margin:0">'+label+'</label>'
+          + '<div id="avail_'+day+'_times" style="display:flex;align-items:center;gap:8px;'+timesStyle+'">'
+            + '<input type="time" id="avail_'+day+'_start" value="'+esc(cfg.start||'09:00')+'" style="padding:4px 8px;font-size:13px">'
+            + '<span style="color:var(--text3);font-size:13px">to</span>'
+            + '<input type="time" id="avail_'+day+'_end" value="'+esc(cfg.end||'17:00')+'" style="padding:4px 8px;font-size:13px">'
+          + '</div>'
+        + '</div>';
+    }).join('');
+}
+
+function toggleAvailDay(day) {
+    var en = document.getElementById('avail_'+day+'_en').checked;
+    var times = document.getElementById('avail_'+day+'_times');
+    if (times) { times.style.opacity = en ? '1' : '0.4'; times.style.pointerEvents = en ? '' : 'none'; }
+}
+
+async function saveWeeklyAvailability() {
+    var payload = {};
+    AVAIL_DAYS.forEach(function(day) {
+        var en    = document.getElementById('avail_'+day+'_en');
+        var start = document.getElementById('avail_'+day+'_start');
+        var end   = document.getElementById('avail_'+day+'_end');
+        if (en && start && end) {
+            payload[day] = { enabled: en.checked, start: start.value || '09:00', end: end.value || '17:00' };
+        }
+    });
+    var r = await apiFetch('/api/settings', { method: 'PUT', body: JSON.stringify({ weekly_availability: JSON.stringify(payload) }) });
+    if (!r) return;
+    toast('Availability schedule saved!');
 }
 </script>
 @endpush

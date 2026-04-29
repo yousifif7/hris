@@ -94,6 +94,7 @@ class CandidateController extends Controller
             'is_authorized_to_work' => 'nullable|boolean',
             'desired_pay'     => 'nullable|numeric|min:0|max:999999.99',
             'earliest_start_date' => 'nullable|date',
+            'availability'     => 'nullable|in:full_time,part_time,contract,temporary,internship,remote',
         ]);
 
         $candidate = $this->service->create(
@@ -144,6 +145,7 @@ class CandidateController extends Controller
             'is_authorized_to_work' => 'sometimes|nullable|boolean',
             'desired_pay'     => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'earliest_start_date' => 'sometimes|nullable|date',
+            'availability'     => 'sometimes|nullable|in:full_time,part_time,contract,temporary,internship,remote',
         ]);
 
         $candidate->update($validated);
