@@ -189,12 +189,43 @@ class CandidateController extends Controller
     }
 
     /**
-     * GET /api/candidates/review-queue
-     * Get all candidates needing review.
+     * GET /api/candidates-new
+     * Get all new candidates needing initial review.
+     */
+    public function newCandidates(): JsonResponse
+    {
+        $candidates = Candidate::where('status', CandidateStatus::NEEDS_REVIEW)
+            ->with(['category', 'assignedTo', 'preScreening'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($candidates);
+    }
+
+    /**
+     * GET /api/candidates-review-queue
+     * Get all candidates with interview invites sent.
      */
     public function reviewQueue(): JsonResponse
     {
-        $candidates = Candidate::needsReview()
+        $candidates = Candidate::where('status', CandidateStatus::INVITE_SENT)
+            ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($candidates);
+    }
+
+    /**
+     * GET /api/candidates-pending-review
+     * Get candidates needing review (new + post-interview).
+     */
+    public function pendingReview(): JsonResponse
+    {
+        $candidates = Candidate::whereIn('status', [
+                CandidateStatus::NEEDS_REVIEW,
+                CandidateStatus::POST_INTERVIEW_REVIEW,
+            ])
             ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();

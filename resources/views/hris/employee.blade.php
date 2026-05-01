@@ -18,10 +18,33 @@
     </select>
     <span style="flex:1"></span>
     <span id="empCount" style="font-size:13px;color:var(--text3)"></span>
+    <button class="btn btn-secondary btn-sm" onclick="openEmpImportModal()">Import Employees</button>
     <button class="btn btn-primary btn-sm" onclick="openAddEmpModal()">+ Add Employee</button>
   </div>
     <div class="emp-grid" id="empGrid">
     <div style="text-align:center;padding:60px;color:var(--text3);grid-column:1/-1">⏳ Loading...</div>
+  </div>
+</div>
+
+<!-- Import Employees Modal -->
+<div class="modal-overlay" id="modal-empImportModal" onclick="if(event.target===this)closeModal('empImportModal')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>Import Employees</h3><button onclick="closeModal('empImportModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px;color:var(--text2);font-size:13px">Download the sample XLSX, fill your employees, then upload it. Department defaults to <strong>HR Staff</strong> when omitted.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-secondary btn-sm" onclick="downloadEmployeeImportTemplate()">Download Sample XLSX</button>
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label>Import File *</label>
+        <input type="file" id="empImportFile" accept=".xlsx,.xls,.csv,.txt">
+      </div>
+      <div id="empImportResult" style="font-size:12px;color:var(--text3)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('empImportModal')">Cancel</button>
+      <button class="btn btn-primary" id="empImportBtn" onclick="uploadEmployeeImport()">Upload & Import</button>
+    </div>
   </div>
 </div>
 
@@ -207,6 +230,63 @@ function openAddEmpModal(){
     document.getElementById('empPW').required = true;
     openModal('addEmpModal');
 }
+
+function openEmpImportModal(){
+    var fileInput = document.getElementById('empImportFile');
+    var result = document.getElementById('empImportResult');
+    if(fileInput) fileInput.value = '';
+    if(result) result.textContent = '';
+    openModal('empImportModal');
+}
+
+async function downloadEmployeeImportTemplate(){
+    var r = await apiFetch('/api/employees/import-template');
+    if(!r) return;
+    if(!r.ok){ toast('Unable to download template','error'); return; }
+    var blob = await r.blob();
+    var url = window.URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'employee-import-template.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+async function uploadEmployeeImport(){
+    var fileInput = document.getElementById('empImportFile');
+    var btn = document.getElementById('empImportBtn');
+    var result = document.getElementById('empImportResult');
+    var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    if(!file){ toast('Please select an import file','error'); return; }
+
+    var body = new FormData();
+    body.append('file', file);
+
+    btn.disabled = true;
+    btn.textContent = 'Importing...';
+    if(result) result.textContent = '';
+
+    var r = await apiFetch('/api/employees/import', {method:'POST', body:body});
+    btn.disabled = false;
+    btn.textContent = 'Upload & Import';
+    if(!r) return;
+
+    var json = await r.json();
+    if(!r.ok){
+        toast(json.message || 'Import failed', 'error');
+        if(result && json.errors){
+            result.textContent = Object.values(json.errors).flat().join(' | ');
+        }
+        return;
+    }
+
+    var summary = 'Created: '+(json.created||0)+' | Updated: '+(json.updated||0)+' | Failed: '+(json.failed||0);
+    if(result) result.textContent = summary + (json.errors && json.errors.length ? ' | Errors: '+json.errors.slice(0,3).join(' ; ') : '');
+    toast('Employee import completed. '+summary, json.failed ? 'info' : 'success', json.failed ? 7000 : 4500);
+    loadEmployees();
+  }
 
 async function editEmployee(id, evt){
     if(evt) evt.stopPropagation();

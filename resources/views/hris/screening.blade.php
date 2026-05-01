@@ -52,6 +52,7 @@ function renderScreeningCard(c){
             +(ps.licenses?'<div style="grid-column:span 2"><span style="color:var(--text3)">Licenses:</span> '+esc(ps.licenses)+'</div>':'')
             +(ps.additional_notes?'<div style="grid-column:span 2"><span style="color:var(--text3)">Notes:</span> '+esc(ps.additional_notes)+'</div>':'')
             +(ps.uploaded_form_name?'<div style="grid-column:span 2"><span style="color:var(--text3)">Uploaded PDF:</span> '+esc(ps.uploaded_form_name)+'</div>':'')
+            +(ps.employment_application_submitted_at?'<div style="grid-column:span 2"><span style="color:var(--text3)">Employment App:</span> Submitted '+esc(ps.employment_application_submitted_at)+'</div>':'')
           +'</div>'
         +'</div>';
     }

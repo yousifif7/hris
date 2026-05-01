@@ -162,6 +162,18 @@
         Candidate: <strong>{{ $candidate->full_name }}</strong>
       </div>
 
+      <div class="hint" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong>Employment Application:</strong>
+          @if ($existing?->employment_application_submitted_at)
+            Submitted on {{ optional($existing->employment_application_submitted_at)->format('M d, Y g:i A') }}
+          @else
+            Not submitted yet.
+          @endif
+        </div>
+        <a class="file-link" href="{{ route('public.prescreen.application', ['token' => $token]) }}">Open Employment Application Form</a>
+      </div>
+
       <form method="POST" action="{{ route('public.prescreen.submit', ['token' => $token]) }}" enctype="multipart/form-data">
         @csrf
 
@@ -215,10 +227,10 @@
         </div>
 
         <div class="group">
-          <label for="uploaded_form">Upload Completed PDF Form</label>
-          <input id="uploaded_form" name="uploaded_form" type="file" accept="application/pdf" required>
+          <label for="uploaded_form">Upload Completed PDF Form (Optional)</label>
+          <input id="uploaded_form" name="uploaded_form" type="file" accept="application/pdf">
           <div class="hint" style="margin-top:8px;margin-bottom:0">
-            Upload your completed PDF. This file is required before you can submit.
+            Optional: upload a PDF only if needed. The preferred path is the online Employment Application form above.
           </div>
           @if ($existing?->uploaded_form_path)
             <div style="margin-top:10px">

@@ -28,6 +28,7 @@
     <button class="btn btn-secondary btn-sm" onclick="loadTrainings('all')">All</button>
     <button class="btn btn-secondary btn-sm" onclick="loadTrainings('pending')">Pending</button>
     <button class="btn btn-secondary btn-sm" onclick="loadTrainings('expiring')">Expiring Soon</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddTrainingPortal()">+ Add Training</button>
   </div>
   <div class="table-wrap">
     <table><thead><tr><th>Training</th><th>Employee</th><th>Category</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
@@ -51,6 +52,7 @@
 async function pageRefresh(){ await loadTrainings('all'); }
 
 var _myEmployeeId = null;
+var _portalEmployees = [];
 
 document.addEventListener('DOMContentLoaded', async function(){
     // Load current user info for banner
@@ -63,8 +65,40 @@ document.addEventListener('DOMContentLoaded', async function(){
         document.getElementById('portalAvatar').textContent = ((me.first_name||me.name||'?')[0]||'?').toUpperCase();
         _myEmployeeId = me.employee ? me.employee.id : null;
     }
+      await loadPortalEmployees();
     loadTrainings('all');
 });
+
+    async function loadPortalEmployees(){
+      var sel = document.getElementById('ptAddEmployeeId');
+      if(!sel) return;
+
+      var r = await apiFetch('/api/employees?per_page=200');
+      if(!r || !r.ok){
+        _portalEmployees = [];
+        sel.innerHTML = '<option value="">No employee list access</option>';
+        if(_myEmployeeId){
+          sel.innerHTML = '<option value="'+_myEmployeeId+'">My Employee Profile</option>';
+        }
+        return;
+      }
+
+      var json = await r.json();
+      _portalEmployees = json.data || [];
+      if(!_portalEmployees.length){
+        sel.innerHTML = '<option value="">No employees found</option>';
+        return;
+      }
+
+      sel.innerHTML = '<option value="">Select Employee</option>' + _portalEmployees.map(function(e){
+        var fullName = ((e.first_name||'')+' '+(e.last_name||'')).trim();
+        return '<option value="'+e.id+'">'+esc(fullName || 'Employee #'+e.id)+'</option>';
+      }).join('');
+
+      if(_myEmployeeId){
+        sel.value = String(_myEmployeeId);
+      }
+    }
 
 async function loadTrainings(filter){
     filter = filter||'all';
@@ -139,6 +173,41 @@ async function deleteTrainingPortal(id, name){
     loadTrainings('all');
 }
 
+function openAddTrainingPortal(){
+  document.getElementById('ptAddName').value = '';
+  document.getElementById('ptAddDueDate').value = '';
+  if(_myEmployeeId){
+    document.getElementById('ptAddEmployeeId').value = String(_myEmployeeId);
+  }
+  openModal('ptAddModal');
+}
+
+async function saveAddTrainingPortal(){
+  var employeeId = document.getElementById('ptAddEmployeeId').value;
+  var name = document.getElementById('ptAddName').value.trim();
+  var dueDate = document.getElementById('ptAddDueDate').value;
+
+  if(!employeeId){ toast('Select an employee.','error'); return; }
+  if(!name){ toast('Training name is required.','error'); return; }
+
+  var payload = {
+    employee_id: parseInt(employeeId, 10),
+    name: name,
+    due_date: dueDate || null,
+  };
+
+  var r = await apiFetch('/api/trainings', { method:'POST', body: JSON.stringify(payload) });
+  if(!r || !r.ok){
+    var err = r ? await r.json() : {};
+    toast(err.message || 'Failed to add training', 'error');
+    return;
+  }
+
+  closeModal('ptAddModal');
+  toast('Training added successfully.', 'success');
+  loadTrainings('all');
+}
+
 function openDocUpload(){
     document.getElementById('docUploadArea').style.display = 'block';
 }
@@ -171,6 +240,25 @@ async function uploadDoc(){
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('ptEditModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveEditTrainingPortal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Training Modal -->
+<div class="modal-overlay" id="modal-ptAddModal" onclick="if(event.target===this)closeModal('ptAddModal')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h3>Add Training</h3><button onclick="closeModal('ptAddModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Employee *</label>
+        <select id="ptAddEmployeeId"><option value="">Loading...</option></select>
+      </div>
+      <div class="form-group"><label>Training Name *</label><input type="text" id="ptAddName"></div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="ptAddDueDate"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('ptAddModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddTrainingPortal()">Add Training</button>
     </div>
   </div>
 </div>

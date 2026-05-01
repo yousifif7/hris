@@ -10,11 +10,16 @@ class PreScreening extends Model
         'candidate_id', 'education_level', 'years_experience',
         'licenses', 'availability', 'earliest_start_date',
         'additional_notes', 'uploaded_form_path', 'uploaded_form_name', 'screened_by',
+        'employment_application_data', 'employment_application_submitted_at',
     ];
 
     protected function casts(): array
     {
-        return ['earliest_start_date' => 'date'];
+        return [
+            'earliest_start_date' => 'date',
+            'employment_application_data' => 'array',
+            'employment_application_submitted_at' => 'datetime',
+        ];
     }
 
     public function candidate()

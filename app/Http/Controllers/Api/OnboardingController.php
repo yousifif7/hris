@@ -65,6 +65,39 @@ class OnboardingController extends Controller
         ]);
     }
 
+    public function ensureTasks(Request $request, Candidate $candidate): JsonResponse
+    {
+        $validated = $request->validate([
+            'task_names' => 'required|array|min:1',
+            'task_names.*' => 'required|string|max:255',
+        ]);
+
+        $existing = $candidate->onboardingTasks()->pluck('task_name')->map(fn ($n) => mb_strtolower($n))->all();
+        $maxSort = (int) ($candidate->onboardingTasks()->max('sort_order') ?? 0);
+        $created = [];
+
+        foreach ($validated['task_names'] as $name) {
+            if (in_array(mb_strtolower($name), $existing, true)) {
+                continue;
+            }
+
+            $maxSort++;
+            $task = $candidate->onboardingTasks()->create([
+                'task_name' => $name,
+                'sort_order' => $maxSort,
+                'is_completed' => false,
+            ]);
+
+            $created[] = $task;
+            $existing[] = mb_strtolower($name);
+        }
+
+        return response()->json([
+            'created' => $created,
+            'progress' => $candidate->fresh('onboardingTasks')->onboardingProgress(),
+        ]);
+    }
+
     public function templates(): JsonResponse
     {
         return response()->json(OnboardingTemplate::orderBy('sort_order')->get());

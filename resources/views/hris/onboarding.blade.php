@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title','McCrory Center — Onboarding')
 @section('content')
 <div class="animate-in">

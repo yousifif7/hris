@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title','McCrory Center — Interviews Sent')
+@section('title','McCrory Center — Review Queue')
 @section('content')
 <div class="animate-in">
-  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates listed here are only those with status <strong style="color:var(--blue)">Invite Sent</strong>. Continue by scheduling, marking no response, rejecting, or queueing.</p>
-  <div id="reviewList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading invited candidates…</div></div>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates listed here have status <strong style="color:var(--accent)">Needs Review</strong> or <strong style="color:var(--accent)">Post-Interview Review</strong>. Take action to advance or close each candidate.</p>
+  <div id="reviewQueueList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading review queue…</div></div>
 </div>
 @endsection
 
@@ -12,16 +12,14 @@
 async function pageRefresh(){ await loadQueue(); }
 
 async function loadQueue(){
-    var r = await apiFetch('/api/candidates-review-queue');
+    var r = await apiFetch('/api/candidates-pending-review');
     if(!r) return;
     var items = await r.json();
-    var el = document.getElementById('reviewList');
+    var el = document.getElementById('reviewQueueList');
     if(!items.length){
-        el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:48px;margin-bottom:16px">✅</div><h3 style="color:var(--text)">All caught up!</h3><p>No candidates waiting for review.</p></div>';
-        document.getElementById('reviewBadge').textContent = '0';
+        el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:48px;margin-bottom:16px">✅</div><h3 style="color:var(--text)">All caught up!</h3><p>No candidates in the review queue.</p></div>';
         return;
     }
-    document.getElementById('reviewBadge').textContent = items.length;
     el.innerHTML = items.map(function(c){
         var isP = c.status === 'post_interview_review';
         var initBg = 'background:'+Cl(c.id);
@@ -43,19 +41,19 @@ async function loadQueue(){
             +'<button class="btn btn-danger btn-sm" onclick="setStatus('+c.id+',\'rejected\',\''+esc(c.first_name+' '+c.last_name)+'\')">✗ Reject</button>'
             +'<button class="btn btn-warning btn-sm" onclick="setStatus('+c.id+',\'queue\',\''+esc(c.first_name+' '+c.last_name)+'\')">⏳ Queue</button>'
             +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
-            +'<button class="btn btn-blue btn-sm" onclick="openScheduleInterview('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">📅 Schedule Interview</button>'
+            +(isP?'<button class="btn btn-blue btn-sm" onclick="openScheduleInterview('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">📅 Schedule Interview</button>':'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'invite_sent\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Send Invite</button>')
           +'</div>'
         +'</div>';
     }).join('');
 }
 
-async function setStatus(id, status){
-    var name = (arguments[2]||'this candidate');
-
+async function setStatus(id, status, name){
+    name = name || 'this candidate';
     var confirmMsgs = {
-        rejected:         'Reject '+name+'?\n\nThis will send a rejection email.',
-        no_response:      'Mark '+name+' as no response?',
-        queue:            'Move '+name+' to queue for later?'
+        rejected:    'Reject '+name+'?\n\nThis will send a rejection email.',
+        no_response: 'Mark '+name+' as no response?',
+        queue:       'Move '+name+' to queue for later?',
+        invite_sent: 'Send interview invite to '+name+'?'
     };
     var msg = confirmMsgs[status];
     if(msg && !confirm(msg)) return;
@@ -65,10 +63,11 @@ async function setStatus(id, status){
     var toastMsgs = {
         rejected:    '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
         no_response: 'No response marked for '+esc(c.first_name+' '+c.last_name)+'.',
-        queue:       '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.'
+        queue:       '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.',
+        invite_sent: '✉ Invite sent to '+esc(c.first_name+' '+c.last_name)+'.'
     };
     var type = status==='rejected' ? 'error' : 'success';
-    toast(toastMsgs[status] || esc(c.first_name+' '+c.last_name)+' → '+(SL[status]||status), type);
+    toast(toastMsgs[status] || esc(c.first_name+' '+c.last_name)+' updated.', type);
     loadQueue();
 }
 

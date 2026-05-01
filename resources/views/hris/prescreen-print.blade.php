@@ -46,6 +46,7 @@
 </div>
 
 @php $ps = $candidate->preScreening; @endphp
+@php $appData = $ps?->employment_application_data ?? []; @endphp
 
 <div class="section">
     <div class="section-title">Application Details</div>
@@ -61,7 +62,23 @@
             —
         @endif
     </span></div>
+    <div class="field"><label>Employment App</label><span>{{ $ps->employment_application_submitted_at ? $ps->employment_application_submitted_at->format('M d, Y g:i A') : '—' }}</span></div>
 </div>
+
+@if(!empty($appData))
+<div class="section">
+    <div class="section-title">Employment Application Snapshot</div>
+    <div class="field"><label>Position Applied For</label><span>{{ data_get($appData, 'position_applied_for', '—') }}</span></div>
+    <div class="field"><label>Applicant Name</label><span>{{ data_get($appData, 'applicant_full_name', '—') }}</span></div>
+    <div class="field"><label>Main Phone</label><span>{{ data_get($appData, 'phone_main', '—') }}</span></div>
+    <div class="field"><label>Email</label><span>{{ data_get($appData, 'email', '—') }}</span></div>
+    <div class="field"><label>Address</label><span>{{ trim((string) data_get($appData, 'address_street', '')) ?: '—' }} {{ trim((string) data_get($appData, 'address_city', '')) }} {{ trim((string) data_get($appData, 'address_state', '')) }} {{ trim((string) data_get($appData, 'address_zip', '')) }}</span></div>
+    <div class="field"><label>Termination Explanation</label><span>{{ data_get($appData, 'termination_explanation', '—') }}</span></div>
+    <div class="field"><label>Employment Gaps</label><span>{{ data_get($appData, 'employment_gaps_explanation', '—') }}</span></div>
+    <div class="field"><label>Additional Experience</label><span>{{ data_get($appData, 'additional_experience', '—') }}</span></div>
+    <div class="field"><label>Signature</label><span>{{ data_get($appData, 'signature.printed_name', '—') }} on {{ data_get($appData, 'signature.signed_on', '—') }} ({{ data_get($appData, 'signature.mode', '—') }})</span></div>
+</div>
+@endif
 
 @if($ps->additional_notes)
 <div class="section">

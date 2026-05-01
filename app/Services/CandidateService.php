@@ -376,17 +376,17 @@ class CandidateService
         if ($templates->isEmpty()) {
             // Use defaults if no templates configured
             $defaults = [
-                'Upload signed offer letter',
-                'Complete background check consent',
-                'Submit references',
-                'Upload credentials & licenses',
-                'Complete I-9 verification',
-                'Upload driver\'s license',
-                'Select orientation date',
-                'Setup email account',
-                'Building access & WiFi',
-                'Review employee handbook',
-                'Complete initial training modules',
+                'Pre-interview Questions',
+                'Verifications and Review',
+                'Pre-Onboarding Documents',
+                'Compliance Agreements',
+                'Clinical Staff Document',
+                'Emergency Contact',
+                'Training and Development',
+                'Financial and Payroll Information',
+                'Post-offer Documents',
+                'DWC Training',
+                'Additional',
             ];
             foreach ($defaults as $i => $name) {
                 $candidate->onboardingTasks()->create([

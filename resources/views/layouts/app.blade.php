@@ -620,6 +620,9 @@ async function updateReviewBadge(){
     if(el) el.textContent = data.length || 0;
 }
 
+/* ── Global: update workflow step badges ─────────────────── */
+async function updateStepBadges(){ /* badges removed */ }
+
 /* â”€â”€ Global: Candidate detail modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function viewCandidate(id){
     document.getElementById('detailName').textContent = 'Loading...';
@@ -1008,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         if(document.getElementById('notifPanel').classList.contains('open')){
             loadNotifications();
         }
-        updateReviewBadge();
+    updateReviewBadge();
 
         // Trigger automations (throttled server-side to once per hour)
         apiFetch('/api/automations/run', {method:'POST'});

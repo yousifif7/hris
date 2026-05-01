@@ -70,7 +70,9 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
 
     // Candidates
     Route::apiResource('candidates', CandidateController::class);
+    Route::get('/candidates-new', [CandidateController::class, 'newCandidates']);
     Route::get('/candidates-review-queue', [CandidateController::class, 'reviewQueue']);
+    Route::get('/candidates-pending-review', [CandidateController::class, 'pendingReview']);
     Route::get('/candidates-pipeline', [CandidateController::class, 'pipeline']);
     Route::post('/candidates-upload', [CandidateController::class, 'uploadResume']);
     Route::patch('/candidates/{candidate}/status', [CandidateController::class, 'updateStatus']);
@@ -103,6 +105,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
 
     // Onboarding
     Route::get('/onboarding', [OnboardingController::class, 'index']);
+    Route::post('/onboarding/{candidate}/ensure-tasks', [OnboardingController::class, 'ensureTasks']);
     Route::patch('/onboarding-tasks/{task}/toggle', [OnboardingController::class, 'completeTask']);
     Route::delete('/onboarding-tasks/{task}', [OnboardingController::class, 'destroyTask']);
     Route::get('/onboarding-templates', [OnboardingController::class, 'templates']);
@@ -111,7 +114,11 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::delete('/onboarding-templates/{template}', [OnboardingController::class, 'destroyTemplate']);
 
     // Employees
-    Route::apiResource('employees', EmployeeController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+    Route::get('/employees/import-template', [EmployeeController::class, 'importTemplate']);
+    Route::post('/employees/import', [EmployeeController::class, 'import']);
+    Route::apiResource('employees', EmployeeController::class)
+        ->only(['index', 'show', 'store', 'update', 'destroy'])
+        ->where(['employee' => '[0-9]+']);
 
     // Time Off
     Route::get('/time-off', [TimeOffController::class, 'index']);
