@@ -10,6 +10,19 @@
   <div class="stat-card orange"><div class="stat-label">Employees</div><div class="stat-value" id="sEmployees">—</div></div>
 </div>
 
+{{-- Public Apply Link --}}
+<div class="card-section animate-in" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation-delay:.05s">
+  <div style="flex:1;min-width:220px">
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px">🔗 Public Apply Link</div>
+    <div style="font-size:12px;color:var(--text2)">Share this URL with candidates — no login required.</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input id="applyLinkInput" readonly style="width:340px;max-width:100%;font-size:12px;background:var(--surface2);color:var(--text2)" value="Loading...">
+    <button class="btn btn-secondary btn-sm" onclick="copyApplyLink()">Copy</button>
+    <button class="btn btn-secondary btn-sm" onclick="regenerateApplyLink()" title="Generate a new link (invalidates the old one)">Regenerate</button>
+  </div>
+</div>
+
 <div class="pipeline-bar animate-in" id="pipelineBar" style="animation-delay:.1s"></div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;animation-delay:.15s" class="animate-in">
@@ -28,7 +41,31 @@
 
 @push('scripts')
 <script>
-async function pageRefresh(){ await loadDash(); }
+async function pageRefresh(){ await loadDash(); await loadApplyLink(); }
+
+async function loadApplyLink(){
+    var r = await apiFetch('/api/settings/apply-link');
+    if(!r) return;
+    var data = await r.json();
+    var inp = document.getElementById('applyLinkInput');
+    if(inp && data.url) inp.value = data.url;
+}
+
+async function copyApplyLink(){
+    var val = document.getElementById('applyLinkInput').value;
+    if(!val || val === 'Loading...') return;
+    try { await navigator.clipboard.writeText(val); toast('Link copied to clipboard!'); }
+    catch(e) { document.getElementById('applyLinkInput').select(); document.execCommand('copy'); toast('Link copied!'); }
+}
+
+async function regenerateApplyLink(){
+    if(!confirm('Regenerating the link will invalidate the old one. Continue?')) return;
+    var r = await apiFetch('/api/settings/apply-link/regenerate', {method:'POST'});
+    if(!r) return;
+    var data = await r.json();
+    var inp = document.getElementById('applyLinkInput');
+    if(inp && data.url){ inp.value = data.url; toast('New apply link generated!'); }
+}
 async function loadDash(){
     var r = await apiFetch('/api/dashboard');
     if(!r) return;
@@ -65,6 +102,6 @@ async function loadDash(){
             +'<td style="text-transform:capitalize">'+esc(i.type||'zoom')+'</td></tr>';
     }).join('') || '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text3)">No upcoming interviews.</td></tr>';
 }
-document.addEventListener('DOMContentLoaded', loadDash);
+document.addEventListener('DOMContentLoaded', function(){ loadDash(); loadApplyLink(); });
 </script>
 @endpush

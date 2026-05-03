@@ -194,7 +194,10 @@ class CandidateController extends Controller
      */
     public function newCandidates(): JsonResponse
     {
-        $candidates = Candidate::where('status', CandidateStatus::NEEDS_REVIEW)
+        $candidates = Candidate::whereIn('status', [
+                CandidateStatus::NEEDS_REVIEW,
+                CandidateStatus::QUEUE,
+            ])
             ->with(['category', 'assignedTo', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -208,7 +211,11 @@ class CandidateController extends Controller
      */
     public function reviewQueue(): JsonResponse
     {
-        $candidates = Candidate::where('status', CandidateStatus::INVITE_SENT)
+        $candidates = Candidate::whereIn('status', [
+                CandidateStatus::INVITE_SENT,
+                CandidateStatus::INTERVIEW_SCHEDULED,
+                CandidateStatus::NO_RESPONSE,
+            ])
             ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();

@@ -37,17 +37,17 @@ class HrisWorkflowController extends Controller
     {
         return $this->renderStage(
             'Compliance Agreements',
-            'Collect and verify compliance agreements and acknowledgements.',
-            ['Compliance Agreements']
+            'Track onboarding compliance acknowledgements, policy sign-offs, and related confirmations.',
+            ['Complete Background Check Consent', 'Review Employee Handbook']
         );
     }
 
     public function clinicalStaffDocument(): View
     {
         return $this->renderStage(
-            'Clinical Staff Document',
-            'Upload and validate clinical staff specific documentation.',
-            ['Clinical Staff Document']
+            'Clinical Staff Documents',
+            'Manage licenses, credentials, and staff-specific documents needed before activation.',
+            ['Upload Credentials & Licenses', 'Upload Driver\'s License']
         );
     }
 
@@ -55,53 +55,49 @@ class HrisWorkflowController extends Controller
     {
         return $this->renderStage(
             'Emergency Contact',
-            'Ensure emergency contact details are collected and confirmed.',
-            ['Emergency Contact']
+            'Collect and confirm each employee\'s emergency contact details during onboarding.',
+            ['Collect Emergency Contact Details']
         );
     }
 
     public function trainingDevelopment(): View
     {
-        return $this->renderStage(
-            'Training and Development',
-            'Track training readiness and required development modules.',
-            ['Training and Development']
-        );
+        return view('hris.training-management', [
+            'pageTitle' => 'Training and Development',
+            'pageDescription' => 'Create and manage employee training items from a dedicated HR page.',
+            'dwcOnly' => false,
+        ]);
     }
 
     public function financialPayrollInformation(): View
     {
-        return $this->renderStage(
-            'Financial and Payroll Information',
-            'Collect payroll setup forms and verify financial onboarding details.',
-            ['Financial and Payroll Information']
-        );
+        return view('hris.payroll-management');
     }
 
     public function postOfferDocuments(): View
     {
         return $this->renderStage(
             'Post-offer Documents',
-            'Track all post-offer documentation before activation.',
-            ['Post-offer Documents']
+            'Finalize the HR documents that must be completed after the offer is accepted.',
+            ['Complete I-9 Verification']
         );
     }
 
     public function dwcTraining(): View
     {
-        return $this->renderStage(
-            'DWC Training',
-            'Capture completion of DWC and related safety training items.',
-            ['DWC Training']
-        );
+        return view('hris.training-management', [
+            'pageTitle' => 'DWC Trainings',
+            'pageDescription' => 'Manage DWC-specific training assignments and completion tracking.',
+            'dwcOnly' => true,
+        ]);
     }
 
     public function additional(): View
     {
         return $this->renderStage(
             'Additional',
-            'Track any additional or site-specific onboarding requirements.',
-            ['Additional']
+            'Use this area for final setup tasks that do not belong to the other onboarding sections.',
+            ['Select Orientation Date', 'Setup Email Account', 'Building Access & WiFi']
         );
     }
 }

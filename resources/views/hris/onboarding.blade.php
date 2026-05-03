@@ -1,8 +1,9 @@
 ﻿@extends('layouts.app')
-@section('title','McCrory Center — Onboarding')
+@section('title','McCrory Center — Pre-Onboard Documents')
 @section('content')
 <div class="animate-in">
-  <div class="section-title">Active Onboarding</div>
+  <div class="section-title">Pre-Onboard Documents</div>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">This page acts as the main onboarding workspace. HR can review outstanding items here and send portal credentials once every required onboarding task is complete.</p>
   <div id="onboardingList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading...</div></div>
 </div>
 

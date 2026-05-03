@@ -1,8 +1,8 @@
 @extends('layouts.app')
-@section('title','McCrory Center — New Candidates')
+@section('title','McCrory Center — Pre-Screening')
 @section('content')
 <div class="animate-in">
-  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates listed here have status <strong style="color:var(--accent)">Needs Review</strong>. Review their application and resume, then send an invite, queue for later, or reject.</p>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates in this stage are still awaiting initial HR review. This list covers <strong style="color:var(--accent)">Needs Review</strong> and <strong style="color:var(--accent)">Queue</strong> so you can review resumes, send interview invites, or hold them for later.</p>
   <div id="newCandidatesList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading new candidates…</div></div>
 </div>
 @endsection
