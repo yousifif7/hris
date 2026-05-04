@@ -422,6 +422,9 @@
 </head>
 <body>
 @php
+  $formAction = $formAction ?? route('public.prescreen.application.submit', ['token' => $token]);
+  $backUrl = $backUrl ?? route('public.prescreen', ['token' => $token]);
+  $backLabel = $backLabel ?? 'Back to Pre-Screen Form';
   $app = $applicationData ?? [];
   $employmentHistory = old('employment_history', data_get($app, 'employment_history', [[], [], []]));
   $educationRows = old('education_rows', data_get($app, 'education_rows', [
@@ -456,7 +459,7 @@
     <div class="status error">{{ $errors->first() }}</div>
   @endif
 
-  <form id="employment-form" method="POST" action="{{ route('public.prescreen.application.submit', ['token' => $token]) }}">
+  <form id="employment-form" method="POST" action="{{ $formAction }}">
     @csrf
 
     <div class="section-title">Personal Information</div>
@@ -803,7 +806,7 @@
 
     <div class="submit-wrap">
       <button type="submit" class="btn-submit">Submit Employment Application</button>
-      <a class="btn-back" href="{{ route('public.prescreen', ['token' => $token]) }}">Back to Pre-Screen Form</a>
+      <a class="btn-back" href="{{ $backUrl }}">{{ $backLabel }}</a>
     </div>
   </form>
 </div>

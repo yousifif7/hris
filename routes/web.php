@@ -59,5 +59,9 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');
+    Route::get('/candidates/{candidate}/employment-application', [\App\Http\Controllers\CandidateApplicationController::class, 'editEmployment'])->name('candidate.employment-application.edit');
+    Route::post('/candidates/{candidate}/employment-application', [\App\Http\Controllers\CandidateApplicationController::class, 'updateEmployment'])->name('candidate.employment-application.update');
+    Route::get('/payrolls/{payroll}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('payrolls.show');
+    Route::get('/payrolls/{payroll}/pdf', [\App\Http\Controllers\PayrollController::class, 'exportPdf'])->name('payrolls.pdf');
     Route::get('/candidates/{candidate}/application-print', [PrescreenPrintController::class, 'print'])->name('candidate.application.print');
 });

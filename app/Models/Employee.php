@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
@@ -33,6 +32,7 @@ class Employee extends Model
     public function user()       { return $this->belongsTo(User::class); }
     public function candidate()  { return $this->belongsTo(Candidate::class); }
     public function trainings()  { return $this->hasMany(Training::class); }
+    public function payrolls()   { return $this->hasMany(\App\Models\Payroll::class); }
     public function timeOffRequests() { return $this->hasMany(TimeOffRequest::class); }
 
     public function documents(): MorphMany

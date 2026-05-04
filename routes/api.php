@@ -120,6 +120,13 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
         ->only(['index', 'show', 'store', 'update', 'destroy'])
         ->where(['employee' => '[0-9]+']);
 
+    // Payrolls
+    Route::get('/payrolls', [\App\Http\Controllers\Api\PayrollController::class, 'index']);
+    Route::post('/payrolls', [\App\Http\Controllers\Api\PayrollController::class, 'store']);
+    Route::get('/payrolls/{payroll}', [\App\Http\Controllers\Api\PayrollController::class, 'show']);
+    Route::patch('/payrolls/{payroll}', [\App\Http\Controllers\Api\PayrollController::class, 'update']);
+    Route::delete('/payrolls/{payroll}', [\App\Http\Controllers\Api\PayrollController::class, 'destroy']);
+
     // Time Off
     Route::get('/time-off', [TimeOffController::class, 'index']);
     Route::post('/time-off', [TimeOffController::class, 'store']);

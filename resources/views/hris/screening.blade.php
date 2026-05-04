@@ -45,6 +45,7 @@ function renderPostInterviewCard(c){
       +'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
         +'<button class="btn btn-blue btn-sm" onclick="openPrescreenModal('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">Open Pre-Screen Review</button>'
+        +'<button class="btn btn-secondary btn-sm" onclick="editEmploymentApplication('+c.id+')">Edit Employment App</button>'
         +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
       +'</div>'
     +'</div>';
@@ -64,6 +65,7 @@ function renderScreeningCard(c){
             +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
               +(formUrl?'<button class="btn btn-blue btn-sm" onclick="openUploadedForm(\''+esc(formUrl)+'\')">📄 Open PDF</button>':'')
               +(formUrl?'<button class="btn btn-secondary btn-sm" onclick="downloadUploadedForm(\''+esc(formUrl)+'\',\''+esc(ps.uploaded_form_name || 'completed-form.pdf')+'\')">⬇ Download</button>':'')
+              +'<button class="btn btn-secondary btn-sm" onclick="editEmploymentApplication('+c.id+')">✏ Edit Employment App</button>'
               +'<button class="btn btn-secondary btn-sm" onclick="printApplicationForm('+c.id+')">🖨️ Print Summary</button>'
             +'</div>'
           +'</div>'
@@ -140,6 +142,10 @@ async function rejectCandidate(id){
 function printApplicationForm(candidateId){
     var token = getToken();
   window.open('/hris/candidates/'+candidateId+'/application-print?token='+encodeURIComponent(token), '_blank');
+}
+
+function editEmploymentApplication(candidateId){
+  window.location.href = '/hris/candidates/' + candidateId + '/employment-application';
 }
 
 function openUploadedForm(url){

@@ -630,9 +630,9 @@ async function viewCandidate(id){
     document.getElementById('detailFooter').innerHTML = '';
     openModal('candidateDetail');
 
-    var r = await apiFetch('/api/candidates/'+id);
-    if(!r){ closeModal('candidateDetail'); return; }
-    var data = await r.json();
+    var candidateResponse = await apiFetch('/api/candidates/'+id);
+    if(!candidateResponse){ closeModal('candidateDetail'); return; }
+    var data = await candidateResponse.json();
     var c = data.candidate;
     var prog = data.onboarding_progress;
     var fp = esc(c.first_name)+' '+esc(c.last_name);
@@ -709,44 +709,78 @@ async function viewCandidate(id){
         availabilityLabel = availabilityMap[availabilityRaw] || availabilityRaw.replace(/_/g, ' ').replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
     }
 
-    document.getElementById('detailBody').innerHTML=
+        document.getElementById('detailBody').innerHTML=
       '<div style="display:flex;gap:20px;flex-wrap:wrap">'
       +'<div style="flex:1;min-width:260px">'
         +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
           +'<div style="width:52px;height:52px;border-radius:50%;background:'+Cl(c.id)+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">'+In(c.first_name,c.last_name)+'</div>'
           +'<div>'+B(c.status)+'</div></div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:14px">'
-                    +'<div><span style="color:var(--text3)">Email</span><br>'+esc(c.email||'—')+'</div>'
-                    +'<div><span style="color:var(--text3)">Phone</span><br>'+esc(c.phone||'—')+'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>First Name</label><input id="cdFirstName" value="'+esc(c.first_name||'')+'"></div>'
+                    +'<div class="form-group"><label>Last Name</label><input id="cdLastName" value="'+esc(c.last_name||'')+'"></div>'
+                +'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>Email</label><input id="cdEmail" type="email" value="'+esc(c.email||'')+'"></div>'
+                    +'<div class="form-group"><label>Phone</label><input id="cdPhone" value="'+esc(c.phone||'')+'"></div>'
+                +'</div>'
+                +'<div class="form-group"><label>Street Address</label><input id="cdStreetAddress" value="'+esc(c.street_address||'')+'"></div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>City</label><input id="cdCity" value="'+esc(c.city||'')+'"></div>'
+                    +'<div class="form-group"><label>State</label><input id="cdState" value="'+esc(c.state||'')+'"></div>'
+                +'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>Postal Code</label><input id="cdPostalCode" value="'+esc(c.postal_code||'')+'"></div>'
+                    +'<div class="form-group"><label>LinkedIn</label><input id="cdLinkedIn" type="url" value="'+esc(c.linkedin_url||'')+'"></div>'
+                +'</div>'
+                +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:14px">'
                     +'<div><span style="color:var(--text3)">Category</span><br>'+esc(c.category?c.category.name:'—')+'</div>'
                     +'<div><span style="color:var(--text3)">Source</span><br>'+esc(c.source||'—')+'</div>'
-                                        +'<div><span style="color:var(--text3)">Address</span><br>'+esc([c.street_address,c.city,c.state,c.postal_code].filter(Boolean).join(', ')||'—')+'</div>'
-                                        +'<div><span style="color:var(--text3)">LinkedIn</span><br>'+(c.linkedin_url?'<a href="'+esc(c.linkedin_url)+'" target="_blank" rel="noopener">Profile</a>':'—')+'</div>'
-                                        +'<div><span style="color:var(--text3)">Experience</span><br>'+esc((c.years_experience!=null?c.years_experience+' years':'—'))+'</div>'
-                                        +'<div><span style="color:var(--text3)">Work Authorization</span><br>'+esc(c.is_authorized_to_work===null?'—':(c.is_authorized_to_work?'Yes':'No'))+'</div>'
-                                                                                +'<div><span style="color:var(--text3)">Desired Pay</span><br>'+esc(c.desired_pay?('$'+Number(c.desired_pay).toFixed(2)):'—')+'</div>'
-                                                                                +'<div><span style="color:var(--text3)">Earliest Start</span><br>'+esc(c.earliest_start_date?fDate(c.earliest_start_date):'—')+'</div>'
-                                                                                +'<div><span style="color:var(--text3)">Availability</span><br>'+esc(availabilityLabel)+'</div>'
-          +'<div><span style="color:var(--text3)">Applied</span><br>'+esc(fDate(c.created_at))+'</div>'
+                    +'<div><span style="color:var(--text3)">Applied</span><br>'+esc(fDate(c.created_at))+'</div>'
                     +'<div><span style="color:var(--text3)">Assigned</span><br>'+esc(c.assigned_to?c.assigned_to.first_name+' '+c.assigned_to.last_name:'—')+'</div>'
-        +'</div>'
-        +(c.resume_text?'<div class="form-group"><label>Resume</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12px;line-height:1.6;max-height:150px;overflow-y:auto;white-space:pre-wrap">'+esc(c.resume_text)+'</div></div>':'')
+                +'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>Experience (Years)</label><input id="cdYearsExperience" type="number" min="0" max="60" value="'+esc(c.years_experience==null?'':String(c.years_experience))+'"></div>'
+                    +'<div class="form-group"><label>Education Level</label><input id="cdEducationLevel" value="'+esc(c.education_level||'')+'"></div>'
+                +'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>Desired Pay</label><input id="cdDesiredPay" type="number" min="0" step="0.01" value="'+esc(c.desired_pay==null?'':String(c.desired_pay))+'"></div>'
+                    +'<div class="form-group"><label>Earliest Start</label><input id="cdEarliestStart" type="date" value="'+esc(c.earliest_start_date||'')+'"></div>'
+                +'</div>'
+                +'<div class="form-row">'
+                    +'<div class="form-group"><label>Availability</label><select id="cdAvailability">'
+                        +'<option value=""'+(!c.availability?' selected':'')+'>Select...</option>'
+                        +'<option value="full_time"'+(c.availability==='full_time'?' selected':'')+'>Full-Time</option>'
+                        +'<option value="part_time"'+(c.availability==='part_time'?' selected':'')+'>Part-Time</option>'
+                        +'<option value="contract"'+(c.availability==='contract'?' selected':'')+'>Contract</option>'
+                        +'<option value="temporary"'+(c.availability==='temporary'?' selected':'')+'>Temporary</option>'
+                        +'<option value="internship"'+(c.availability==='internship'?' selected':'')+'>Internship</option>'
+                        +'<option value="remote"'+(c.availability==='remote'?' selected':'')+'>Remote</option>'
+                    +'</select></div>'
+                    +'<div class="form-group"><label>Authorized to Work</label><select id="cdWorkAuth">'
+                        +'<option value=""'+(c.is_authorized_to_work===null?' selected':'')+'>Select...</option>'
+                        +'<option value="1"'+(c.is_authorized_to_work===true?' selected':'')+'>Yes</option>'
+                        +'<option value="0"'+(c.is_authorized_to_work===false?' selected':'')+'>No</option>'
+                    +'</select></div>'
+                +'</div>'
+                +'<div class="form-group"><label>Resume / Summary</label><textarea id="cdResumeText" rows="7">'+esc(c.resume_text||'')+'</textarea></div>'
         +'<div class="form-group" style="margin-top:12px"><label>Change Status</label>'
-        +'<select id="detailSt">'+statusOpts+'</select></div>'
+                +'<select id="detailSt" data-current-status="'+esc(c.status)+'">'+statusOpts+'</select></div>'
       +'</div>'
       +'<div style="flex:1;min-width:220px">'+docsHtml+bgHtml+refsHtml+logsHtml+'</div>'
     +'</div>';
 
     document.getElementById('detailFooter').innerHTML=
       '<button class="btn btn-danger btn-sm" onclick="cdAction('+c.id+',\'rejected\')">Reject</button>'
+            +((c.status==='post_interview_review' || c.status==='pre_screening_passed' || c.status==='awaiting_background_check')?'<button class="btn btn-warning btn-sm" onclick="window.location.href=\'/hris/candidates/'+c.id+'/employment-application\'">Edit Employment App</button>':'')
       +'<button class="btn btn-info btn-sm" onclick="openCandidateEmail('+c.id+',\''+esc(c.email||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">📧 Email</button>'
       +'<button class="btn btn-info btn-sm" onclick="openCandidateSms('+c.id+',\''+esc(c.phone||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">💬 SMS</button>'
       +'<button class="btn btn-secondary" onclick="closeModal(\'candidateDetail\')">Close</button>'
-      +'<button class="btn btn-primary" onclick="cdAction('+c.id+',null)">Save Status</button>';
+            +'<button class="btn btn-primary" onclick="cdAction('+c.id+',null)">Save Changes</button>';
 }
 
 async function cdAction(id, forceStatus){
     var st = forceStatus || document.getElementById('detailSt').value;
+        var currentStatus = document.getElementById('detailSt').dataset.currentStatus || '';
     var name = document.getElementById('detailName').textContent || 'this candidate';
 
     // Offer-sent → open offer details modal instead of patching status directly
@@ -763,6 +797,39 @@ async function cdAction(id, forceStatus){
         hired:             'Convert '+name+' to hired?\n\nThis will trigger onboarding.'
     };
     if(confirmRequired[st] && !confirm(confirmRequired[st])) return;
+
+    var payload = {
+        first_name: document.getElementById('cdFirstName').value.trim(),
+        last_name: document.getElementById('cdLastName').value.trim(),
+        email: document.getElementById('cdEmail').value.trim() || null,
+        phone: document.getElementById('cdPhone').value.trim() || null,
+        street_address: document.getElementById('cdStreetAddress').value.trim() || null,
+        city: document.getElementById('cdCity').value.trim() || null,
+        state: document.getElementById('cdState').value.trim() || null,
+        postal_code: document.getElementById('cdPostalCode').value.trim() || null,
+        linkedin_url: document.getElementById('cdLinkedIn').value.trim() || null,
+        years_experience: document.getElementById('cdYearsExperience').value === '' ? null : parseInt(document.getElementById('cdYearsExperience').value, 10),
+        education_level: document.getElementById('cdEducationLevel').value.trim() || null,
+        desired_pay: document.getElementById('cdDesiredPay').value === '' ? null : parseFloat(document.getElementById('cdDesiredPay').value),
+        earliest_start_date: document.getElementById('cdEarliestStart').value || null,
+        availability: document.getElementById('cdAvailability').value || null,
+        is_authorized_to_work: document.getElementById('cdWorkAuth').value === '' ? null : document.getElementById('cdWorkAuth').value === '1',
+        resume_text: document.getElementById('cdResumeText').value.trim() || null,
+    };
+
+    var profileResponse = await apiFetch('/api/candidates/'+id, {method:'PATCH', body:JSON.stringify(payload)});
+    if(!profileResponse || !profileResponse.ok){
+        var profileError = profileResponse ? await profileResponse.json() : {};
+        toast(profileError.message || 'Candidate update failed', 'error');
+        return;
+    }
+
+    if(st === currentStatus){
+        toast('Candidate application updated.', 'success');
+        closeModal('candidateDetail');
+        if(typeof pageRefresh === 'function') pageRefresh();
+        return;
+    }
 
     var r = await apiFetch('/api/candidates/'+id+'/status', {method:'PATCH', body:JSON.stringify({status:st})});
     if(!r) return;
