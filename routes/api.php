@@ -136,6 +136,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
 
     // Trainings
     Route::get('/trainings', [TrainingController::class, 'index']);
+    Route::get('/trainings/{training}', [TrainingController::class, 'show']);
     Route::post('/trainings', [TrainingController::class, 'store']);
     Route::patch('/trainings/{training}', [TrainingController::class, 'update']);
     Route::delete('/trainings/{training}', [TrainingController::class, 'destroy']);
