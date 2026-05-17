@@ -119,7 +119,9 @@ async function loadObSettings(){
 }
 
 async function loadOnboarding(){
-    var r = await apiFetch('/api/onboarding');
+    // Only candidates currently in the "Pre-Onboard Documents" stage. The other
+    // onboarding sub-stages (Compliance, Clinical, etc.) each have their own sidebar page.
+    var r = await apiFetch('/api/onboarding?status=pre_onboard_documents');
     if(!r) return;
     var data  = await r.json();
     var items = data.data || data;

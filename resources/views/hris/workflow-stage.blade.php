@@ -32,6 +32,7 @@
 @push('scripts')
 <script>
 var _stageTaskNames = @json($stageTaskNames);
+var _stageStatus = @json($stageStatus);
 var _wfData = {};
 var _wfCurrentTask = null;
 var _wfCurrentCandidateId = null;
@@ -39,7 +40,8 @@ var _wfCurrentCandidateId = null;
 async function pageRefresh(){ await loadWorkflowStage(); }
 
 async function loadWorkflowStage(){
-    var r = await apiFetch('/api/onboarding');
+    var url = '/api/onboarding' + (_stageStatus ? ('?status=' + encodeURIComponent(_stageStatus)) : '');
+    var r = await apiFetch(url);
     if(!r) return;
     var payload = await r.json();
     var items = payload.data || payload;

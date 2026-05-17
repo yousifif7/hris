@@ -369,8 +369,46 @@ function dateKeyInAppTz(dt){
     return map.year+'-'+map.month+'-'+map.day;
 }
 
-var SL={needs_review:'Needs Review',invite_sent:'Invite Sent',no_response:'No Response',interview_scheduled:'Interview Scheduled',post_interview_review:'Post-Interview (Application Pending)',pre_screening_passed:'Pre-Screening Passed',awaiting_background_check:'Awaiting Background Check',offer_sent:'Offer Sent',offer_accepted:'Offer Accepted',rejected:'Rejected',applicant_declined:'Applicant Declined',queue:'Queue',onboarding:'Onboarding',hired:'Hired'};
-var SB={needs_review:'needs-review',invite_sent:'invite-sent',no_response:'queue',interview_scheduled:'interview',post_interview_review:'post-interview',pre_screening_passed:'prescreening',awaiting_background_check:'bg-check',offer_sent:'offer-sent',offer_accepted:'offer-accepted',rejected:'rejected',applicant_declined:'declined',queue:'queue',onboarding:'onboarding',hired:'offer-accepted'};
+var SL={
+    hiring:'Hiring',
+    pre_screening:'Pre-Screening',
+    pre_interview_questions:'Pre-Interview Questions',
+    verification_and_review:'Verification and Review',
+    offer_letter:'Offer Letter',
+    pre_onboard_documents:'Pre-Onboard Documents',
+    compliance_agreements:'Compliance Agreements',
+    clinical_staff_documents:'Clinical Staff Documents',
+    emergency_contact:'Emergency Contact',
+    training_and_development:'Training and Development',
+    financial_and_payroll_information:'Financial and Payroll Information',
+    post_offer_documents:'Post-Offer Documents',
+    dwc_trainings:'DWC Trainings',
+    additional:'Additional',
+    job_description_letter:'Job Description Letter',
+    rejected:'Rejected',
+    applicant_declined:'Applicant Declined',
+    hired:'Hired'
+};
+var SB={
+    hiring:'needs-review',
+    pre_screening:'invite-sent',
+    pre_interview_questions:'post-interview',
+    verification_and_review:'prescreening',
+    offer_letter:'offer-sent',
+    pre_onboard_documents:'offer-accepted',
+    compliance_agreements:'onboarding',
+    clinical_staff_documents:'onboarding',
+    emergency_contact:'onboarding',
+    training_and_development:'onboarding',
+    financial_and_payroll_information:'onboarding',
+    post_offer_documents:'onboarding',
+    dwc_trainings:'onboarding',
+    additional:'onboarding',
+    job_description_letter:'onboarding',
+    rejected:'rejected',
+    applicant_declined:'declined',
+    hired:'offer-accepted'
+};
 function B(s){ var lbl=SL[s]||s; return '<span class="badge badge-'+(SB[s]||'queue')+'">'+esc(lbl)+'</span>'; }
 
 function toast(m,type,duration){
@@ -771,7 +809,7 @@ async function viewCandidate(id){
 
     document.getElementById('detailFooter').innerHTML=
       '<button class="btn btn-danger btn-sm" onclick="cdAction('+c.id+',\'rejected\')">Reject</button>'
-            +((c.status==='post_interview_review' || c.status==='pre_screening_passed' || c.status==='awaiting_background_check')?'<button class="btn btn-warning btn-sm" onclick="window.location.href=\'/hris/candidates/'+c.id+'/employment-application\'">Edit Employment App</button>':'')
+            +((c.status==='pre_interview_questions' || c.status==='verification_and_review')?'<button class="btn btn-warning btn-sm" onclick="window.location.href=\'/hris/candidates/'+c.id+'/employment-application\'">Edit Employment App</button>':'')
       +'<button class="btn btn-info btn-sm" onclick="openCandidateEmail('+c.id+',\''+esc(c.email||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">📧 Email</button>'
       +'<button class="btn btn-info btn-sm" onclick="openCandidateSms('+c.id+',\''+esc(c.phone||'')+'\',\''+esc(c.first_name+' '+c.last_name)+'\')">💬 SMS</button>'
       +'<button class="btn btn-secondary" onclick="closeModal(\'candidateDetail\')">Close</button>'
@@ -783,8 +821,8 @@ async function cdAction(id, forceStatus){
         var currentStatus = document.getElementById('detailSt').dataset.currentStatus || '';
     var name = document.getElementById('detailName').textContent || 'this candidate';
 
-    // Offer-sent → open offer details modal instead of patching status directly
-    if(st === 'offer_sent'){
+    // Offer Letter → open offer details modal instead of patching status directly
+    if(st === 'offer_letter'){
         closeModal('candidateDetail');
         openOfferModal(id, name);
         return;
@@ -1037,6 +1075,8 @@ document.addEventListener('DOMContentLoaded', async function(){
     var r = await apiFetch('/api/me');
     if(!r) return;
     var me = await r.json();
+    window.__currentUser   = me;
+    window.__currentUserId = me.id;
     var av = document.getElementById('sidebarUserAvatar');  if(av) av.textContent = In(me.first_name, me.last_name);
     var nm = document.getElementById('sidebarUserName');    if(nm) nm.textContent = me.first_name+' '+me.last_name;
     var rl = document.getElementById('sidebarUserRole');

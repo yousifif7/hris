@@ -194,7 +194,7 @@ class CandidateController extends Controller
      */
     public function reviewQueue(): JsonResponse
     {
-        $candidates = Candidate::needsReview()
+        $candidates = Candidate::where('status', CandidateStatus::PRE_INTERVIEW_QUESTIONS)
             ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();

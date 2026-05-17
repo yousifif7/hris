@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->foreignId('job_category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('source');                // Indeed, LinkedIn, Referral, Website, Walk-in, Upload
-            $table->string('status')->default('needs_review');
+            $table->string('status')->default('hiring');
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->text('resume_text')->nullable();

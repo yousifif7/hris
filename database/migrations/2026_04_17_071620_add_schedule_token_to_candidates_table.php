@@ -22,6 +22,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('candidates', function (Blueprint $table) {
+            // SQLite refuses to drop a column while a unique index still references it,
+            // so the index has to go first.
+            $table->dropUnique(['schedule_token']);
             $table->dropColumn('schedule_token');
         });
     }

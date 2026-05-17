@@ -26,6 +26,31 @@ class DatabaseSeeder extends Seeder
             'offer_deadline'     => '20',
             'followup_days'      => '5',
             'queue_days'         => '10',
+            'hiring_position_description' => <<<TXT
+Supports Coordination: Bachelor's in Human Services, QIDP, and Michigan Supports Coordinator training. Must have 1+ year of experience coordinating care plans, conducting assessments, and managing community resources for individuals with disabilities.
+
+Supports Coordination Assistant: High School Diploma. Must have 1+ year of experience providing administrative support in a social services or healthcare setting, including data entry and client scheduling.
+
+Psychological Evaluations: Must have at least 1 year of hands-on experience administering cognitive and adaptive testing (e.g., WISC, Vineland) specifically for ASD, ADHD, IDD, and Guardianship cases.
+
+Psychotherapy: Active licensure (LMSW, LPC, TLLP, LLP, or LP) with 1+ year of clinical experience providing individual therapy, crisis intervention, and treatment planning.
+
+Group Therapy: Active licensure (LMSW, LPC, TLLP, LLP, or LP) with 1+ year of experience facilitating therapeutic groups, managing group dynamics, and documenting group sessions.
+
+Masters Level Clinician: Active Master's degree and licensure (LMSW, LPC, TLLP, LLP) with 1+ year of post-graduate clinical experience in assessment, diagnosis, and evidence-based treatment.
+
+Office Assistant: High School Diploma. Must have 1+ year of experience in medical or social service office administration, including phone triage, filing, and front-desk operations.
+
+Financial Management – Claims Specialist: Must have 1+ year of experience processing Medicaid/Medicare claims, handling billing denials, and reconciling accounts in a healthcare or human services environment.
+
+Financial Management – CPA: Must hold an active CPA license with 1+ year of experience in financial auditing, budget management, and regulatory compliance for non-profit or healthcare organizations.
+
+Building Maintenance: Must have 1+ year of experience performing general facility repairs, HVAC basics, plumbing, electrical troubleshooting, and preventative maintenance in a commercial or residential setting.
+
+Communication Person: Must have 1+ year of experience in public relations, media outreach, or internal communications, with strong writing skills and experience managing social media or newsletters.
+
+HR / Quality Assurance: Must have 1+ year of experience in human resources (recruiting, onboarding, compliance) and QA (auditing clinical records, ensuring regulatory adherence) within a healthcare or social service agency.
+TXT,
         ];
         foreach ($settings as $k => $v) {
             Setting::firstOrCreate(['key' => $k], ['value' => $v]);
@@ -72,7 +97,7 @@ class DatabaseSeeder extends Seeder
             ['slug' => 'onboarding',          'name' => 'Onboarding Welcome',        'subject' => 'Welcome to {{company_name}}!',                  'body' => "Dear {{candidate_name}},\n\nWelcome! Here's what you need:\n- Email login info\n- WiFi credentials\n- Building access: front desk day 1\n\nComplete all onboarding tasks in your portal.\n\nBest,\n{{hr_name}}"],
             ['slug' => 'interview_confirmation', 'name' => 'Interview Confirmation', 'subject' => 'Interview Confirmed — {{company_name}}',       'body' => "Dear {{candidate_name}},\n\nYour interview for {{role}} is confirmed.\n\nDetails will be sent shortly.\n\nBest,\n{{hr_name}}"],
             ['slug' => 'declined_followup',   'name' => 'Declined Follow-up',        'subject' => 'Thank You — {{company_name}}',                  'body' => "Dear {{candidate_name}},\n\nWe understand your decision. We'd love to stay in touch for future opportunities.\n\nBest,\n{{hr_name}}"],
-            ['slug' => 'sms_followup',            'name' => 'SMS Follow-up (No Response)',  'subject' => '',                                              'body' => "Hi {{candidate_first_name}}, this is {{hr_name}} from {{company_name}}. Still interested in the {{role}} position? Book a quick interview here: {{scheduling_link}}", 'category' => 'sms'],
+            ['slug' => 'sms_followup',     'name' => 'SMS Follow-up (No Response)',  'subject' => '',                                              'body' => "Hi {{candidate_first_name}}, this is {{hr_name}} from {{company_name}}. Still interested in the {{role}} position? Book a quick interview here: {{scheduling_link}}", 'category' => 'sms'],
             ['slug' => 'portal_credentials',  'name' => 'Portal Credentials',        'subject' => 'Your {{company_name}} Employee Portal Access',   'body' => "Dear {{candidate_name}},\n\nCongratulations and welcome to {{company_name}}!\n\nYour employee portal access has been created:\n\nLogin URL:          {{login_url}}\nEmail:              {{login_email}}\nTemporary Password: {{temp_password}}\n\nBuilding Access: {{door_code}}\nWiFi Password:   {{wifi_password}}\n\nPlease log in and change your password on first sign-in.\n\nBest regards,\n{{hr_name}}"],
         ];
         foreach ($templates as $t) {
@@ -82,15 +107,13 @@ class DatabaseSeeder extends Seeder
         // ── Automation Rules ──
         $rules = [
             ['trigger_event' => 'candidate_created',  'action_type' => 'notify',     'action_config' => ['target' => 'assigned_hr']],
-            ['trigger_event' => 'status_changed',     'trigger_value' => 'invite_sent',             'action_type' => 'send_email', 'action_config' => ['template' => 'invite']],
+            ['trigger_event' => 'status_changed',     'trigger_value' => 'pre_screening',           'action_type' => 'send_email', 'action_config' => ['template' => 'invite']],
             ['trigger_event' => 'no_response',        'trigger_value' => '5_days',                  'action_type' => 'send_sms',   'action_config' => ['template' => 'sms_followup'], 'delay_hours' => 120],
-            ['trigger_event' => 'no_response',        'trigger_value' => '10_days',                 'action_type' => 'move_to_queue', 'delay_hours' => 240],
-            ['trigger_event' => 'status_changed',     'trigger_value' => 'interview_scheduled',     'action_type' => 'send_email', 'action_config' => ['template' => 'interview_confirmation']],
-            ['trigger_event' => 'status_changed',     'trigger_value' => 'pre_screening_passed',    'action_type' => 'send_email', 'action_config' => ['template' => 'prescreening'], 'delay_hours' => 48],
+            ['trigger_event' => 'status_changed',     'trigger_value' => 'pre_interview_questions', 'action_type' => 'send_email', 'action_config' => ['template' => 'prescreening']],
             ['trigger_event' => 'reference_submitted','action_type' => 'send_email', 'action_config' => ['template' => 'reference']],
             ['trigger_event' => 'bg_checks_complete', 'action_type' => 'notify',     'action_config' => ['target' => 'assigned_hr']],
-            ['trigger_event' => 'status_changed',     'trigger_value' => 'offer_sent',              'action_type' => 'send_email', 'action_config' => ['template' => 'offer']],
-            ['trigger_event' => 'status_changed',     'trigger_value' => 'offer_accepted',          'action_type' => 'send_email', 'action_config' => ['template' => 'onboarding']],
+            ['trigger_event' => 'status_changed',     'trigger_value' => 'offer_letter',            'action_type' => 'send_email', 'action_config' => ['template' => 'offer']],
+            ['trigger_event' => 'status_changed',     'trigger_value' => 'pre_onboard_documents',   'action_type' => 'send_email', 'action_config' => ['template' => 'onboarding']],
             ['trigger_event' => 'status_changed',     'trigger_value' => 'rejected',                'action_type' => 'send_email', 'action_config' => ['template' => 'reject']],
             ['trigger_event' => 'status_changed',     'trigger_value' => 'applicant_declined',      'action_type' => 'send_email', 'action_config' => ['template' => 'declined_followup']],
             ['trigger_event' => 'training_expiring',  'action_type' => 'notify',     'action_config' => ['days_before' => 30]],
@@ -101,15 +124,15 @@ class DatabaseSeeder extends Seeder
 
         // ── Sample Candidates ──
         $sampleCandidates = [
-            ['first_name'=>'Amara','last_name'=>'Chen','email'=>'amara.c@email.com','phone'=>'(313) 555-0101','job_category_id'=>1,'source'=>'Indeed','status'=>'needs_review','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>"MSW, University of Michigan. LMSW. 4 years CBT/trauma."],
-            ['first_name'=>'David','last_name'=>'Park','email'=>'dpark@email.com','phone'=>'(313) 555-0102','job_category_id'=>2,'source'=>'LinkedIn','status'=>'interview_scheduled','assigned_to'=>$staffIds[1] ?? 2,'resume_text'=>'MA Counseling Psychology. Youth programs.'],
-            ['first_name'=>'Maria','last_name'=>'Santos','email'=>'msantos@email.com','phone'=>'(313) 555-0103','job_category_id'=>3,'source'=>'Referral','status'=>'pre_screening_passed','assigned_to'=>$staffIds[2] ?? 3,'resume_text'=>'BA Social Work. 2 years direct care.'],
-            ['first_name'=>'James','last_name'=>'Wilson','email'=>'jwilson@email.com','phone'=>'(313) 555-0104','job_category_id'=>4,'source'=>'Indeed','status'=>'offer_sent','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'5 years care coordination. CCM.'],
-            ['first_name'=>'Lisa','last_name'=>'Thompson','email'=>'lthompson@email.com','phone'=>'(313) 555-0105','job_category_id'=>1,'source'=>'Website','status'=>'offer_accepted','assigned_to'=>$staffIds[3] ?? 4,'resume_text'=>'LMSW, 6 years clinical.'],
-            ['first_name'=>'Nina','last_name'=>'Rodriguez','email'=>'nrod@email.com','phone'=>'(313) 555-0107','job_category_id'=>3,'source'=>'Indeed','status'=>'needs_review','assigned_to'=>$staffIds[2] ?? 3,'resume_text'=>'BA Psychology, 1yr internship.'],
-            ['first_name'=>'Alex','last_name'=>'Morgan','email'=>'amorgan@email.com','phone'=>'(313) 555-0108','job_category_id'=>1,'source'=>'Referral','status'=>'awaiting_background_check','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'LPC, substance abuse. 5 years.'],
-            ['first_name'=>'Keisha','last_name'=>'Adams','email'=>'kadams@email.com','phone'=>'(313) 555-0121','job_category_id'=>1,'source'=>'Referral','status'=>'needs_review','assigned_to'=>$staffIds[3] ?? 4,'resume_text'=>'LCSW, 8 years. Family therapy.'],
-            ['first_name'=>'Brian','last_name'=>'Clark','email'=>'bclark@email.com','phone'=>'(313) 555-0120','job_category_id'=>4,'source'=>'Indeed','status'=>'onboarding','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'Supports Coordinator. QIDP.'],
+            ['first_name'=>'Amara','last_name'=>'Chen','email'=>'amara.c@email.com','phone'=>'(313) 555-0101','job_category_id'=>1,'source'=>'Indeed','status'=>'hiring','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>"MSW, University of Michigan. LMSW. 4 years CBT/trauma."],
+            ['first_name'=>'David','last_name'=>'Park','email'=>'dpark@email.com','phone'=>'(313) 555-0102','job_category_id'=>2,'source'=>'LinkedIn','status'=>'pre_screening','assigned_to'=>$staffIds[1] ?? 2,'resume_text'=>'MA Counseling Psychology. Youth programs.'],
+            ['first_name'=>'Maria','last_name'=>'Santos','email'=>'msantos@email.com','phone'=>'(313) 555-0103','job_category_id'=>3,'source'=>'Referral','status'=>'verification_and_review','assigned_to'=>$staffIds[2] ?? 3,'resume_text'=>'BA Social Work. 2 years direct care.'],
+            ['first_name'=>'James','last_name'=>'Wilson','email'=>'jwilson@email.com','phone'=>'(313) 555-0104','job_category_id'=>4,'source'=>'Indeed','status'=>'offer_letter','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'5 years care coordination. CCM.'],
+            ['first_name'=>'Lisa','last_name'=>'Thompson','email'=>'lthompson@email.com','phone'=>'(313) 555-0105','job_category_id'=>1,'source'=>'Website','status'=>'pre_onboard_documents','assigned_to'=>$staffIds[3] ?? 4,'resume_text'=>'LMSW, 6 years clinical.'],
+            ['first_name'=>'Nina','last_name'=>'Rodriguez','email'=>'nrod@email.com','phone'=>'(313) 555-0107','job_category_id'=>3,'source'=>'Indeed','status'=>'hiring','assigned_to'=>$staffIds[2] ?? 3,'resume_text'=>'BA Psychology, 1yr internship.'],
+            ['first_name'=>'Alex','last_name'=>'Morgan','email'=>'amorgan@email.com','phone'=>'(313) 555-0108','job_category_id'=>1,'source'=>'Referral','status'=>'verification_and_review','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'LPC, substance abuse. 5 years.'],
+            ['first_name'=>'Keisha','last_name'=>'Adams','email'=>'kadams@email.com','phone'=>'(313) 555-0121','job_category_id'=>1,'source'=>'Referral','status'=>'hiring','assigned_to'=>$staffIds[3] ?? 4,'resume_text'=>'LCSW, 8 years. Family therapy.'],
+            ['first_name'=>'Brian','last_name'=>'Clark','email'=>'bclark@email.com','phone'=>'(313) 555-0120','job_category_id'=>4,'source'=>'Indeed','status'=>'compliance_agreements','assigned_to'=>$staffIds[0] ?? 1,'resume_text'=>'Supports Coordinator. QIDP.'],
         ];
         foreach ($sampleCandidates as $c) {
             Candidate::firstOrCreate(['email' => $c['email']], $c);

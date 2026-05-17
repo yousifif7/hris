@@ -18,7 +18,7 @@ class CandidateFactory extends Factory
             'email'       => fake()->unique()->safeEmail(),
             'phone'       => fake()->phoneNumber(),
             'source'      => fake()->randomElement(['Indeed', 'LinkedIn', 'Referral', 'Website']),
-            'status'      => CandidateStatus::NEEDS_REVIEW,
+            'status'      => CandidateStatus::HIRING,
             'resume_text' => fake()->paragraphs(3, true),
         ];
     }

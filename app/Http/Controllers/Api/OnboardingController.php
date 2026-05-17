@@ -15,9 +15,30 @@ class OnboardingController extends Controller
 {
     public function __construct(protected CandidateService $service) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $candidates = Candidate::whereIn('status', ['onboarding', 'offer_accepted'])
+        // Default: every candidate in any onboarding-sequence stage (Pre-Onboard Documents → last).
+        // Optional ?status=<value> narrows to a single stage so each sidebar page can ask only for
+        // the candidates whose current status matches that stage.
+        $onboardingStatuses = [
+            \App\Enums\CandidateStatus::PRE_ONBOARD_DOCUMENTS->value,
+            \App\Enums\CandidateStatus::COMPLIANCE_AGREEMENTS->value,
+            \App\Enums\CandidateStatus::CLINICAL_STAFF_DOCUMENTS->value,
+            \App\Enums\CandidateStatus::EMERGENCY_CONTACT->value,
+            \App\Enums\CandidateStatus::TRAINING_AND_DEVELOPMENT->value,
+            \App\Enums\CandidateStatus::FINANCIAL_AND_PAYROLL_INFORMATION->value,
+            \App\Enums\CandidateStatus::POST_OFFER_DOCUMENTS->value,
+            \App\Enums\CandidateStatus::DWC_TRAININGS->value,
+            \App\Enums\CandidateStatus::ADDITIONAL->value,
+            \App\Enums\CandidateStatus::JOB_DESCRIPTION_LETTER->value,
+        ];
+
+        $filter = $request->string('status')->toString();
+        $targets = $filter && in_array($filter, $onboardingStatuses, true)
+            ? [$filter]
+            : $onboardingStatuses;
+
+        $candidates = Candidate::whereIn('status', $targets)
             ->with(['onboardingTasks', 'latestOffer', 'category'])
             ->get();
 

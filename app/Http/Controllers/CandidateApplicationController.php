@@ -57,8 +57,8 @@ class CandidateApplicationController extends Controller
             'description' => 'Employment application updated from the CRM.',
         ]);
 
-        if ($candidate->status === CandidateStatus::POST_INTERVIEW_REVIEW) {
-            $this->service->changeStatus($candidate, CandidateStatus::PRE_SCREENING_PASSED, Auth::id());
+        if ($candidate->status === CandidateStatus::PRE_INTERVIEW_QUESTIONS) {
+            $this->service->changeStatus($candidate, CandidateStatus::VERIFICATION_AND_REVIEW, Auth::id());
         }
 
         return redirect()

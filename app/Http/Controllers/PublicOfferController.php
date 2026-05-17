@@ -75,7 +75,7 @@ class PublicOfferController extends Controller
 
         // Update candidate status
         $newStatus = $data['response'] === 'accepted'
-            ? CandidateStatus::OFFER_ACCEPTED
+            ? CandidateStatus::PRE_ONBOARD_DOCUMENTS
             : CandidateStatus::APPLICANT_DECLINED;
 
         $this->service->changeStatus($offer->candidate, $newStatus);

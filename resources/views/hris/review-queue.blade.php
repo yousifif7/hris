@@ -2,7 +2,7 @@
 @section('title','McCrory Center — Review Queue')
 @section('content')
 <div class="animate-in">
-  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates listed here have status <strong style="color:var(--accent)">Needs Review</strong> or <strong style="color:var(--accent)">Post-Interview Review</strong>. Take action to advance or close each candidate.</p>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Combined review queue: candidates in <strong style="color:var(--accent)">Hiring</strong> (new applications awaiting an invite) and <strong style="color:var(--accent)">Pre-Interview Questions</strong> (post-interview, awaiting their application).</p>
   <div id="reviewQueueList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading review queue…</div></div>
 </div>
 @endsection
@@ -21,7 +21,7 @@ async function loadQueue(){
         return;
     }
     el.innerHTML = items.map(function(c){
-        var isP = c.status === 'post_interview_review';
+        var isPostInterview = c.status === 'pre_interview_questions';
         var initBg = 'background:'+Cl(c.id);
         var initText = In(c.first_name, c.last_name);
         var category = c.category ? esc(c.category.name) : '—';
@@ -30,18 +30,18 @@ async function loadQueue(){
           +'<div class="top">'
             +'<div class="avatar" style="'+initBg+'">'+initText+'</div>'
             +'<div class="info">'
-              +'<h4>'+esc(c.first_name+' '+c.last_name)+(isP?' <span style="font-size:11px;color:var(--accent)">(Post-Interview)</span>':'')+'</h4>'
+              +'<h4>'+esc(c.first_name+' '+c.last_name)+(isPostInterview?' <span style="font-size:11px;color:var(--accent)">(Post-Interview)</span>':'')+'</h4>'
               +'<div class="meta-row"><span>'+category+'</span><span>·</span><span>'+esc(c.source||'')+'</span><span>·</span><span>'+assignee+'</span></div>'
             +'</div>'+B(c.status)
           +'</div>'
           +(c.resume_text?'<div class="resume-preview">'+esc(c.resume_text).replace(/\n/g,'<br>')+'</div>':'')
-          +(isP&&c.pre_screening?'<div style="background:var(--accent-glow);border:1px solid rgba(91,76,219,.15);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:13px"><strong style="color:var(--accent)">Pre-Screening:</strong> '+esc(c.pre_screening.education_level)+' · '+esc(c.pre_screening.years_experience)+'yrs · '+esc(c.pre_screening.availability)+'</div>':'')
+          +(isPostInterview&&c.pre_screening?'<div style="background:var(--accent-glow);border:1px solid rgba(91,76,219,.15);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:13px"><strong style="color:var(--accent)">Pre-Screening:</strong> '+esc(c.pre_screening.education_level)+' · '+esc(c.pre_screening.years_experience)+'yrs · '+esc(c.pre_screening.availability)+'</div>':'')
           +'<div class="action-bar">'
-            +'<button class="btn btn-secondary btn-sm" onclick="setStatus('+c.id+',\'no_response\',\''+esc(c.first_name+' '+c.last_name)+'\')">No Response</button>'
             +'<button class="btn btn-danger btn-sm" onclick="setStatus('+c.id+',\'rejected\',\''+esc(c.first_name+' '+c.last_name)+'\')">✗ Reject</button>'
-            +'<button class="btn btn-warning btn-sm" onclick="setStatus('+c.id+',\'queue\',\''+esc(c.first_name+' '+c.last_name)+'\')">⏳ Queue</button>'
             +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
-            +(isP?'<button class="btn btn-blue btn-sm" onclick="openScheduleInterview('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">📅 Schedule Interview</button>':'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'invite_sent\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Send Invite</button>')
+            +(isPostInterview
+                ?'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'verification_and_review\',\''+esc(c.first_name+' '+c.last_name)+'\')">→ Verification</button>'
+                :'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'pre_screening\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Send Invite</button>')
           +'</div>'
         +'</div>';
     }).join('');
@@ -50,24 +50,17 @@ async function loadQueue(){
 async function setStatus(id, status, name){
     name = name || 'this candidate';
     var confirmMsgs = {
-        rejected:    'Reject '+name+'?\n\nThis will send a rejection email.',
-        no_response: 'Mark '+name+' as no response?',
-        queue:       'Move '+name+' to queue for later?',
-        invite_sent: 'Send interview invite to '+name+'?'
+        rejected:                'Reject '+name+'?\n\nThis will send a rejection email.',
+        pre_screening:           'Send interview invite to '+name+'?',
+        verification_and_review: 'Move '+name+' into Verification and Review?'
     };
     var msg = confirmMsgs[status];
     if(msg && !confirm(msg)) return;
     var r = await apiFetch('/api/candidates/'+id+'/status', {method:'PATCH', body:JSON.stringify({status:status})});
     if(!r) return;
     var c = await r.json();
-    var toastMsgs = {
-        rejected:    '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
-        no_response: 'No response marked for '+esc(c.first_name+' '+c.last_name)+'.',
-        queue:       '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.',
-        invite_sent: '✉ Invite sent to '+esc(c.first_name+' '+c.last_name)+'.'
-    };
     var type = status==='rejected' ? 'error' : 'success';
-    toast(toastMsgs[status] || esc(c.first_name+' '+c.last_name)+' updated.', type);
+    toast(esc(c.first_name+' '+c.last_name)+' → '+(SL[status]||status), type);
     loadQueue();
 }
 
