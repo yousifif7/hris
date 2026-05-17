@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\CandidateStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Candidate;
 use App\Services\CandidateService;
 use Illuminate\Http\JsonResponse;
@@ -95,11 +96,14 @@ class CandidateController extends Controller
             'desired_pay'     => 'nullable|numeric|min:0|max:999999.99',
             'earliest_start_date' => 'nullable|date',
             'availability'     => 'nullable|in:full_time,part_time,contract,temporary,internship,remote',
+            'clinical_license_expires_at' => 'nullable|date',
+            'authorization_background_check' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
         $candidate = $this->service->create(
             $validated,
-            $request->file('resume_file')
+            $request->file('resume_file'),
+            $request->file('authorization_background_check')
         );
 
         return response()->json($candidate->load(['category', 'assignedTo']), 201);
@@ -146,11 +150,122 @@ class CandidateController extends Controller
             'desired_pay'     => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'earliest_start_date' => 'sometimes|nullable|date',
             'availability'     => 'sometimes|nullable|in:full_time,part_time,contract,temporary,internship,remote',
+            'clinical_license_expires_at' => 'sometimes|nullable|date',
+
+            // Candidate detail tab fields
+            'candidate_for'                  => 'sometimes|nullable|string|max:255',
+            'resume_w_applicable_experience' => 'sometimes|nullable|string',
+            'pre_screen_note'                => 'sometimes|nullable|string',
+            'pre_screening_status'           => 'sometimes|nullable|string|max:120',
+            'full_or_part_time'              => 'sometimes|nullable|string|max:50',
+            'ideal_schedule'                 => 'sometimes|nullable|array',
+            'ideal_schedule.*'               => 'string|max:50',
+            'description'                    => 'sometimes|nullable|string',
+            'days_available'                 => 'sometimes|nullable|array',
+            'days_available.*'               => 'string|max:20',
+            'position'                       => 'sometimes|nullable|string|max:255',
+            'clinical_position_type'         => 'sometimes|nullable|string|max:120',
+            'position_type'                  => 'sometimes|nullable|string|max:120',
+            'staff_type'                     => 'sometimes|nullable|string|max:120',
+            'background_check_expires_at'    => 'sometimes|nullable|date',
+            'cpr_certification_expires_at'   => 'sometimes|nullable|date',
+            'tb_expires_at'                  => 'sometimes|nullable|date',
+            'pgl_insurance_expires_at'       => 'sometimes|nullable|date',
+            'cmhp_hours_current_year'        => 'sometimes|nullable|numeric|min:0|max:99999.99',
+            'dwc_training_progress'          => 'sometimes|nullable|integer|min:0|max:100',
+
+            // Verification & Review
+            'background_check_status'        => 'sometimes|nullable|string|max:120',
+            'identification_expires_at'      => 'sometimes|nullable|date',
+            'i9_verification'                => 'sometimes|nullable|array',
+            'i9_verification.*'              => 'string|max:50',
+            'onboarding_documents_checklist' => 'sometimes|nullable|array',
+            'onboarding_documents_checklist.*' => 'string|max:255',
+            'reference_1_name'               => 'sometimes|nullable|string|max:255',
+            'reference_1_phone'              => 'sometimes|nullable|string|max:50',
+            'reference_1_association'        => 'sometimes|nullable|string|max:255',
+            'reference_2_name'               => 'sometimes|nullable|string|max:255',
+            'reference_2_phone'              => 'sometimes|nullable|string|max:50',
+            'reference_2_association'        => 'sometimes|nullable|string|max:255',
+
+            // Offer Letter
+            'offer_date'                     => 'sometimes|nullable|date',
+            'offer_mccrory_center'           => 'sometimes|nullable|string|max:255',
+            'operations_manager'             => 'sometimes|nullable|string|max:255',
+            'clinical_supervisor'            => 'sometimes|nullable|string|max:255',
+            'offer_amount'                   => 'sometimes|nullable|numeric|min:0|max:9999999.99',
+            'payment_frequency'              => 'sometimes|nullable|string|max:50',
+            'company_representative'         => 'sometimes|nullable|string|max:255',
+            'offer_deadline_date'            => 'sometimes|nullable|date',
+
+            // Pre-Onboard Documents
+            'college_degree'                 => 'sometimes|nullable|string|max:255',
+            'college_transcripts'            => 'sometimes|nullable|string|max:255',
+            'cpr_certification'              => 'sometimes|nullable|string|max:255',
+            'child_registry_clearance'       => 'sometimes|nullable|string|max:255',
+            'child_registry_clearance_expires_at' => 'sometimes|nullable|date',
+            'tb_test_results'                => 'sometimes|nullable|string|max:255',
+            'dwihn_transcripts'              => 'sometimes|nullable|string|max:255',
+            'i9_document'                    => 'sometimes|nullable|string|max:255',
+
+            // Compliance Agreements
+            'baa_agreement'                  => 'sometimes|nullable|string|max:255',
+            'nda_hipaa'                      => 'sometimes|nullable|string|max:255',
+            'acknowledgement_handbook'       => 'sometimes|boolean',
+
+            // Clinical Staff Documents
+            'professional_general_liability_insurance' => 'sometimes|nullable|string|max:255',
+            'clinical_licenses'              => 'sometimes|nullable|string|max:255',
+            'medversant_application_confirmation' => 'sometimes|nullable|string|max:255',
+            'writing_sample'                 => 'sometimes|nullable|string|max:255',
+
+            // Emergency Contact
+            'emergency_contact_1_name'       => 'sometimes|nullable|string|max:255',
+            'emergency_contact_1_phone'      => 'sometimes|nullable|string|max:50',
+            'emergency_contact_2_name'       => 'sometimes|nullable|string|max:255',
+            'emergency_contact_2_phone'      => 'sometimes|nullable|string|max:50',
+
+            // Training and Development
+            'recipient_rights_training_expires_at' => 'sometimes|nullable|date',
+            'handbook'                       => 'sometimes|nullable|string|max:255',
+
+            // DWC Trainings
+            'dwc_transcript'                       => 'sometimes|nullable|string|max:255',
+            'dwc_abuse_neglect_status'             => 'sometimes|nullable|string|max:50',
+            'dwc_abuse_neglect_expires_at'         => 'sometimes|nullable|date',
+            'dwc_anti_harassment_status'           => 'sometimes|nullable|string|max:50',
+            'dwc_anti_harassment_expires_at'       => 'sometimes|nullable|date',
+            'dwc_cultural_competence_status'       => 'sometimes|nullable|string|max:50',
+            'dwc_cultural_competence_expires_at'   => 'sometimes|nullable|date',
+            'dwc_emergency_preparedness_status'    => 'sometimes|nullable|string|max:50',
+            'dwc_emergency_preparedness_expires_at'=> 'sometimes|nullable|date',
+            'dwc_grievances_status'                => 'sometimes|nullable|string|max:50',
+            'dwc_grievances_expires_at'            => 'sometimes|nullable|date',
+            'dwc_hipaa_basics_status'              => 'sometimes|nullable|string|max:50',
+            'dwc_hipaa_basics_expires_at'          => 'sometimes|nullable|date',
+            'dwc_sex_trafficking_status'           => 'sometimes|nullable|string|max:50',
+            'dwc_sex_trafficking_expires_at'       => 'sometimes|nullable|date',
+            'dwc_infection_prevention_status'      => 'sometimes|nullable|string|max:50',
+            'dwc_infection_prevention_expires_at'  => 'sometimes|nullable|date',
+            'dwc_lep_status'                       => 'sometimes|nullable|string|max:50',
+            'dwc_lep_expires_at'                   => 'sometimes|nullable|date',
+            'dwc_medicare_compliance_status'       => 'sometimes|nullable|string|max:50',
+            'dwc_medicare_compliance_expires_at'   => 'sometimes|nullable|date',
+            'dwc_medicare_fraud_status'            => 'sometimes|nullable|string|max:50',
+            'dwc_medicare_fraud_expires_at'        => 'sometimes|nullable|date',
+            'dwc_person_centered_status'           => 'sometimes|nullable|string|max:50',
+            'dwc_person_centered_expires_at'       => 'sometimes|nullable|date',
+            'dwc_recipient_rights_status'          => 'sometimes|nullable|string|max:50',
+            'dwc_recipient_rights_expires_at'      => 'sometimes|nullable|date',
         ]);
+
+        if (auth()->id()) {
+            $validated['last_modified_by'] = auth()->id();
+        }
 
         $candidate->update($validated);
 
-        return response()->json($candidate->fresh(['category', 'assignedTo']));
+        return response()->json($candidate->fresh(['category', 'assignedTo', 'lastModifiedBy']));
     }
 
     /**
@@ -190,13 +305,14 @@ class CandidateController extends Controller
 
     /**
      * GET /api/candidates-new
-     * Get all new candidates needing initial review.
+     * Backs the "Pre-Screening" sidebar page — the HR inbox of unreviewed candidates
+     * (default Hiring status) plus anyone actively in Pre-Screening.
      */
     public function newCandidates(): JsonResponse
     {
         $candidates = Candidate::whereIn('status', [
-                CandidateStatus::NEEDS_REVIEW,
-                CandidateStatus::QUEUE,
+                CandidateStatus::HIRING,
+                CandidateStatus::PRE_SCREENING,
             ])
             ->with(['category', 'assignedTo', 'preScreening'])
             ->orderBy('created_at', 'desc')
@@ -207,15 +323,11 @@ class CandidateController extends Controller
 
     /**
      * GET /api/candidates-review-queue
-     * Get all candidates with interview invites sent.
+     * Backs the "Pre-Interview Questions" sidebar page.
      */
     public function reviewQueue(): JsonResponse
     {
-        $candidates = Candidate::whereIn('status', [
-                CandidateStatus::INVITE_SENT,
-                CandidateStatus::INTERVIEW_SCHEDULED,
-                CandidateStatus::NO_RESPONSE,
-            ])
+        $candidates = Candidate::where('status', CandidateStatus::PRE_INTERVIEW_QUESTIONS)
             ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -225,13 +337,14 @@ class CandidateController extends Controller
 
     /**
      * GET /api/candidates-pending-review
-     * Get candidates needing review (new + post-interview).
+     * Convenience endpoint: anything HR still owes a manual review on
+     * (fresh Hiring intake + post-interview applications).
      */
     public function pendingReview(): JsonResponse
     {
         $candidates = Candidate::whereIn('status', [
-                CandidateStatus::NEEDS_REVIEW,
-                CandidateStatus::POST_INTERVIEW_REVIEW,
+                CandidateStatus::HIRING,
+                CandidateStatus::PRE_INTERVIEW_QUESTIONS,
             ])
             ->with(['category', 'assignedTo', 'interviews', 'preScreening'])
             ->orderBy('created_at', 'desc')
@@ -288,6 +401,167 @@ class CandidateController extends Controller
             'message'    => count($created) . ' resume(s) uploaded',
             'candidates' => $created,
         ], 201);
+    }
+
+    /**
+     * GET /api/candidates/{candidate}/comments
+     * Comments are stored as ActivityLog rows with action='comment'.
+     */
+    public function listComments(Candidate $candidate): JsonResponse
+    {
+        $comments = $candidate->activityLogs()
+            ->where('action', 'comment')
+            ->with('user:id,first_name,last_name')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($comments);
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/comments
+     */
+    public function addComment(Request $request, Candidate $candidate): JsonResponse
+    {
+        $data = $request->validate([
+            'body' => 'required|string|max:5000',
+        ]);
+
+        $log = $candidate->activityLogs()->create([
+            'user_id'     => auth()->id(),
+            'action'      => 'comment',
+            'description' => $data['body'],
+        ]);
+
+        return response()->json($log->load('user:id,first_name,last_name'), 201);
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/upload
+     * Generic per-field document upload (used by tabs that need file storage,
+     * e.g. Training tab Recipient Rights / Annual CEUs).
+     */
+    public function uploadDocument(Request $request, Candidate $candidate): JsonResponse
+    {
+        $data = $request->validate([
+            'field' => 'required|string|in:recipient_rights_training,annual_ceus',
+            'file'  => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('candidate-documents/'.$candidate->id, 'public');
+
+        $candidate->update([
+            $data['field'].'_path' => $path,
+            $data['field'].'_name' => $file->getClientOriginalName(),
+            'last_modified_by'     => auth()->id(),
+        ]);
+
+        return response()->json([
+            'path' => $path,
+            'name' => $file->getClientOriginalName(),
+            'url'  => '/storage/'.$path,
+        ]);
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/duplicate
+     */
+    public function duplicate(Candidate $candidate): JsonResponse
+    {
+        $copy = $candidate->replicate([
+            'invite_sent_at', 'schedule_token', 'prescreen_token',
+            'last_followup_at', 'followup_count',
+        ]);
+        $copy->first_name = $candidate->first_name.' (Copy)';
+        $copy->status = CandidateStatus::HIRING;
+        $copy->email = null;        // avoid uniqueness collisions if any
+        $copy->phone = null;
+        $copy->push();
+
+        return response()->json($copy, 201);
+    }
+
+    /**
+     * GET /api/candidates/{candidate}/activities
+     * Recent activity log entries (non-comment), used by the sidebar widget.
+     */
+    public function listActivities(Candidate $candidate): JsonResponse
+    {
+        $rows = $candidate->activityLogs()
+            ->where('action', '!=', 'comment')
+            ->with('user:id,first_name,last_name')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json($rows);
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/activities
+     * Manually logged activity (email/meeting/phone/note) from the sidebar.
+     */
+    public function addActivity(Request $request, Candidate $candidate): JsonResponse
+    {
+        $data = $request->validate([
+            'type'        => 'required|string|in:email,meeting,phone,note',
+            'description' => 'required|string|max:5000',
+        ]);
+
+        $log = $candidate->activityLogs()->create([
+            'user_id'     => auth()->id(),
+            'action'      => $data['type'],
+            'description' => $data['description'],
+        ]);
+
+        return response()->json($log->load('user:id,first_name,last_name'), 201);
+    }
+
+    /**
+     * GET /api/candidates/{candidate}/tasks
+     * Onboarding tasks for the sidebar Tasks widget.
+     */
+    public function listTasks(Candidate $candidate): JsonResponse
+    {
+        return response()->json(
+            $candidate->onboardingTasks()->orderBy('sort_order')->orderBy('id')->get()
+        );
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/tasks
+     * Quick-add a single task from the sidebar.
+     */
+    public function addTask(Request $request, Candidate $candidate): JsonResponse
+    {
+        $data = $request->validate([
+            'task_name' => 'required|string|max:255',
+        ]);
+
+        $maxSort = (int) ($candidate->onboardingTasks()->max('sort_order') ?? 0);
+
+        $task = $candidate->onboardingTasks()->create([
+            'task_name'    => $data['task_name'],
+            'sort_order'   => $maxSort + 1,
+            'is_completed' => false,
+        ]);
+
+        return response()->json($task, 201);
+    }
+
+    /**
+     * GET /api/candidates/{candidate}/audit-log
+     */
+    public function auditLog(Candidate $candidate): JsonResponse
+    {
+        $logs = $candidate->activityLogs()
+            ->with('user:id,first_name,last_name')
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+
+        return response()->json($logs);
     }
 
     /**

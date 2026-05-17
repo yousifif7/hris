@@ -23,7 +23,7 @@ class CandidateService
     /**
      * Create a new candidate from manual entry or resume upload.
      */
-    public function create(array $data, ?UploadedFile $resumeFile = null): Candidate
+    public function create(array $data, ?UploadedFile $resumeFile = null, ?UploadedFile $authBgFile = null): Candidate
     {
         // Round-robin assignment
         $assignee = User::nextAssignee();
@@ -39,7 +39,7 @@ class CandidateService
             'postal_code'     => $data['postal_code'] ?? null,
             'job_category_id' => $data['job_category_id'] ?? null,
             'source'          => $data['source'] ?? 'Website',
-            'status'          => CandidateStatus::NEEDS_REVIEW,
+            'status'          => CandidateStatus::HIRING,
             'assigned_to'     => $assignee?->id,
             'notes'           => $data['notes'] ?? null,
             'resume_text'     => $data['resume_text'] ?? null,
@@ -50,7 +50,22 @@ class CandidateService
             'desired_pay'     => $data['desired_pay'] ?? null,
             'earliest_start_date' => $data['earliest_start_date'] ?? null,
             'availability'    => $data['availability'] ?? null,
+            'clinical_license_expires_at' => $data['clinical_license_expires_at'] ?? null,
         ]);
+
+        // Optional authorization background-check document (Staff Portal create form)
+        if ($authBgFile) {
+            $dir = public_path("background_authorizations/{$candidate->id}");
+            if (! File::exists($dir)) {
+                File::makeDirectory($dir, 0755, true, true);
+            }
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $authBgFile->getClientOriginalName());
+            $authBgFile->move($dir, $filename);
+            $candidate->update([
+                'authorization_background_check_path' => "background_authorizations/{$candidate->id}/{$filename}",
+                'authorization_background_check_name' => $authBgFile->getClientOriginalName(),
+            ]);
+        }
 
         // Handle resume file upload
         if ($resumeFile) {
@@ -128,25 +143,25 @@ class CandidateService
             $actor
         );
 
-        // Trigger side-effect actions based on new status
+        // Trigger side-effect actions based on new status.
+        // Stages without an explicit handler simply log the status change — per-stage
+        // email automations can be wired in from the Automations page later.
         match ($newStatus) {
-            CandidateStatus::INVITE_SENT => $this->onInviteSent($candidate),
-            CandidateStatus::INTERVIEW_SCHEDULED => $this->onInterviewScheduled($candidate),
-            CandidateStatus::POST_INTERVIEW_REVIEW => $this->onPostInterviewReview($candidate),
-            CandidateStatus::PRE_SCREENING_PASSED => $this->onPreScreeningPassed($candidate),
-            CandidateStatus::OFFER_SENT => $this->onOfferSent($candidate),
-            CandidateStatus::OFFER_ACCEPTED => $this->onOfferAccepted($candidate),
-            CandidateStatus::REJECTED => $this->onRejected($candidate),
-            CandidateStatus::APPLICANT_DECLINED => $this->onDeclined($candidate),
-            CandidateStatus::ONBOARDING => $this->onOnboarding($candidate),
-            CandidateStatus::HIRED => $this->onHired($candidate),
-            default => null,
+            CandidateStatus::PRE_SCREENING           => $this->onPreScreening($candidate),
+            CandidateStatus::PRE_INTERVIEW_QUESTIONS => $this->onPreInterviewQuestions($candidate),
+            CandidateStatus::VERIFICATION_AND_REVIEW => $this->onVerificationAndReview($candidate),
+            CandidateStatus::OFFER_LETTER            => $this->onOfferLetter($candidate),
+            CandidateStatus::PRE_ONBOARD_DOCUMENTS   => $this->onPreOnboardDocuments($candidate),
+            CandidateStatus::REJECTED                => $this->onRejected($candidate),
+            CandidateStatus::APPLICANT_DECLINED      => $this->onDeclined($candidate),
+            CandidateStatus::HIRED                   => $this->onHired($candidate),
+            default                                  => null,
         };
 
         return $candidate;
     }
 
-    protected function onInviteSent(Candidate $candidate): void
+    protected function onPreScreening(Candidate $candidate): void
     {
         // Generate a unique token for the candidate's scheduling link
         if (! $candidate->schedule_token) {
@@ -223,12 +238,7 @@ class CandidateService
         }
     }
 
-    protected function onInterviewScheduled(Candidate $candidate): void
-    {
-        SendCandidateEmail::dispatchSync($candidate, 'interview_confirmation');
-    }
-
-    protected function onPostInterviewReview(Candidate $candidate): void
+    protected function onPreInterviewQuestions(Candidate $candidate): void
     {
         if (! $candidate->prescreen_token) {
             $candidate->update(['prescreen_token' => Str::uuid()->toString()]);
@@ -237,7 +247,7 @@ class CandidateService
         SendCandidateEmail::dispatchSync($candidate, 'prescreening');
     }
 
-    protected function onPreScreeningPassed(Candidate $candidate): void
+    protected function onVerificationAndReview(Candidate $candidate): void
     {
         // Create background check records
         foreach (['mdhhs', 'sam_oig', 'npdb'] as $type) {
@@ -248,7 +258,7 @@ class CandidateService
         }
     }
 
-    protected function onOfferSent(Candidate $candidate): void
+    protected function onOfferLetter(Candidate $candidate): void
     {
         $offer = $candidate->latestOffer;
 
@@ -276,10 +286,13 @@ class CandidateService
         SendCandidateEmail::dispatchSync($candidate, 'offer', $extraVars);
     }
 
-    protected function onOfferAccepted(Candidate $candidate): void
+    protected function onPreOnboardDocuments(Candidate $candidate): void
     {
         SendCandidateEmail::dispatchSync($candidate, 'onboarding');
-        $this->createOnboardingTasks($candidate);
+
+        if ($candidate->onboardingTasks()->count() === 0) {
+            $this->createOnboardingTasks($candidate);
+        }
 
         // Notify HR staff assigned to this candidate
         $actor = $candidate->full_name;
@@ -308,13 +321,6 @@ class CandidateService
             $candidate,
             $candidate->full_name
         );
-    }
-
-    protected function onOnboarding(Candidate $candidate): void
-    {
-        if ($candidate->onboardingTasks()->count() === 0) {
-            $this->createOnboardingTasks($candidate);
-        }
     }
 
     protected function onHired(Candidate $candidate): void

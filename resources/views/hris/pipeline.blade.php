@@ -46,13 +46,18 @@ function filterKanban(){
 
 function renderKanban(cands){
     var cols = [
-        {t:'Review',         c:'var(--yellow)', s:['needs_review','post_interview_review']},
-        {t:'Invited',        c:'var(--blue)',   s:['invite_sent','no_response']},
-        {t:'Interview',      c:'var(--accent)', s:['interview_scheduled']},
-        {t:'Screening',      c:'var(--orange)', s:['pre_screening_passed','awaiting_background_check']},
-        {t:'Offers',         c:'var(--pink)',   s:['offer_sent']},
-        {t:'Accepted',       c:'var(--green)',  s:['offer_accepted','onboarding']},
-        {t:'Closed',         c:'var(--red)',    s:['rejected','applicant_declined','queue']},
+        {t:'Hiring',         c:'var(--yellow)', s:['hiring']},
+        {t:'Pre-Screening',  c:'var(--blue)',   s:['pre_screening']},
+        {t:'Pre-Int. Qs',    c:'var(--accent)', s:['pre_interview_questions']},
+        {t:'Verification',   c:'var(--orange)', s:['verification_and_review']},
+        {t:'Offer Letter',   c:'var(--pink)',   s:['offer_letter']},
+        {t:'Onboarding',     c:'var(--green)',  s:[
+            'pre_onboard_documents','compliance_agreements','clinical_staff_documents',
+            'emergency_contact','training_and_development','financial_and_payroll_information',
+            'post_offer_documents','dwc_trainings','additional','job_description_letter'
+        ]},
+        {t:'Hired',          c:'var(--teal)',   s:['hired']},
+        {t:'Closed',         c:'var(--red)',    s:['rejected','applicant_declined']},
     ];
     document.getElementById('kanbanBoard').innerHTML = cols.map(function(col){
         var its = cands.filter(function(c){ return col.s.indexOf(c.status)!==-1; });

@@ -56,6 +56,19 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::get('/workflow/dwc-training', [HrisWorkflowController::class, 'dwcTraining'])->name('workflow.dwc_training');
     Route::get('/workflow/additional', [HrisWorkflowController::class, 'additional'])->name('workflow.additional');
     Route::view('/employee', 'hris.employee')->name('employees');
+    Route::view('/staff-portals', 'hris.staff-portals')->name('staff-portals');
+    Route::get('/staff-portals/{candidate}', function (\App\Models\Candidate $candidate) {
+        return view('hris.candidate-detail', [
+            'candidate'           => $candidate->load(['assignedTo', 'lastModifiedBy', 'category']),
+            'positionDescription' => \App\Models\Setting::get('hiring_position_description', ''),
+        ]);
+    })->name('staff-portal.show');
+    Route::get('/staff-portals/{candidate}/print', function (\App\Models\Candidate $candidate) {
+        return view('hris.candidate-detail-print', [
+            'candidate'           => $candidate->load(['category', 'assignedTo']),
+            'positionDescription' => \App\Models\Setting::get('hiring_position_description', ''),
+        ]);
+    })->name('staff-portal.print');
     Route::view('/timeoff', 'hris.timeoff')->name('timeoff');
     Route::view('/automations', 'hris.automations')->name('automations');
     Route::view('/settings', 'hris.settings')->name('settings');

@@ -78,6 +78,15 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::patch('/candidates/{candidate}/status', [CandidateController::class, 'updateStatus']);
     Route::post('/candidates/{candidate}/advance', [CandidateController::class, 'advance']);
     Route::post('/candidates/{candidate}/convert', [CandidateController::class, 'convertToEmployee']);
+    Route::get('/candidates/{candidate}/comments', [CandidateController::class, 'listComments']);
+    Route::post('/candidates/{candidate}/comments', [CandidateController::class, 'addComment']);
+    Route::post('/candidates/{candidate}/upload', [CandidateController::class, 'uploadDocument']);
+    Route::post('/candidates/{candidate}/duplicate', [CandidateController::class, 'duplicate']);
+    Route::get('/candidates/{candidate}/audit-log', [CandidateController::class, 'auditLog']);
+    Route::get('/candidates/{candidate}/activities', [CandidateController::class, 'listActivities']);
+    Route::post('/candidates/{candidate}/activities', [CandidateController::class, 'addActivity']);
+    Route::get('/candidates/{candidate}/tasks', [CandidateController::class, 'listTasks']);
+    Route::post('/candidates/{candidate}/tasks', [CandidateController::class, 'addTask']);
 
     // Pre-screening
     Route::get('/candidates/{candidate}/prescreen', [PreScreeningController::class, 'show']);

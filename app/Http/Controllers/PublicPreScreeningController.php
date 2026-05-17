@@ -21,9 +21,8 @@ class PublicPreScreeningController extends Controller
     {
         return Candidate::where('prescreen_token', $token)
             ->whereIn('status', [
-                CandidateStatus::POST_INTERVIEW_REVIEW->value,
-                CandidateStatus::PRE_SCREENING_PASSED->value,
-                CandidateStatus::AWAITING_BACKGROUND_CHECK->value,
+                CandidateStatus::PRE_INTERVIEW_QUESTIONS->value,
+                CandidateStatus::VERIFICATION_AND_REVIEW->value,
             ])
             ->firstOrFail();
     }
@@ -185,9 +184,9 @@ class PublicPreScreeningController extends Controller
             'description' => 'Candidate submitted the employment application step.',
         ]);
 
-        // Auto-advance to pre_screening_passed so candidate appears on the Screening page
-        if ($candidate->status === CandidateStatus::POST_INTERVIEW_REVIEW) {
-            $this->service->changeStatus($candidate, CandidateStatus::PRE_SCREENING_PASSED);
+        // Auto-advance to Verification and Review so the candidate appears on that page
+        if ($candidate->status === CandidateStatus::PRE_INTERVIEW_QUESTIONS) {
+            $this->service->changeStatus($candidate, CandidateStatus::VERIFICATION_AND_REVIEW);
         }
 
         $this->createAdminNotification(
@@ -240,8 +239,8 @@ class PublicPreScreeningController extends Controller
             'description' => 'Candidate submitted the full employment application form.',
         ]);
 
-        if ($candidate->status === CandidateStatus::POST_INTERVIEW_REVIEW) {
-            $this->service->changeStatus($candidate, CandidateStatus::PRE_SCREENING_PASSED);
+        if ($candidate->status === CandidateStatus::PRE_INTERVIEW_QUESTIONS) {
+            $this->service->changeStatus($candidate, CandidateStatus::VERIFICATION_AND_REVIEW);
         }
 
         $this->createAdminNotification(

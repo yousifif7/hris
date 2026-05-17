@@ -25,10 +25,7 @@ class PublicScheduleController extends Controller
         $nowUtc = now()->utc();
 
         $candidate = Candidate::where('schedule_token', $token)
-            ->whereIn('status', [
-                CandidateStatus::INVITE_SENT->value,
-                CandidateStatus::NO_RESPONSE->value,
-            ])
+            ->where('status', CandidateStatus::PRE_SCREENING->value)
             ->firstOrFail();
 
         // Already booked? Only treat FUTURE interviews as blocking.
@@ -66,10 +63,7 @@ class PublicScheduleController extends Controller
         $nowUtc = now()->utc();
 
         $candidate = Candidate::where('schedule_token', $token)
-            ->whereIn('status', [
-                CandidateStatus::INVITE_SENT->value,
-                CandidateStatus::NO_RESPONSE->value,
-            ])
+            ->where('status', CandidateStatus::PRE_SCREENING->value)
             ->firstOrFail();
 
         $data = $request->validate([
@@ -116,7 +110,8 @@ class PublicScheduleController extends Controller
             return back()->with('error', 'That interview slot is no longer available. Please choose another one.');
         }
 
-        $this->candidateService->changeStatus($candidate, CandidateStatus::INTERVIEW_SCHEDULED);
+        // Candidate stays in Pre-Screening after self-booking; the post-interview transition
+        // happens when HR marks the interview complete.
 
         return redirect("/schedule/{$token}/confirmed");
     }
