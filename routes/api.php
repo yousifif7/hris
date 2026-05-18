@@ -109,6 +109,7 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     // Interviews
     Route::apiResource('interviews', InterviewController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::patch('/interviews/{interview}/complete', [InterviewController::class, 'complete']);
+    Route::get('/candidates/{candidate}/interviews', [InterviewController::class, 'forCandidate']);
     Route::get('/candidates/{candidate}/interview-slots', [InterviewAvailabilitySlotController::class, 'index']);
     Route::post('/candidates/{candidate}/interview-slots', [InterviewAvailabilitySlotController::class, 'store']);
     Route::delete('/interview-slots/{slot}', [InterviewAvailabilitySlotController::class, 'destroy']);

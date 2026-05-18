@@ -872,6 +872,16 @@
     @endif
   </aside>
 
+  {{-- ───────── Scheduled Interview ───────── --}}
+  <div class="cd-side-card">
+    <div class="cd-side-head">
+      <h4>Interviews</h4>
+    </div>
+    <div id="cdInterviewsList" class="cd-side-list">
+      <div class="cd-side-empty">Loading…</div>
+    </div>
+  </div>
+
   {{-- ───────── Activities ───────── --}}
   <div class="cd-side-card">
     <div class="cd-side-head">
@@ -1280,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', function(){
     cdLoadComments();
     caLoadScheduled();
     caLoadHistory();
+    cdLoadInterviews();
 });
 
 /* ── Stream comments ─────────────────────────────────────── */
@@ -1499,6 +1510,67 @@ function _cdOpenMoreModal(title, html){
     document.getElementById('cdMoreModalBody').innerHTML = html;
     openModal('cdMoreModal');
     cdToggleMore();
+}
+
+/* ── Sidebar: Interviews ────────────────────────────────── */
+var CD_INTERVIEW_STATUS = {
+    scheduled: {label:'Scheduled', color:'var(--accent)'},
+    completed: {label:'Completed', color:'var(--green,#3ca766)'},
+    cancelled: {label:'Cancelled', color:'var(--red,#d4555a)'},
+    no_show:   {label:'No Show',   color:'var(--red,#d4555a)'},
+};
+
+function _cdRenderInterview(i){
+    var meta = CD_INTERVIEW_STATUS[i.status] || {label:i.status, color:'var(--text2)'};
+    var when = i.scheduled_at ? new Date(i.scheduled_at).toLocaleString() : '—';
+    var type = i.type ? _cdEscape((''+i.type).replace(/_/g,' ')) : 'zoom';
+    var link = i.meeting_link
+        ? '<a href="'+_cdEscape(i.meeting_link)+'" target="_blank" rel="noopener" style="color:var(--accent)">Join</a>'
+        : '<span style="color:var(--text3)">—</span>';
+    var intvr = i.interviewer ? _cdEscape((i.interviewer.first_name||'')+' '+(i.interviewer.last_name||'')).trim() : '';
+    var actions = '';
+    if(i.status === 'scheduled'){
+        actions =
+            '<button type="button" class="btn btn-success btn-sm" style="padding:3px 8px;font-size:11px" onclick="cdCompleteInterview('+i.id+')">✓ Complete</button>'
+           +'<button type="button" class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px" onclick="cdCancelInterview('+i.id+')">✕ Cancel</button>';
+    }
+    return '<div class="cd-side-item" data-int-id="'+i.id+'" style="flex-direction:column;align-items:stretch;gap:4px">'
+        +'<div style="display:flex;justify-content:space-between;gap:8px">'
+            +'<strong style="color:var(--text);font-size:12px">'+_cdEscape(when)+'</strong>'
+            +'<span style="font-weight:600;font-size:11px;color:'+meta.color+'">'+_cdEscape(meta.label)+'</span>'
+        +'</div>'
+        +'<div class="cd-side-meta" style="text-transform:capitalize">'+type+(i.duration_minutes ? ' · '+i.duration_minutes+' min' : '')+(intvr ? ' · '+intvr : '')+'</div>'
+        +'<div style="font-size:12px">'+link+'</div>'
+        +(actions ? '<div style="display:flex;gap:6px;margin-top:4px">'+actions+'</div>' : '')
+    +'</div>';
+}
+
+async function cdLoadInterviews(){
+    var list = document.getElementById('cdInterviewsList');
+    if(!list) return;
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/interviews');
+    if(!r || !r.ok){ list.innerHTML = '<div class="cd-side-empty">No Data</div>'; return; }
+    var rows = await r.json();
+    if(!rows.length){ list.innerHTML = '<div class="cd-side-empty">No interviews scheduled.</div>'; return; }
+    list.innerHTML = rows.map(_cdRenderInterview).join('');
+}
+
+async function cdCompleteInterview(id){
+    if(!confirm('Mark this interview as complete?\n\nThis will move the candidate to Pre-Interview Questions and send the prescreening email.')) return;
+    var notes = prompt('Add interview notes (optional):') || '';
+    var r = await apiFetch('/api/interviews/'+id+'/complete', {method:'PATCH', body:JSON.stringify({notes:notes, question_responses:null})});
+    if(!r || !r.ok){ toast('Failed to complete interview','error'); return; }
+    toast('✓ Interview completed');
+    cdLoadInterviews();
+    if(typeof cdLoadComments === 'function') cdLoadComments();
+}
+
+async function cdCancelInterview(id){
+    if(!confirm('Cancel this interview?')) return;
+    var r = await apiFetch('/api/interviews/'+id, {method:'PATCH', body:JSON.stringify({status:'cancelled'})});
+    if(!r || !r.ok){ toast('Failed to cancel','error'); return; }
+    toast('Interview cancelled');
+    cdLoadInterviews();
 }
 
 function cdViewApplication(){

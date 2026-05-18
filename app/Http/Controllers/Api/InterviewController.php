@@ -99,6 +99,20 @@ class InterviewController extends Controller
     }
 
     /**
+     * GET /api/candidates/{candidate}/interviews
+     * Interviews tied to a specific candidate, newest first.
+     */
+    public function forCandidate(Candidate $candidate): JsonResponse
+    {
+        $interviews = Interview::with('interviewer:id,first_name,last_name')
+            ->where('candidate_id', $candidate->id)
+            ->orderByDesc('scheduled_at')
+            ->get();
+
+        return response()->json($interviews);
+    }
+
+    /**
      * GET /api/portal/interviews
      * Logged-in employee's own interviews, found via employee.candidate_id.
      */
