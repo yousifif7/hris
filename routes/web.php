@@ -59,7 +59,7 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/staff-portals', 'hris.staff-portals')->name('staff-portals');
     Route::get('/staff-portals/{candidate}', function (\App\Models\Candidate $candidate) {
         return view('hris.candidate-detail', [
-            'candidate'           => $candidate->load(['assignedTo', 'lastModifiedBy', 'category']),
+            'candidate'           => $candidate->load(['assignedTo', 'lastModifiedBy', 'category', 'preScreening']),
             'positionDescription' => \App\Models\Setting::get('hiring_position_description', ''),
         ]);
     })->name('staff-portal.show');

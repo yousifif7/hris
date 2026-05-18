@@ -252,6 +252,9 @@ Route::middleware(['auth:sanctum', 'employee'])->prefix('portal')->group(functio
     Route::get('/time-off',  [TimeOffController::class, 'portalIndex']);
     Route::post('/time-off', [TimeOffController::class, 'portalStore']);
 
+    // Own interviews (linked via employee.candidate_id)
+    Route::get('/interviews', [InterviewController::class, 'portalIndex']);
+
     // Own trainings
     Route::get('/trainings', [TrainingController::class, 'portalIndex']);
 

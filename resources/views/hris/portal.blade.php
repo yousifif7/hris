@@ -21,6 +21,15 @@
     <a href="/hris/settings"   class="portal-tile">⚙ Settings</a>
   </div>
 
+  <!-- My Interviews -->
+  <div class="section-title">📅 My Interviews</div>
+  <div class="table-wrap" style="margin-bottom:24px">
+    <table>
+      <thead><tr><th>Date &amp; Time</th><th>Type</th><th>Duration</th><th>Interviewer</th><th>Meeting Link</th><th>Status</th></tr></thead>
+      <tbody id="myIntTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">⏳ Loading...</td></tr></tbody>
+    </table>
+  </div>
+
   <!-- Trainings -->
   <div class="section-title">📚 Trainings &amp; Certifications</div>
   <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -48,7 +57,42 @@
 
 @push('scripts')
 <script>
-async function pageRefresh(){ await loadTrainings('all'); }
+async function pageRefresh(){ await Promise.all([loadTrainings('all'), loadMyInterviews()]); }
+
+async function loadMyInterviews(){
+    var tbody = document.getElementById('myIntTbody');
+    if(!tbody) return;
+    var r = await apiFetch('/api/portal/interviews');
+    if(!r || !r.ok){
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">Unable to load interviews.</td></tr>';
+        return;
+    }
+    var data = await r.json();
+    var rows = data.data || [];
+    if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">No interviews on file.</td></tr>';
+        return;
+    }
+    var stColor = {scheduled:'var(--accent,#5566cc)', completed:'var(--green,#3ca766)', cancelled:'var(--red,#d4555a)', no_show:'var(--red,#d4555a)'};
+    var stLabel = {scheduled:'Scheduled', completed:'Completed', cancelled:'Cancelled', no_show:'No Show'};
+    tbody.innerHTML = rows.map(function(i){
+        var when = i.scheduled_at ? new Date(i.scheduled_at).toLocaleString() : '—';
+        var who  = i.interviewer ? esc((i.interviewer.first_name||'')+' '+(i.interviewer.last_name||'')).trim() : '—';
+        var link = i.meeting_link
+            ? '<a href="'+esc(i.meeting_link)+'" target="_blank" rel="noopener" style="color:var(--accent)">Join</a>'
+            : '<span style="color:var(--text3)">—</span>';
+        var type = i.type ? esc((''+i.type).replace(/_/g,' ')) : '—';
+        var status = i.status || 'scheduled';
+        return '<tr>'
+            +'<td>'+esc(when)+'</td>'
+            +'<td style="text-transform:capitalize">'+type+'</td>'
+            +'<td>'+(i.duration_minutes ? i.duration_minutes+' min' : '—')+'</td>'
+            +'<td>'+who+'</td>'
+            +'<td>'+link+'</td>'
+            +'<td><span style="font-weight:600;color:'+(stColor[status]||'var(--text2)')+'">'+(stLabel[status]||status)+'</span></td>'
+        +'</tr>';
+    }).join('');
+}
 
 var _myEmployeeId = null;
 var _portalEmployees = [];
@@ -66,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     }
       await loadPortalEmployees();
     loadTrainings('all');
+    loadMyInterviews();
 });
 
     async function loadPortalEmployees(){

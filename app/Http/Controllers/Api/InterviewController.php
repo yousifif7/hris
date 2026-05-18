@@ -98,6 +98,27 @@ class InterviewController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * GET /api/portal/interviews
+     * Logged-in employee's own interviews, found via employee.candidate_id.
+     */
+    public function portalIndex(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $candidateId = $user->employee?->candidate_id;
+
+        if (! $candidateId) {
+            return response()->json(['data' => []]);
+        }
+
+        $interviews = Interview::with('interviewer:id,first_name,last_name')
+            ->where('candidate_id', $candidateId)
+            ->orderByDesc('scheduled_at')
+            ->get();
+
+        return response()->json(['data' => $interviews]);
+    }
+
     public function complete(Request $request, Interview $interview): JsonResponse
     {
         $data = $request->validate([

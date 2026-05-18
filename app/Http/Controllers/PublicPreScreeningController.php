@@ -23,6 +23,8 @@ class PublicPreScreeningController extends Controller
             ->whereIn('status', [
                 CandidateStatus::PRE_INTERVIEW_QUESTIONS->value,
                 CandidateStatus::VERIFICATION_AND_REVIEW->value,
+                CandidateStatus::PRE_SCREENING_PASSED->value,
+                CandidateStatus::AWAITING_BACKGROUND_CHECK->value,
             ])
             ->firstOrFail();
     }

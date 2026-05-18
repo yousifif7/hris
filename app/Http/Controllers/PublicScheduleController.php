@@ -16,6 +16,14 @@ class PublicScheduleController extends Controller
     public function __construct(protected CandidateService $candidateService) {}
 
     /**
+     * Statuses where the candidate is reachable via their scheduling link.
+     * Once they're past the interview-scheduling window, the link stops working.
+     */
+    protected const SCHEDULING_STATUSES = [
+        'pre_screening', 'invite_sent', 'interview_scheduled', 'no_response_followup',
+    ];
+
+    /**
      * GET /schedule/{token}
      * Show the self-booking calendar page to the candidate.
      */
@@ -25,7 +33,7 @@ class PublicScheduleController extends Controller
         $nowUtc = now()->utc();
 
         $candidate = Candidate::where('schedule_token', $token)
-            ->where('status', CandidateStatus::PRE_SCREENING->value)
+            ->whereIn('status', self::SCHEDULING_STATUSES)
             ->firstOrFail();
 
         // Already booked? Only treat FUTURE interviews as blocking.
@@ -63,7 +71,7 @@ class PublicScheduleController extends Controller
         $nowUtc = now()->utc();
 
         $candidate = Candidate::where('schedule_token', $token)
-            ->where('status', CandidateStatus::PRE_SCREENING->value)
+            ->whereIn('status', self::SCHEDULING_STATUSES)
             ->firstOrFail();
 
         $data = $request->validate([
@@ -110,8 +118,13 @@ class PublicScheduleController extends Controller
             return back()->with('error', 'That interview slot is no longer available. Please choose another one.');
         }
 
-        // Candidate stays in Pre-Screening after self-booking; the post-interview transition
-        // happens when HR marks the interview complete.
+        // Reflect the booking in the candidate's workflow status so HR sees it in
+        // Staff Portals and automations can key off interview_scheduled. The portal
+        // stage stays unchanged — the post-interview transition happens when HR
+        // marks the interview complete.
+        if ($candidate->status !== CandidateStatus::INTERVIEW_SCHEDULED) {
+            $this->candidateService->changeStatus($candidate, CandidateStatus::INTERVIEW_SCHEDULED);
+        }
 
         return redirect("/schedule/{$token}/confirmed");
     }

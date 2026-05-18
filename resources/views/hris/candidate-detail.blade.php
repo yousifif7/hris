@@ -79,6 +79,9 @@
   </div>
   <h2><span class="dot" style="width:8px;height:8px;background:var(--accent);border-radius:2px;display:inline-block"></span>{{ $candidate->first_name }} {{ $candidate->last_name }}</h2>
   <span style="flex:1"></span>
+  @if ($candidate->preScreening && $candidate->preScreening->employment_application_submitted_at)
+    <button class="btn btn-secondary" onclick="cdViewApplication()" title="View submitted application">📄 View Application</button>
+  @endif
   <button class="btn btn-secondary" onclick="cdToggleEdit()">✏ <span id="cdEditLabel">Edit</span></button>
   <div style="position:relative">
     <button class="btn btn-secondary" title="More" onclick="cdToggleMore(event)">⋯</button>
@@ -1496,6 +1499,11 @@ function _cdOpenMoreModal(title, html){
     document.getElementById('cdMoreModalBody').innerHTML = html;
     openModal('cdMoreModal');
     cdToggleMore();
+}
+
+function cdViewApplication(){
+    var url = '/hris/candidates/'+CD_CANDIDATE_ID+'/application-print?token='+encodeURIComponent(getToken()||'');
+    window.open(url, '_blank', 'noopener');
 }
 
 async function cdRemoveCandidate(){

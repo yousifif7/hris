@@ -144,18 +144,36 @@ class CandidateService
         );
 
         // Trigger side-effect actions based on new status.
-        // Stages without an explicit handler simply log the status change — per-stage
-        // email automations can be wired in from the Automations page later.
+        // Both portal stages and workflow statuses map to the same handlers so HR
+        // can use either vocabulary and get the same automation behaviour.
         match ($newStatus) {
-            CandidateStatus::PRE_SCREENING           => $this->onPreScreening($candidate),
-            CandidateStatus::PRE_INTERVIEW_QUESTIONS => $this->onPreInterviewQuestions($candidate),
-            CandidateStatus::VERIFICATION_AND_REVIEW => $this->onVerificationAndReview($candidate),
-            CandidateStatus::OFFER_LETTER            => $this->onOfferLetter($candidate),
-            CandidateStatus::PRE_ONBOARD_DOCUMENTS   => $this->onPreOnboardDocuments($candidate),
-            CandidateStatus::REJECTED                => $this->onRejected($candidate),
-            CandidateStatus::APPLICANT_DECLINED      => $this->onDeclined($candidate),
-            CandidateStatus::HIRED                   => $this->onHired($candidate),
-            default                                  => null,
+            // Portal stages
+            CandidateStatus::PRE_SCREENING,
+            CandidateStatus::INVITE_SENT               => $this->onPreScreening($candidate),
+
+            CandidateStatus::PRE_INTERVIEW_QUESTIONS,
+            CandidateStatus::PRE_SCREENING_PASSED      => $this->onPreInterviewQuestions($candidate),
+
+            CandidateStatus::VERIFICATION_AND_REVIEW,
+            CandidateStatus::AWAITING_BACKGROUND_CHECK => $this->onVerificationAndReview($candidate),
+
+            CandidateStatus::OFFER_LETTER,
+            CandidateStatus::OFFER_SENT                => $this->onOfferLetter($candidate),
+
+            CandidateStatus::PRE_ONBOARD_DOCUMENTS,
+            CandidateStatus::OFFER_ACCEPTED,
+            CandidateStatus::PRE_ONBOARD               => $this->onPreOnboardDocuments($candidate),
+
+            CandidateStatus::REJECTED,
+            CandidateStatus::NOT_SELECTED              => $this->onRejected($candidate),
+
+            CandidateStatus::APPLICANT_DECLINED,
+            CandidateStatus::OFFER_DECLINED            => $this->onDeclined($candidate),
+
+            CandidateStatus::HIRED,
+            CandidateStatus::ACTIVE_STAFF              => $this->onHired($candidate),
+
+            default                                    => null,
         };
 
         return $candidate;
