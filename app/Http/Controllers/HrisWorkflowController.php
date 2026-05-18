@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CandidateStatus;
 use Illuminate\View\View;
 
 class HrisWorkflowController extends Controller
 {
-    protected function renderStage(string $title, string $description, array $taskNames): View
+    protected function renderStage(CandidateStatus $status, string $description, array $taskNames): View
     {
         return view('hris.workflow-stage', [
-            'stageTitle' => $title,
+            'stageTitle'       => $status->label(),
+            'stageStatus'      => $status->value,
             'stageDescription' => $description,
-            'stageTaskNames' => $taskNames,
+            'stageTaskNames'   => $taskNames,
         ]);
     }
 
     public function preInterviewQuestions(): View
     {
         return $this->renderStage(
-            'Pre-interview Questions',
+            CandidateStatus::PRE_INTERVIEW_QUESTIONS,
             'Track candidate completion of pre-interview question packs before final review.',
             ['Pre-interview Questions']
         );
@@ -27,7 +29,7 @@ class HrisWorkflowController extends Controller
     public function verificationsReview(): View
     {
         return $this->renderStage(
-            'Verifications and Review',
+            CandidateStatus::VERIFICATION_AND_REVIEW,
             'Capture and confirm verification records before moving to offer and onboarding.',
             ['Verifications and Review']
         );
@@ -36,7 +38,7 @@ class HrisWorkflowController extends Controller
     public function complianceAgreements(): View
     {
         return $this->renderStage(
-            'Compliance Agreements',
+            CandidateStatus::COMPLIANCE_AGREEMENTS,
             'Track onboarding compliance acknowledgements, policy sign-offs, and related confirmations.',
             ['Complete Background Check Consent', 'Review Employee Handbook']
         );
@@ -45,7 +47,7 @@ class HrisWorkflowController extends Controller
     public function clinicalStaffDocument(): View
     {
         return $this->renderStage(
-            'Clinical Staff Documents',
+            CandidateStatus::CLINICAL_STAFF_DOCUMENTS,
             'Manage licenses, credentials, and staff-specific documents needed before activation.',
             ['Upload Credentials & Licenses', 'Upload Driver\'s License']
         );
@@ -54,7 +56,7 @@ class HrisWorkflowController extends Controller
     public function emergencyContact(): View
     {
         return $this->renderStage(
-            'Emergency Contact',
+            CandidateStatus::EMERGENCY_CONTACT,
             'Collect and confirm each employee\'s emergency contact details during onboarding.',
             ['Collect Emergency Contact Details']
         );
@@ -77,7 +79,7 @@ class HrisWorkflowController extends Controller
     public function postOfferDocuments(): View
     {
         return $this->renderStage(
-            'Post-offer Documents',
+            CandidateStatus::POST_OFFER_DOCUMENTS,
             'Finalize the HR documents that must be completed after the offer is accepted.',
             ['Complete I-9 Verification']
         );
@@ -95,7 +97,7 @@ class HrisWorkflowController extends Controller
     public function additional(): View
     {
         return $this->renderStage(
-            'Additional',
+            CandidateStatus::ADDITIONAL,
             'Use this area for final setup tasks that do not belong to the other onboarding sections.',
             ['Select Orientation Date', 'Setup Email Account', 'Building Access & WiFi']
         );

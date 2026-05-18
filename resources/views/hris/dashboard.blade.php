@@ -79,10 +79,13 @@ async function loadDash(){
     document.getElementById('sEmployees').textContent    = s.total_employees;
 
     var stages = [
-        {k:'needs_review',l:'Review'},{k:'invite_sent',l:'Invited'},{k:'interview_scheduled',l:'Interview'},
-        {k:'post_interview_review',l:'Post-Int.'},{k:'pre_screening_passed',l:'Screening'},
-        {k:'awaiting_background_check',l:'BG Check'},{k:'offer_sent',l:'Offer'},
-        {k:'offer_accepted',l:'Accepted'},{k:'onboarding',l:'Onboarding'}
+        {k:'hiring',                   l:'Hiring'},
+        {k:'pre_screening',            l:'Pre-Screen'},
+        {k:'pre_interview_questions',  l:'Pre-Int. Qs'},
+        {k:'verification_and_review',  l:'Verify'},
+        {k:'offer_letter',             l:'Offer'},
+        {k:'pre_onboard_documents',    l:'Onboarding'},
+        {k:'hired',                    l:'Hired'}
     ];
     document.getElementById('pipelineBar').innerHTML = stages.map(function(st){
         return '<div class="pipeline-stage"><span class="num">'+(d.pipeline[st.k]||0)+'</span>'+esc(st.l)+'</div>';

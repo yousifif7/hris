@@ -40,9 +40,8 @@ class InterviewController extends Controller
 
         $interview = Interview::create($data);
 
-        // Update candidate status
-        $candidate = Candidate::find($data['candidate_id']);
-        $this->candidateService->changeStatus($candidate, CandidateStatus::INTERVIEW_SCHEDULED);
+        // Booking an interview keeps the candidate in the Pre-Screening stage —
+        // they only advance to Pre-Interview Questions once the interview is marked complete.
 
         return response()->json($interview->load(['candidate', 'interviewer']), 201);
     }
@@ -70,7 +69,7 @@ class InterviewController extends Controller
             'status'           => 'scheduled',
         ]);
 
-        $this->candidateService->changeStatus($candidate, CandidateStatus::INTERVIEW_SCHEDULED);
+        // Self-booking keeps the candidate in Pre-Screening; the interview itself is the signal.
 
         return response()->json([
             'message'   => 'Interview booked successfully.',
@@ -108,10 +107,10 @@ class InterviewController extends Controller
 
         $interview->update(array_merge($data, ['status' => 'completed']));
 
-        // Move candidate to post-interview review
+        // Move candidate to Pre-Interview Questions so HR collects the post-interview application
         $this->candidateService->changeStatus(
             $interview->candidate,
-            CandidateStatus::POST_INTERVIEW_REVIEW
+            CandidateStatus::PRE_INTERVIEW_QUESTIONS
         );
 
         return response()->json($interview->fresh('candidate'));

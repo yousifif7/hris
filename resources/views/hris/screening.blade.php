@@ -2,7 +2,7 @@
 @section('title','McCrory Center — Verification and Review')
 @section('content')
 <div class="animate-in">
-  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">This stage starts after the interview is completed. Review post-interview applications, then track references and clearances through verification.</p>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Track references and background-check clearances for candidates currently in <strong style="color:var(--accent)">Verification and Review</strong>.</p>
   <div id="screeningList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading...</div></div>
 </div>
 @endsection
@@ -12,43 +12,19 @@
 async function pageRefresh(){ await loadScreening(); }
 
 async function loadScreening(){
-  var r = await apiFetch('/api/candidates?status=post_interview_review,pre_screening_passed,awaiting_background_check&include=backgroundChecks,references,preScreening&per_page=50');
+  var r = await apiFetch('/api/candidates?status=verification_and_review&include=backgroundChecks,references,preScreening&per_page=50');
     if(!r) return;
     var data = await r.json();
     var items = data.data || [];
 
     var el = document.getElementById('screeningList');
     if(!items.length){
-        el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">🔍</div><p>No candidates in screening stage.</p></div>';
+        el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">🔍</div><p>No candidates in verification stage.</p></div>';
         return;
     }
     el.innerHTML = items.map(function(c){
-        if(c.status === 'post_interview_review') return renderPostInterviewCard(c);
         return renderScreeningCard(c);
     }).join('');
-}
-
-function renderPostInterviewCard(c){
-    return '<div class="card-section">'
-      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-        +'<div style="width:40px;height:40px;border-radius:50%;background:'+Cl(c.id)+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">'+In(c.first_name,c.last_name)+'</div>'
-        +'<div><div style="font-weight:600">'+esc(c.first_name+' '+c.last_name)+'</div>'
-        +'<div style="font-size:12px;color:var(--text3)">'+(c.category?esc(c.category.name):'—')+' · Interview completed</div></div>'
-        +'<span style="margin-left:auto">'+B(c.status)+'</span>'
-      +'</div>'
-      +'<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:12px">'
-        +(c.pre_screening
-          ?'<strong style="color:var(--accent)">Application submitted:</strong> '+esc(c.pre_screening.education_level||'Not set')
-            +(c.pre_screening.years_experience!=null?' · '+esc(c.pre_screening.years_experience)+' yrs':'')
-            +(c.pre_screening.availability?' · '+esc(c.pre_screening.availability):'')
-          :'<strong style="color:var(--accent)">Waiting on post-interview application.</strong> The candidate has completed the interview but has not yet been moved into the verification/checks phase.')
-      +'</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-        +'<button class="btn btn-blue btn-sm" onclick="openPrescreenModal('+c.id+',\''+esc(c.first_name+' '+c.last_name)+'\')">Open Pre-Screen Review</button>'
-        +'<button class="btn btn-secondary btn-sm" onclick="editEmploymentApplication('+c.id+')">Edit Employment App</button>'
-        +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
-      +'</div>'
-    +'</div>';
 }
 
 function renderScreeningCard(c){

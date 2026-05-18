@@ -39,25 +39,16 @@ class ProcessAutomations extends Command
     protected function processNoResponseFollowups(): void
     {
         $followupDays = (int) Setting::get('followup_days', 5);
-        $queueDays    = (int) Setting::get('queue_days', 10);
 
-        Candidate::where('status', CandidateStatus::INVITE_SENT->value)
+        // Candidates sitting in Pre-Screening with an outstanding invite and no booked interview
+        Candidate::where('status', CandidateStatus::PRE_SCREENING->value)
             ->whereNotNull('invite_sent_at')
+            ->whereDoesntHave('interviews', fn ($q) => $q->where('status', 'scheduled'))
             ->get()
-            ->each(function (Candidate $candidate) use ($followupDays, $queueDays) {
+            ->each(function (Candidate $candidate) use ($followupDays) {
                 $daysSince = (int) $candidate->invite_sent_at->diffInDays(now());
 
-                if ($daysSince >= $queueDays) {
-                    // 10+ days with no response → move to Queue
-                    $candidate->update(['status' => CandidateStatus::QUEUE]);
-                    $candidate->activityLogs()->create([
-                        'action'      => 'auto_queued',
-                        'description' => "Auto-moved to Queue after {$queueDays} days with no response.",
-                    ]);
-                    $this->line("  Queued: #{$candidate->id} {$candidate->full_name} ({$daysSince}d)");
-
-                } elseif ($daysSince >= $followupDays && $candidate->followup_count === 0) {
-                    // 5+ days, first follow-up → SMS preferred, email as fallback
+                if ($daysSince >= $followupDays && $candidate->followup_count === 0) {
                     if ($candidate->phone) {
                         SendCandidateSms::dispatchSync($candidate, 'sms_followup');
                     } elseif ($candidate->email) {
@@ -105,12 +96,12 @@ class ProcessAutomations extends Command
                     'description' => "Offer expired with no response after {$offer->deadline_days} day(s).",
                 ]);
 
-                // Move candidate to NO_RESPONSE if they're still in offer_sent
-                if ($candidate->status === CandidateStatus::OFFER_SENT) {
-                    $candidate->update(['status' => CandidateStatus::NO_RESPONSE]);
+                // If the candidate is still sitting at the offer stage, log it.
+                // We don't bounce them backward — HR decides whether to re-send or close out.
+                if ($candidate->status === CandidateStatus::OFFER_LETTER) {
                     $candidate->activityLogs()->create([
-                        'action'      => 'status_changed',
-                        'description' => 'Candidate moved to No Response after offer expired.',
+                        'action'      => 'offer_expired',
+                        'description' => 'Offer expired with no response — candidate still in Offer Letter stage.',
                     ]);
                 }
 

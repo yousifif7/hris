@@ -2,7 +2,7 @@
 @section('title','McCrory Center — Pre-Screening')
 @section('content')
 <div class="animate-in">
-  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates in this stage are still awaiting initial HR review. This list covers <strong style="color:var(--accent)">Needs Review</strong> and <strong style="color:var(--accent)">Queue</strong> so you can review resumes, send interview invites, or hold them for later.</p>
+  <p style="color:var(--text2);margin-bottom:20px;font-size:13px">Candidates in this stage are still awaiting initial HR review. This list covers <strong style="color:var(--accent)">Hiring</strong> (new applications) and <strong style="color:var(--accent)">Pre-Screening</strong> (invite sent) so you can review resumes and send interview invites.</p>
   <div id="newCandidatesList"><div style="text-align:center;padding:60px;color:var(--text3)">⏳ Loading new candidates…</div></div>
 </div>
 @endsection
@@ -36,9 +36,8 @@ async function loadList(){
           +(c.resume_text?'<div class="resume-preview">'+esc(c.resume_text).replace(/\n/g,'<br>')+'</div>':'')
           +'<div class="action-bar">'
             +'<button class="btn btn-danger btn-sm" onclick="setStatus('+c.id+',\'rejected\',\''+esc(c.first_name+' '+c.last_name)+'\')">✗ Reject</button>'
-            +'<button class="btn btn-warning btn-sm" onclick="setStatus('+c.id+',\'queue\',\''+esc(c.first_name+' '+c.last_name)+'\')">⏳ Queue</button>'
             +'<button class="btn btn-secondary btn-sm" onclick="viewCandidate('+c.id+')">Full Profile</button>'
-            +'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'invite_sent\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Send Invite</button>'
+            +'<button class="btn btn-blue btn-sm" onclick="setStatus('+c.id+',\'pre_screening\',\''+esc(c.first_name+' '+c.last_name)+'\')">✉ Send Invite</button>'
           +'</div>'
         +'</div>';
     }).join('');
@@ -47,9 +46,8 @@ async function loadList(){
 async function setStatus(id, status, name){
     name = name || 'this candidate';
     var confirmMsgs = {
-        rejected:    'Reject '+name+'?\n\nThis will send a rejection email.',
-        queue:       'Move '+name+' to queue for later?',
-        invite_sent: 'Send interview invite to '+name+'?'
+        rejected:      'Reject '+name+'?\n\nThis will send a rejection email.',
+        pre_screening: 'Send interview invite to '+name+'?'
     };
     var msg = confirmMsgs[status];
     if(msg && !confirm(msg)) return;
@@ -57,9 +55,8 @@ async function setStatus(id, status, name){
     if(!r) return;
     var c = await r.json();
     var toastMsgs = {
-        rejected:    '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
-        queue:       '⏳ '+esc(c.first_name+' '+c.last_name)+' queued for later.',
-        invite_sent: '✉ Invite sent to '+esc(c.first_name+' '+c.last_name)+'.'
+        rejected:      '✗ '+esc(c.first_name+' '+c.last_name)+' rejected.',
+        pre_screening: '✉ Invite sent to '+esc(c.first_name+' '+c.last_name)+'.'
     };
     var type = status==='rejected' ? 'error' : 'success';
     toast(toastMsgs[status] || esc(c.first_name+' '+c.last_name)+' updated.', type);

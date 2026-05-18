@@ -48,7 +48,7 @@ class OfferController extends Controller
         // Update candidate status
         $this->service->changeStatus(
             Candidate::find($data['candidate_id']),
-            CandidateStatus::OFFER_SENT
+            CandidateStatus::OFFER_LETTER
         );
 
         return response()->json($offer->load('candidate'), 201);
@@ -102,7 +102,7 @@ class OfferController extends Controller
         $offer->update($updateFields);
 
         $newStatus = $data['response'] === 'accepted'
-            ? CandidateStatus::OFFER_ACCEPTED
+            ? CandidateStatus::PRE_ONBOARD_DOCUMENTS
             : CandidateStatus::APPLICANT_DECLINED;
 
         $this->service->changeStatus($offer->candidate, $newStatus);
