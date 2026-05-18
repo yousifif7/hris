@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackgroundCheckController;
 use App\Http\Controllers\Api\CandidateController;
+use App\Http\Controllers\Api\CandidateActivityController;
+use App\Http\Controllers\Api\CandidateTaskController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\EmployeeController;
@@ -87,6 +89,18 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::post('/candidates/{candidate}/activities', [CandidateController::class, 'addActivity']);
     Route::get('/candidates/{candidate}/tasks', [CandidateController::class, 'listTasks']);
     Route::post('/candidates/{candidate}/tasks', [CandidateController::class, 'addTask']);
+
+    // Candidate Tasks (CRM-style task records linked to a candidate)
+    Route::get('/candidates/{candidate}/candidate-tasks', [CandidateTaskController::class, 'index']);
+    Route::post('/candidates/{candidate}/candidate-tasks', [CandidateTaskController::class, 'store']);
+    Route::patch('/candidate-tasks/{candidateTask}', [CandidateTaskController::class, 'update']);
+    Route::delete('/candidate-tasks/{candidateTask}', [CandidateTaskController::class, 'destroy']);
+    Route::get('/candidate-task-statuses', [CandidateTaskController::class, 'statuses']);
+
+    // Candidate Activities + History (scheduled vs logged)
+    Route::get('/candidates/{candidate}/activities-v2', [CandidateActivityController::class, 'index']);
+    Route::post('/candidates/{candidate}/activities-v2', [CandidateActivityController::class, 'store']);
+    Route::delete('/candidate-activities/{activity}', [CandidateActivityController::class, 'destroy']);
 
     // Pre-screening
     Route::get('/candidates/{candidate}/prescreen', [PreScreeningController::class, 'show']);

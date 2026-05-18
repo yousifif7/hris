@@ -17,7 +17,6 @@
     <a href="/hris/timeoff"     class="portal-tile">🏖 Time Off</a>
     <a href="/hris/employee"  class="portal-tile">📋 Directory</a>
     <div class="portal-tile" onclick="openDocUpload()">📎 Upload Doc</div>
-    <a href="/hris/onboarding" class="portal-tile">🎯 Onboarding</a>
     <div class="portal-tile" onclick="loadTrainings()">📚 Trainings</div>
     <a href="/hris/settings"   class="portal-tile">⚙ Settings</a>
   </div>

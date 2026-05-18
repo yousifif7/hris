@@ -39,9 +39,14 @@ class Candidate extends Model
         'clinical_supervisor', 'offer_amount', 'payment_frequency',
         'company_representative', 'offer_deadline_date',
         // Pre-Onboard Documents tab
-        'college_degree', 'college_transcripts', 'cpr_certification',
-        'child_registry_clearance', 'child_registry_clearance_expires_at',
-        'tb_test_results', 'dwihn_transcripts', 'i9_document',
+        'college_degree', 'college_degree_name',
+        'college_transcripts', 'college_transcripts_name',
+        'cpr_certification', 'cpr_certification_name',
+        'child_registry_clearance', 'child_registry_clearance_name',
+        'child_registry_clearance_expires_at',
+        'tb_test_results', 'tb_test_results_name',
+        'dwihn_transcripts', 'dwihn_transcripts_name',
+        'i9_document', 'i9_document_name',
         // Compliance Agreements tab
         'baa_agreement', 'nda_hipaa', 'acknowledgement_handbook',
         // Clinical Staff Documents tab
@@ -168,6 +173,16 @@ class Candidate extends Model
     public function onboardingTasks(): HasMany
     {
         return $this->hasMany(OnboardingTask::class);
+    }
+
+    public function candidateTasks(): HasMany
+    {
+        return $this->hasMany(CandidateTask::class);
+    }
+
+    public function candidateActivities(): HasMany
+    {
+        return $this->hasMany(CandidateActivity::class);
     }
 
     public function documents(): MorphMany

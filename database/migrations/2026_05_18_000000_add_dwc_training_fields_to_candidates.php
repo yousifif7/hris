@@ -12,16 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Status columns use TEXT instead of VARCHAR — the candidates table is already
+        // at MySQL's 65,535-byte inline row-size limit (too many varchar(255) columns).
+        // TEXT is stored off-row in InnoDB and doesn't count against the limit.
         Schema::table('candidates', function (Blueprint $table) {
             if (! Schema::hasColumn('candidates', 'dwc_transcript')) {
-                $table->string('dwc_transcript')->nullable();
+                $table->text('dwc_transcript')->nullable();
             }
 
             foreach ($this->trainingKeys() as $key) {
                 $statusCol  = "dwc_{$key}_status";
                 $expiresCol = "dwc_{$key}_expires_at";
                 if (! Schema::hasColumn('candidates', $statusCol)) {
-                    $table->string($statusCol)->nullable();
+                    $table->text($statusCol)->nullable();
                 }
                 if (! Schema::hasColumn('candidates', $expiresCol)) {
                     $table->date($expiresCol)->nullable();

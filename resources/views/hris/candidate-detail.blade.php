@@ -501,59 +501,51 @@
     </div>
 
     {{-- ───────── Pre-Onboard Documents ───────── --}}
+    @php
+      $pofDocs = [
+        ['field' => 'college_degree',           'label' => 'College Degree'],
+        ['field' => 'college_transcripts',      'label' => 'College Transcripts'],
+        ['field' => 'cpr_certification',        'label' => 'CPR certification',           'expires_field' => 'cpr_certification_expires_at',        'expires_label' => 'CPR Certification Expiration'],
+        ['field' => 'child_registry_clearance', 'label' => 'Child Registry Clearance',   'expires_field' => 'child_registry_clearance_expires_at', 'expires_label' => 'Child Registry Clearance Expiration'],
+        ['field' => 'tb_test_results',          'label' => 'TB Test Results',             'expires_field' => 'tb_expires_at',                       'expires_label' => 'TB Expiration'],
+        ['field' => 'dwihn_transcripts',        'label' => 'DWIHN Transcripts'],
+        ['field' => 'i9_document',              'label' => 'i9'],
+      ];
+    @endphp
     <div class="cd-panel" data-tab-panel="pre-onboard">
       <h3>Pre-Onboard Documents</h3>
       <div class="cd-grid">
-        <div class="cd-field">
-          <label>College Degree</label>
-          <span class="cd-view value {{ $candidate->college_degree ? '' : 'empty' }}">{{ $candidate->college_degree ?: 'None' }}</span>
-          <input class="cd-edit" data-field="college_degree" type="text" value="{{ $candidate->college_degree }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>College Transcripts</label>
-          <span class="cd-view value {{ $candidate->college_transcripts ? '' : 'empty' }}">{{ $candidate->college_transcripts ?: 'None' }}</span>
-          <input class="cd-edit" data-field="college_transcripts" type="text" value="{{ $candidate->college_transcripts }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>CPR certification</label>
-          <span class="cd-view value {{ $candidate->cpr_certification ? '' : 'empty' }}">{{ $candidate->cpr_certification ?: 'None' }}</span>
-          <input class="cd-edit" data-field="cpr_certification" type="text" value="{{ $candidate->cpr_certification }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>CPR Certification Expiration</label>
-          <span class="cd-view value {{ $candidate->cpr_certification_expires_at ? '' : 'empty' }}">{{ $candidate->cpr_certification_expires_at?->format('M j, Y') ?? 'None' }}</span>
-          <input class="cd-edit" type="date" data-field="cpr_certification_expires_at" value="{{ optional($candidate->cpr_certification_expires_at)->format('Y-m-d') }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>Child Registry Clearance</label>
-          <span class="cd-view value {{ $candidate->child_registry_clearance ? '' : 'empty' }}">{{ $candidate->child_registry_clearance ?: 'None' }}</span>
-          <input class="cd-edit" data-field="child_registry_clearance" type="text" value="{{ $candidate->child_registry_clearance }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>Child Registry Clearance Expiration</label>
-          <span class="cd-view value {{ $candidate->child_registry_clearance_expires_at ? '' : 'empty' }}">{{ $candidate->child_registry_clearance_expires_at?->format('M j, Y') ?? 'None' }}</span>
-          <input class="cd-edit" type="date" data-field="child_registry_clearance_expires_at" value="{{ optional($candidate->child_registry_clearance_expires_at)->format('Y-m-d') }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>TB Expiration</label>
-          <span class="cd-view value {{ $candidate->tb_expires_at ? '' : 'empty' }}">{{ $candidate->tb_expires_at?->format('M j, Y') ?? 'None' }}</span>
-          <input class="cd-edit" type="date" data-field="tb_expires_at" value="{{ optional($candidate->tb_expires_at)->format('Y-m-d') }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>TB Test Results</label>
-          <span class="cd-view value {{ $candidate->tb_test_results ? '' : 'empty' }}">{{ $candidate->tb_test_results ?: 'None' }}</span>
-          <input class="cd-edit" data-field="tb_test_results" type="text" value="{{ $candidate->tb_test_results }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>DWIHN Transcripts</label>
-          <span class="cd-view value {{ $candidate->dwihn_transcripts ? '' : 'empty' }}">{{ $candidate->dwihn_transcripts ?: 'None' }}</span>
-          <input class="cd-edit" data-field="dwihn_transcripts" type="text" value="{{ $candidate->dwihn_transcripts }}" style="display:none">
-        </div>
-        <div class="cd-field">
-          <label>i9</label>
-          <span class="cd-view value {{ $candidate->i9_document ? '' : 'empty' }}">{{ $candidate->i9_document ?: 'None' }}</span>
-          <input class="cd-edit" data-field="i9_document" type="text" value="{{ $candidate->i9_document }}" style="display:none">
-        </div>
+        @foreach ($pofDocs as $doc)
+          @php
+            $path = $candidate->{$doc['field']};
+            // For Pre-Onboard fields, the existing string column holds the file path when an upload
+            // exists, or legacy free text otherwise. Treat anything starting with "candidate-documents/" as a file.
+            $isFile = $path && str_starts_with((string) $path, 'candidate-documents/');
+            $name   = $candidate->{$doc['field'].'_name'} ?? ($isFile ? basename($path) : null);
+            $url    = $isFile ? '/storage/'.$path : null;
+          @endphp
+          <div class="cd-field cd-doc-field" data-doc-field="{{ $doc['field'] }}">
+            <label>{{ $doc['label'] }}</label>
+            <div class="cd-doc-slot">
+              @if ($isFile)
+                <span class="cd-doc-chip">
+                  <a href="{{ $url }}" target="_blank" class="cd-doc-link">📎 <span class="cd-doc-name">{{ $name }}</span></a>
+                  <button type="button" class="cd-doc-remove" title="Remove" onclick="cdRemoveDoc('{{ $doc['field'] }}')">×</button>
+                </span>
+              @else
+                <button type="button" class="cd-doc-upload-btn" onclick="document.getElementById('cd-doc-input-{{ $doc['field'] }}').click()">📎 Upload file</button>
+              @endif
+              <input type="file" id="cd-doc-input-{{ $doc['field'] }}" style="display:none" onchange="cdUploadDoc('{{ $doc['field'] }}', this)">
+            </div>
+          </div>
+          @if (! empty($doc['expires_field']))
+            <div class="cd-field">
+              <label>{{ $doc['expires_label'] }}</label>
+              <span class="cd-view value {{ $candidate->{$doc['expires_field']} ? '' : 'empty' }}">{{ $candidate->{$doc['expires_field']}?->format('M j, Y') ?? 'None' }}</span>
+              <input class="cd-edit" type="date" data-field="{{ $doc['expires_field'] }}" value="{{ optional($candidate->{$doc['expires_field']})->format('Y-m-d') }}" style="display:none">
+            </div>
+          @endif
+        @endforeach
       </div>
     </div>
 
@@ -814,7 +806,13 @@
     </div>
     <div class="cd-aside-row">
       <label>Applicant Status</label>
-      <div class="value">{{ $candidate->status?->label() ?? 'None' }}</div>
+      <select id="cdWorkflowStatus" onchange="cdChangeWorkflowStatus(this.value)" style="width:100%">
+        @php $current = $candidate->status?->value; @endphp
+        <option value="">— Select —</option>
+        @foreach (\App\Enums\CandidateStatus::workflowOptions() as $opt)
+          <option value="{{ $opt['value'] }}" @selected($current === $opt['value'])>{{ $opt['label'] }}</option>
+        @endforeach
+      </select>
     </div>
     <div class="cd-aside-row">
       <label>Background Check Expiration Date</label>
@@ -876,19 +874,61 @@
     <div class="cd-side-head">
       <h4>Activities</h4>
       <div class="cd-side-icons">
-        <button type="button" title="Log Email" onclick="cdAddActivity('email')" aria-label="Log Email">&#9993;</button>
-        <button type="button" title="Log Meeting" onclick="cdAddActivity('meeting')" aria-label="Log Meeting">&#128197;</button>
-        <button type="button" title="Log Phone Call" onclick="cdAddActivity('phone')" aria-label="Log Phone Call">&#9990;</button>
-        <button type="button" title="Log Note" onclick="cdAddActivity('note')" aria-label="Log Note">&hellip;</button>
+        <button type="button" title="Compose Email" onclick="caScheduleOpen('email')" aria-label="Compose Email">&#9993;</button>
+        <button type="button" title="Schedule Meeting" onclick="caScheduleOpen('meeting')" aria-label="Schedule Meeting">&#128197;</button>
+        <button type="button" title="Schedule Call" onclick="caScheduleOpen('call')" aria-label="Schedule Call">&#9990;</button>
+        <div style="position:relative">
+          <button type="button" title="More" onclick="caToggleMenu(event,'caActivitiesMenu')" aria-label="More">&hellip;</button>
+          <div id="caActivitiesMenu" class="ca-menu" style="display:none">
+            <a href="javascript:caScheduleOpen('email')">Compose Email</a>
+            <a href="javascript:caScheduleOpen('meeting')">Schedule Meeting</a>
+            <a href="javascript:caScheduleOpen('call')">Schedule Call</a>
+            <a href="javascript:caScheduleOpen('due_date')">Schedule Due Date</a>
+            <a href="javascript:caScheduleOpen('supervision_reminder')">Schedule Supervision Date Reminder</a>
+            <a href="javascript:caScheduleOpen('re_evaluation')">Schedule Re-Evaluation</a>
+            <div class="ca-menu-sep"></div>
+            <a href="javascript:caFilterList('scheduled','meeting')">Meetings</a>
+            <a href="javascript:caFilterList('scheduled','call')">Calls</a>
+            <a href="javascript:caFilterList('scheduled','due_date')">Due Dates</a>
+            <a href="javascript:caFilterList('scheduled','supervision_reminder')">Supervision Date Reminders</a>
+            <a href="javascript:caFilterList('scheduled','re_evaluation')">Re-Evaluations Requests</a>
+            <a href="javascript:caFilterList('scheduled','email')">Messages</a>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="cdActivitiesList" class="cd-side-list">
+    <div id="caScheduledList" class="cd-side-list">
+      <div class="cd-side-empty">No Data</div>
+    </div>
+  </div>
+
+  {{-- ───────── History ───────── --}}
+  <div class="cd-side-card">
+    <div class="cd-side-head">
+      <h4>History</h4>
+      <div class="cd-side-icons">
+        <div style="position:relative">
+          <button type="button" title="More" onclick="caToggleMenu(event,'caHistoryMenu')" aria-label="More">&hellip;</button>
+          <div id="caHistoryMenu" class="ca-menu" style="display:none">
+            <a href="javascript:caLogOpen('meeting')">Log Meeting</a>
+            <a href="javascript:caLogOpen('call')">Log Call</a>
+            <a href="javascript:caLogOpen('email')">Archive Email</a>
+            <div class="ca-menu-sep"></div>
+            <a href="javascript:caFilterList('logged','meeting')">Meetings</a>
+            <a href="javascript:caFilterList('logged','call')">Calls</a>
+            <a href="javascript:caFilterList('logged','email')">Emails</a>
+            <a href="javascript:caFilterList('logged','email')">Messages</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="caHistoryList" class="cd-side-list">
       <div class="cd-side-empty">No Data</div>
     </div>
   </div>
 
   {{-- ───────── Tasks ───────── --}}
-  <div class="cd-side-card">
+  {{-- <div class="cd-side-card">
     <div class="cd-side-head">
       <h4>Tasks</h4>
       <div class="cd-side-icons">
@@ -899,7 +939,203 @@
     <div id="cdTasksList" class="cd-side-list">
       <div class="cd-side-empty">No Data</div>
     </div>
+  </div> --}}
+
+  {{-- ───────── Candidate Tasks (CRM-style) ───────── --}}
+  <div class="cd-side-card">
+    <div class="cd-side-head">
+      <h4>Tasks</h4>
+      <div class="cd-side-icons">
+        <button type="button" title="Create Task" onclick="ctOpenCreate()" aria-label="Create Task">&#43;</button>
+      </div>
+    </div>
+    <div id="ctList" class="cd-side-list">
+      <div class="cd-side-empty">No Data</div>
+    </div>
   </div>
+  </div>
+</div>
+
+{{-- ───────── Candidate Activity: Schedule / Log modal ───────── --}}
+<div class="modal-overlay" id="modal-caActivityModal" onclick="if(event.target===this)closeModal('caActivityModal')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3 id="caActivityModalTitle">Schedule</h3><button onclick="closeModal('caActivityModal')">&times;</button></div>
+    <div class="modal-body">
+      <form id="caActivityForm" onsubmit="event.preventDefault();caSubmit();">
+        <input type="hidden" name="kind" id="caKind">
+        <input type="hidden" name="type" id="caType">
+        <div class="ct-grid-2">
+          <div class="ct-field" style="grid-column:1 / -1">
+            <label>Subject</label>
+            <input type="text" name="subject" maxlength="255">
+          </div>
+          <div class="ct-field" id="caScheduledAtField" style="grid-column:1 / -1">
+            <label>Scheduled at <span class="req">*</span></label>
+            <input type="datetime-local" name="scheduled_at">
+          </div>
+          <div class="ct-field" id="caOccurredAtField" style="grid-column:1 / -1;display:none">
+            <label>Occurred at</label>
+            <input type="datetime-local" name="occurred_at">
+          </div>
+          <div class="ct-field" style="grid-column:1 / -1">
+            <label>Description</label>
+            <textarea name="description" rows="3"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" onclick="caSubmit()">Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal('caActivityModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{{-- ───────── Candidate Task: Create / Edit modal ───────── --}}
+<style>
+  .ct-modal{max-width:1100px;width:96vw;max-height:92vh;display:flex;flex-direction:column}
+  .ct-modal .modal-body{padding:0;overflow:auto;flex:1;background:var(--surface2,#f4f6fa)}
+  .ct-wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;padding:14px}
+  @media(max-width:900px){ .ct-wrap{grid-template-columns:1fr} }
+  .ct-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+  .ct-card + .ct-card{margin-top:14px}
+  .ct-card h5{font-size:13px;font-weight:600;color:var(--accent);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px}
+  @media(max-width:900px){ .ct-grid{grid-template-columns:1fr 1fr} }
+  @media(max-width:560px){ .ct-grid{grid-template-columns:1fr} }
+  .ct-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  @media(max-width:560px){ .ct-grid-2{grid-template-columns:1fr} }
+  .ct-field{display:flex;flex-direction:column;gap:4px;font-size:13px}
+  .ct-field label{font-size:11px;color:var(--text3)}
+  .ct-field label .req{color:#e35454;margin-left:2px}
+  .ct-field input, .ct-field textarea, .ct-field select{font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);width:100%;font-family:inherit}
+  .ct-field textarea{resize:vertical;min-height:60px}
+  .ct-link-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);font-size:12px}
+  .ct-side-row{font-size:12px;color:var(--text2);padding:6px 0;border-top:1px solid var(--border)}
+  .ct-side-row:first-child{border-top:none}
+  .ct-status-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--accent-glow);color:var(--accent)}
+
+  .ca-menu{position:absolute;right:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:240px;z-index:30;padding:6px;font-size:13px;text-align:left}
+  .ca-menu a{display:block;padding:6px 10px;border-radius:4px;color:var(--text);text-decoration:none;cursor:pointer;white-space:nowrap}
+  .ca-menu a:hover{background:var(--surface2);color:var(--accent)}
+  .ca-menu-sep{height:1px;background:var(--border);margin:5px 0}
+
+  .cd-doc-slot{display:flex;align-items:center;gap:8px}
+  .cd-doc-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:12px;max-width:100%}
+  .cd-doc-chip .cd-doc-link{color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+  .cd-doc-chip .cd-doc-link:hover{text-decoration:underline}
+  .cd-doc-chip .cd-doc-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+  .cd-doc-chip .cd-doc-remove:hover{color:#e35454}
+  .cd-doc-upload-btn{background:var(--surface);border:1px dashed var(--border);border-radius:6px;padding:5px 10px;color:var(--text3);cursor:pointer;font-size:12px}
+  .cd-doc-upload-btn:hover{border-style:solid;color:var(--accent);border-color:var(--accent)}
+</style>
+
+<div class="modal-overlay" id="modal-ctFormModal" onclick="if(event.target===this)closeModal('ctFormModal')">
+  <div class="modal ct-modal">
+    <div class="modal-header" style="background:var(--surface)">
+      <h3 id="ctModalTitle">Create Task</h3>
+      <button onclick="closeModal('ctFormModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="ctForm" onsubmit="event.preventDefault();ctSubmit();">
+        <div class="ct-wrap">
+          <div>
+            <div class="ct-card">
+              <div class="ct-grid">
+                <div class="ct-field">
+                  <label>Name</label>
+                  <input type="text" name="name" maxlength="255">
+                </div>
+                <div class="ct-field">
+                  <label>Link</label>
+                  <div>
+                    <span class="ct-link-chip">Candidate</span>
+                    <span class="ct-link-chip">{{ $candidate->first_name }} {{ $candidate->last_name }}</span>
+                  </div>
+                </div>
+                <div class="ct-field">
+                  <label>reviewRecords</label>
+                  <input type="text" name="review_records" maxlength="255">
+                </div>
+                <div class="ct-field">
+                  <label>evaluationDateTime</label>
+                  <input type="datetime-local" name="evaluation_date_time">
+                </div>
+                <div class="ct-field">
+                  <label>Status <span class="req">*</span></label>
+                  <select name="status" id="ctStatus" required></select>
+                </div>
+                <div class="ct-field">
+                  <label>wasWrittenverbalConsentObtained</label>
+                  <input type="text" name="was_written_verbal_consent_obtained" maxlength="255">
+                </div>
+                <div class="ct-field">
+                  <label>didTheConsumerHaveAutism</label>
+                  <input type="text" name="did_the_consumer_have_autism" maxlength="255">
+                </div>
+                <div class="ct-field" style="grid-column:1 / -1">
+                  <label>Description <span class="req">*</span></label>
+                  <textarea name="description" required rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="ct-card">
+              <h5>Quality review</h5>
+              <div class="ct-grid-2">
+                <div class="ct-field">
+                  <label>qualityReview</label>
+                  <input type="text" name="quality_review">
+                </div>
+                <div class="ct-field">
+                  <label>qualityAssurance</label>
+                  <input type="text" name="quality_assurance">
+                </div>
+              </div>
+            </div>
+
+            <div class="ct-card">
+              <h5>Clinical Consultation</h5>
+              <div class="ct-grid-2">
+                <div class="ct-field">
+                  <label>reportReviewStatus</label>
+                  <input type="text" name="report_review_status">
+                </div>
+                <div class="ct-field">
+                  <label>reviewer</label>
+                  <input type="text" name="reviewer">
+                </div>
+                <div class="ct-field">
+                  <label>supervisorReview</label>
+                  <input type="text" name="supervisor_review">
+                </div>
+                <div class="ct-field">
+                  <label>signedReport</label>
+                  <input type="text" name="signed_report">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="ct-card">
+              <div class="ct-field">
+                <label>Assigned User <span class="req">*</span></label>
+                <select name="assigned_user_id" id="ctAssignedUser" required></select>
+              </div>
+              <div class="ct-field" style="margin-top:14px">
+                <label>Teams</label>
+                <input type="text" name="teams" placeholder="Select">
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" onclick="ctSubmit()">Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal('ctFormModal')">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1039,8 +1275,8 @@ document.addEventListener('DOMContentLoaded', function(){
         f.style.display = 'none';
     }
     cdLoadComments();
-    cdLoadActivities();
-    cdLoadTasks();
+    caLoadScheduled();
+    caLoadHistory();
 });
 
 /* ── Stream comments ─────────────────────────────────────── */
@@ -1062,12 +1298,31 @@ function _cdInitials(first, last){
 function _cdRenderComment(c){
     var who = c.user ? (c.user.first_name+' '+c.user.last_name) : 'System';
     var initials = c.user ? _cdInitials(c.user.first_name, c.user.last_name) : 'SY';
-    var body = (c.description || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    var action = c.action || 'comment';
+    var safeDesc = (c.description || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+    var headline, body = '';
+    if(action === 'comment'){
+        headline = '<strong style="color:var(--text)">'+who+'</strong> commented';
+        body = '<div style="margin-top:4px;color:var(--text);font-size:13px;line-height:1.5">'+safeDesc+'</div>';
+    } else if(action === 'status_changed'){
+        headline = '<strong style="color:var(--text)">'+who+'</strong> changed status';
+        if(c.description){ body = '<div style="margin-top:4px;color:var(--text2);font-size:12px">'+safeDesc+'</div>'; }
+    } else if(action === 'field_changed'){
+        headline = '<strong style="color:var(--text)">'+who+'</strong> updated this staff portal';
+        if(c.description){ body = '<div style="margin-top:4px;color:var(--text2);font-size:12px">▾ '+safeDesc+'</div>'; }
+    } else if(action === 'created'){
+        headline = '<strong style="color:var(--text)">'+who+'</strong> created this staff portal';
+    } else {
+        headline = '<strong style="color:var(--text)">'+who+'</strong> '+_cdEscape(action.replace(/_/g,' '));
+        if(c.description){ body = '<div style="margin-top:4px;color:var(--text2);font-size:13px;line-height:1.5">'+safeDesc+'</div>'; }
+    }
+
     return '<div class="cd-stream-item">'
         +'<div class="cd-stream-avatar">'+initials+'</div>'
         +'<div style="flex:1">'
-            +'<div><strong style="color:var(--text)">'+who+'</strong> commented</div>'
-            +'<div style="margin-top:4px;color:var(--text);font-size:13px;line-height:1.5">'+body+'</div>'
+            +'<div>'+headline+'</div>'
+            + body
             +'<div style="color:var(--text3);font-size:11px;margin-top:4px">'+_cdFmtDate(c.created_at)+'</div>'
         +'</div>'
     +'</div>';
@@ -1339,6 +1594,307 @@ async function cdViewUserAccess(){
         }).join('')
       + '</ul>';
     document.getElementById('cdMoreModalBody').innerHTML = html;
+}
+
+/* ── Candidate Tasks (CRM-style) ────────────────────────── */
+var CT_STATUSES = [];
+var CT_HR_USERS = [];
+var CT_EDITING_ID = null;
+
+function _ctEsc(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+function _ctStatusLabel(value){
+    var o = CT_STATUSES.find(function(s){ return s.value === value; });
+    return o ? o.label : value;
+}
+
+function _ctRenderRow(t){
+    var who = t.assigned_user ? _ctEsc(t.assigned_user.first_name+' '+t.assigned_user.last_name) : '—';
+    var title = _ctEsc(t.name || (t.description ? t.description.slice(0, 60) : '(untitled)'));
+    return '<div class="cd-side-item" data-ct-id="'+t.id+'" style="flex-direction:column;align-items:stretch;gap:4px">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px">'
+        +   '<strong style="color:var(--text);font-size:12px">'+title+'</strong>'
+        +   '<button type="button" class="cd-task-delete" title="Remove" onclick="ctDelete('+t.id+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">&times;</button>'
+        + '</div>'
+        + '<div><span class="ct-status-pill">'+_ctEsc(_ctStatusLabel(t.status))+'</span></div>'
+        + '<div class="cd-side-meta">Assigned: '+who+'</div>'
+      + '</div>';
+}
+
+async function ctLoadList(){
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/candidate-tasks');
+    var list = document.getElementById('ctList');
+    if(!r || !r.ok){ list.innerHTML = '<div class="cd-side-empty">No Data</div>'; return; }
+    var rows = await r.json();
+    if(!rows.length){ list.innerHTML = '<div class="cd-side-empty">No Data</div>'; return; }
+    list.innerHTML = rows.map(_ctRenderRow).join('');
+}
+
+async function _ctEnsureMeta(){
+    if(!CT_STATUSES.length){
+        var r = await apiFetch('/api/candidate-task-statuses');
+        if(r && r.ok) CT_STATUSES = await r.json();
+        var sel = document.getElementById('ctStatus');
+        sel.innerHTML = CT_STATUSES.map(function(s){
+            return '<option value="'+_ctEsc(s.value)+'">'+_ctEsc(s.label)+'</option>';
+        }).join('');
+    }
+    if(!CT_HR_USERS.length){
+        var r2 = await apiFetch('/api/settings/hr-team');
+        if(r2 && r2.ok) CT_HR_USERS = await r2.json();
+        var asel = document.getElementById('ctAssignedUser');
+        asel.innerHTML = CT_HR_USERS.map(function(u){
+            return '<option value="'+u.id+'">'+_ctEsc((u.first_name||'')+' '+(u.last_name||''))+'</option>';
+        }).join('');
+    }
+}
+
+async function ctOpenCreate(){
+    CT_EDITING_ID = null;
+    document.getElementById('ctModalTitle').textContent = 'Create Task';
+    document.getElementById('ctForm').reset();
+    await _ctEnsureMeta();
+    // Defaults
+    document.getElementById('ctStatus').value = 'need_status_update';
+    var meId = (window.__currentUser && window.__currentUser.id) ? String(window.__currentUser.id) : '';
+    var asel = document.getElementById('ctAssignedUser');
+    if(meId && Array.prototype.some.call(asel.options, function(o){ return o.value === meId; })){
+        asel.value = meId;
+    }
+    openModal('ctFormModal');
+}
+
+async function ctSubmit(){
+    var form = document.getElementById('ctForm');
+    var fd = new FormData(form);
+    var payload = {};
+    fd.forEach(function(v, k){ payload[k] = v === '' ? null : v; });
+
+    if(!payload.status){ toast('Status is required','error'); return; }
+    if(!payload.description){ toast('Description is required','error'); return; }
+    if(!payload.assigned_user_id){ toast('Assigned User is required','error'); return; }
+    payload.assigned_user_id = Number(payload.assigned_user_id);
+
+    var url = CT_EDITING_ID
+        ? '/api/candidate-tasks/'+CT_EDITING_ID
+        : '/api/candidates/'+CD_CANDIDATE_ID+'/candidate-tasks';
+    var method = CT_EDITING_ID ? 'PATCH' : 'POST';
+
+    var r = await apiFetch(url, {method:method, body:JSON.stringify(payload)});
+    if(!r) return;
+    if(!r.ok){
+        var err = await r.json().catch(function(){return {};});
+        toast(err.message || 'Failed to save task','error');
+        return;
+    }
+    toast('✓ Task saved');
+    closeModal('ctFormModal');
+    ctLoadList();
+}
+
+async function ctDelete(id){
+    if(!confirm('Delete this task?')) return;
+    var r = await apiFetch('/api/candidate-tasks/'+id, {method:'DELETE'});
+    if(!r || !r.ok){ toast('Failed to delete task','error'); return; }
+    var row = document.querySelector('[data-ct-id="'+id+'"]');
+    if(row) row.remove();
+    var list = document.getElementById('ctList');
+    if(!list.children.length) list.innerHTML = '<div class="cd-side-empty">No Data</div>';
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    ctLoadList();
+});
+
+/* ── Candidate Activities + History ────────────────────── */
+var CA_TYPE_ICON = {
+    email:'✉', meeting:'📅', call:'☎', note:'✎',
+    due_date:'⏰', supervision_reminder:'🔔', re_evaluation:'🔁'
+};
+var CA_TYPE_LABEL = {
+    email:'Email', meeting:'Meeting', call:'Call', note:'Note',
+    due_date:'Due Date', supervision_reminder:'Supervision Date Reminder', re_evaluation:'Re-Evaluation'
+};
+var CA_LIST_FILTER = { scheduled:null, logged:null };
+
+function caToggleMenu(e, id){
+    if(e){ e.stopPropagation(); }
+    document.querySelectorAll('.ca-menu').forEach(function(el){
+        if(el.id !== id) el.style.display = 'none';
+    });
+    var m = document.getElementById(id);
+    m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+}
+document.addEventListener('click', function(e){
+    if(e.target.closest('.ca-menu') || e.target.closest('.cd-side-icons button[title="More"]')) return;
+    document.querySelectorAll('.ca-menu').forEach(function(el){ el.style.display='none'; });
+});
+
+function _caFmt(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    return d.toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'});
+}
+
+function _caRenderRow(a){
+    var icon = CA_TYPE_ICON[a.type] || '•';
+    var label = CA_TYPE_LABEL[a.type] || a.type;
+    var when = a.kind === 'scheduled' ? _caFmt(a.scheduled_at) : _caFmt(a.occurred_at);
+    var who = a.user ? ((a.user.first_name||'')+' '+(a.user.last_name||'')).trim() : 'System';
+    var subj = a.subject ? _cdEscape(a.subject) : '';
+    var desc = a.description ? _cdEscape(a.description).replace(/\n/g,'<br>') : '';
+    return '<div class="cd-side-item" data-ca-id="'+a.id+'">'
+        +'<div class="cd-side-icon">'+icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+            +'<div style="display:flex;justify-content:space-between;gap:6px">'
+                +'<strong style="color:var(--text)">'+_cdEscape(label)+(subj?' · '+subj:'')+'</strong>'
+                +'<button type="button" title="Remove" onclick="caDelete('+a.id+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0">&times;</button>'
+            +'</div>'
+            +(desc ? '<div style="color:var(--text2);margin-top:2px;word-wrap:break-word">'+desc+'</div>' : '')
+            +'<div class="cd-side-meta">'+_cdEscape(when)+(who?' · '+_cdEscape(who):'')+'</div>'
+        +'</div>'
+    +'</div>';
+}
+
+async function _caLoad(kind, listId){
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/activities-v2?kind='+kind);
+    var list = document.getElementById(listId);
+    if(!r || !r.ok){ list.innerHTML = '<div class="cd-side-empty">No Data</div>'; return; }
+    var rows = await r.json();
+    var filter = CA_LIST_FILTER[kind];
+    if(filter){ rows = rows.filter(function(x){ return x.type === filter; }); }
+    if(!rows.length){ list.innerHTML = '<div class="cd-side-empty">No Data</div>'; return; }
+    list.innerHTML = rows.map(_caRenderRow).join('');
+}
+
+function caLoadScheduled(){ return _caLoad('scheduled', 'caScheduledList'); }
+function caLoadHistory(){ return _caLoad('logged', 'caHistoryList'); }
+
+function caFilterList(kind, type){
+    CA_LIST_FILTER[kind] = type;
+    if(kind === 'scheduled') caLoadScheduled(); else caLoadHistory();
+    document.querySelectorAll('.ca-menu').forEach(function(el){ el.style.display='none'; });
+}
+
+function _caOpenModal(kind, type){
+    var titleEl = document.getElementById('caActivityModalTitle');
+    var labelType = CA_TYPE_LABEL[type] || type;
+    titleEl.textContent = (kind === 'logged' ? (type==='email'?'Archive ':'Log ') : 'Schedule ') + labelType;
+
+    var form = document.getElementById('caActivityForm');
+    form.reset();
+    document.getElementById('caKind').value = kind;
+    document.getElementById('caType').value = type;
+
+    var schedField = document.getElementById('caScheduledAtField');
+    var occField   = document.getElementById('caOccurredAtField');
+    if(kind === 'scheduled'){
+        schedField.style.display = '';
+        occField.style.display   = 'none';
+        schedField.querySelector('input').required = true;
+        occField.querySelector('input').required = false;
+    } else {
+        schedField.style.display = 'none';
+        occField.style.display   = '';
+        schedField.querySelector('input').required = false;
+        // Default occurred_at to now
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        occField.querySelector('input').value = now.toISOString().slice(0,16);
+    }
+    openModal('caActivityModal');
+    document.querySelectorAll('.ca-menu').forEach(function(el){ el.style.display='none'; });
+}
+
+function caScheduleOpen(type){ _caOpenModal('scheduled', type); }
+function caLogOpen(type){      _caOpenModal('logged',    type); }
+
+async function caSubmit(){
+    var form = document.getElementById('caActivityForm');
+    var fd = new FormData(form);
+    var payload = {};
+    fd.forEach(function(v, k){ payload[k] = v === '' ? null : v; });
+    if(payload.kind === 'scheduled' && !payload.scheduled_at){ toast('Scheduled date is required','error'); return; }
+
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/activities-v2', {
+        method:'POST', body: JSON.stringify(payload)
+    });
+    if(!r) return;
+    if(!r.ok){
+        var err = await r.json().catch(function(){return {};});
+        toast(err.message || 'Failed to save','error');
+        return;
+    }
+    closeModal('caActivityModal');
+    toast('✓ Saved');
+    if(payload.kind === 'scheduled') caLoadScheduled(); else caLoadHistory();
+}
+
+/* ── Pre-Onboard document upload chips ─────────────────── */
+async function cdUploadDoc(field, input){
+    if(!input.files || !input.files.length) return;
+    var fd = new FormData();
+    fd.append('field', field);
+    fd.append('file', input.files[0]);
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/upload', { method:'POST', body: fd });
+    if(!r || !r.ok){ toast('Upload failed','error'); input.value=''; return; }
+    var info = await r.json();
+    var slot = input.parentElement;
+    slot.querySelectorAll('.cd-doc-upload-btn, .cd-doc-chip').forEach(function(el){ el.remove(); });
+    slot.insertAdjacentHTML('afterbegin',
+        '<span class="cd-doc-chip">'
+        +'<a href="'+info.url+'" target="_blank" class="cd-doc-link">📎 <span class="cd-doc-name">'+_cdEscape(info.name)+'</span></a>'
+        +'<button type="button" class="cd-doc-remove" title="Remove" onclick="cdRemoveDoc(\''+field+'\')">×</button>'
+        +'</span>'
+    );
+    input.value = '';
+    toast('✓ Uploaded '+info.name);
+    // Refresh stream so the new "field changed" entry appears
+    if(typeof cdLoadComments === 'function') cdLoadComments();
+}
+
+async function cdChangeWorkflowStatus(value){
+    if(!value) return;
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/status', {
+        method:'PATCH', body: JSON.stringify({status: value})
+    });
+    if(!r || !r.ok){ toast('Failed to change status','error'); return; }
+    toast('✓ Status updated');
+    if(typeof cdLoadComments === 'function') cdLoadComments();
+}
+
+async function cdRemoveDoc(field){
+    if(!confirm('Remove this file?')) return;
+    var payload = {};
+    payload[field] = null;
+    payload[field+'_name'] = null;
+    var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID, {method:'PATCH', body: JSON.stringify(payload)});
+    if(!r || !r.ok){ toast('Failed to remove','error'); return; }
+    var fieldEl = document.querySelector('[data-doc-field="'+field+'"] .cd-doc-slot');
+    if(fieldEl){
+        fieldEl.querySelectorAll('.cd-doc-chip').forEach(function(el){ el.remove(); });
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cd-doc-upload-btn';
+        btn.textContent = '📎 Upload file';
+        btn.onclick = function(){ document.getElementById('cd-doc-input-'+field).click(); };
+        fieldEl.insertBefore(btn, fieldEl.firstChild);
+    }
+    toast('✓ Removed');
+    if(typeof cdLoadComments === 'function') cdLoadComments();
+}
+
+async function caDelete(id){
+    if(!confirm('Remove this entry?')) return;
+    var r = await apiFetch('/api/candidate-activities/'+id, {method:'DELETE'});
+    if(!r || !r.ok){ toast('Failed to remove','error'); return; }
+    var row = document.querySelector('[data-ca-id="'+id+'"]');
+    if(row){
+        var parent = row.parentElement;
+        row.remove();
+        if(parent && !parent.children.length) parent.innerHTML = '<div class="cd-side-empty">No Data</div>';
+    }
 }
 </script>
 @endpush

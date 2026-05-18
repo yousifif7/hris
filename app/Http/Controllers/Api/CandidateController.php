@@ -263,9 +263,60 @@ class CandidateController extends Controller
             $validated['last_modified_by'] = auth()->id();
         }
 
+        // Capture before-state for the fields we surface in the stream so we can log only real changes.
+        $before = $candidate->only(array_keys($validated));
+
         $candidate->update($validated);
 
+        $this->logMeaningfulFieldChanges($candidate, $before, $validated);
+
         return response()->json($candidate->fresh(['category', 'assignedTo', 'lastModifiedBy']));
+    }
+
+    /**
+     * Write ActivityLog rows for meaningful candidate field changes so they appear
+     * in the Stream. Only status, assignment, document, and expiration fields qualify.
+     */
+    protected function logMeaningfulFieldChanges(Candidate $candidate, array $before, array $after): void
+    {
+        $documentFields = [
+            'college_degree', 'college_transcripts', 'cpr_certification',
+            'child_registry_clearance', 'tb_test_results', 'dwihn_transcripts', 'i9_document',
+            'baa_agreement', 'nda_hipaa',
+            'professional_general_liability_insurance', 'clinical_licenses',
+            'medversant_application_confirmation', 'writing_sample', 'handbook',
+            'dwc_transcript', 'signed_application_path', 'authorization_background_check_path',
+            'resume_file',
+        ];
+
+        foreach ($after as $field => $newValue) {
+            $oldValue = $before[$field] ?? null;
+            if ($oldValue == $newValue) continue;
+
+            $isExpiration = str_ends_with($field, '_expires_at');
+            $isAssignment = $field === 'assigned_to';
+            $isDocument   = in_array($field, $documentFields, true);
+
+            if (! ($isExpiration || $isAssignment || $isDocument)) {
+                continue;
+            }
+
+            $label = $this->fieldLabel($field);
+            $candidate->activityLogs()->create([
+                'user_id'     => auth()->id(),
+                'action'      => 'field_changed',
+                'old_value'   => is_scalar($oldValue) ? (string) $oldValue : null,
+                'new_value'   => is_scalar($newValue) ? (string) $newValue : null,
+                'description' => $label,
+            ]);
+        }
+    }
+
+    protected function fieldLabel(string $field): string
+    {
+        // Strip trailing _path / _name / _expires_at for nicer labels
+        $base = preg_replace('/_(path|name|expires_at)$/', '', $field);
+        return ucwords(str_replace('_', ' ', $base));
     }
 
     /**
@@ -409,13 +460,16 @@ class CandidateController extends Controller
      */
     public function listComments(Candidate $candidate): JsonResponse
     {
-        $comments = $candidate->activityLogs()
-            ->where('action', 'comment')
+        // Stream now includes user comments AND meaningful auto-events
+        // (status changes, assignment, document uploads, expirations).
+        $rows = $candidate->activityLogs()
+            ->whereIn('action', ['comment', 'status_changed', 'field_changed', 'created'])
             ->with('user:id,first_name,last_name')
             ->orderByDesc('created_at')
+            ->limit(200)
             ->get();
 
-        return response()->json($comments);
+        return response()->json($rows);
     }
 
     /**
@@ -444,17 +498,26 @@ class CandidateController extends Controller
     public function uploadDocument(Request $request, Candidate $candidate): JsonResponse
     {
         $data = $request->validate([
-            'field' => 'required|string|in:recipient_rights_training,annual_ceus',
+            'field' => 'required|string|in:recipient_rights_training,annual_ceus,college_degree,college_transcripts,cpr_certification,child_registry_clearance,tb_test_results,dwihn_transcripts,i9_document',
             'file'  => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
         $file = $request->file('file');
         $path = $file->store('candidate-documents/'.$candidate->id, 'public');
 
+        // Most fields use <field>_path + <field>_name. The pre-onboard fields reuse
+        // the existing string column as the path and add a separate _name column.
         $candidate->update([
             $data['field'].'_path' => $path,
             $data['field'].'_name' => $file->getClientOriginalName(),
             'last_modified_by'     => auth()->id(),
+        ]);
+
+        $candidate->activityLogs()->create([
+            'user_id'     => auth()->id(),
+            'action'      => 'field_changed',
+            'description' => $this->fieldLabel($data['field']),
+            'new_value'   => $file->getClientOriginalName(),
         ]);
 
         return response()->json([

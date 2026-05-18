@@ -54,6 +54,12 @@
         <div class="item" data-scope="shared" onclick="setScope('shared','Shared')">Shared</div>
       </div>
     </div>
+    <select id="spStatusFilter" onchange="spOnStatusChange(this.value)" style="font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:200px">
+      <option value="">All statuses</option>
+      @foreach (\App\Enums\CandidateStatus::workflowOptions() as $opt)
+        <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+      @endforeach
+    </select>
     <div class="sp-pager">
       <span id="spPagerLabel">— / —</span>
       <button class="sp-icon-btn" onclick="spPagePrev()" title="Previous">‹</button>
@@ -129,9 +135,16 @@
 @push('scripts')
 <script>
 var _spScope = 'all';
+var _spStatus = '';
 var _spPage = 1;
 var _spPerPage = 30;
 var _spSearchTimer = null;
+
+function spOnStatusChange(value){
+    _spStatus = value || '';
+    _spPage = 1;
+    loadStaffPortals();
+}
 
 async function pageRefresh(){ await loadStaffPortals(); }
 
@@ -158,6 +171,8 @@ function setScope(scope, label){
 
 function clearSpFilters(){
     document.getElementById('spSearch').value = '';
+    document.getElementById('spStatusFilter').value = '';
+    _spStatus = '';
     setScope('all', 'All');
 }
 
@@ -194,6 +209,8 @@ async function loadStaffPortals(){
     });
     var search = document.getElementById('spSearch').value.trim();
     if(search) params.set('search', search);
+
+    if(_spStatus) params.set('status', _spStatus);
 
     if(_spScope === 'my'){
         var me = window.__currentUserId || (window.user && window.user.id);
