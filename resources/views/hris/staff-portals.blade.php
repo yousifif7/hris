@@ -36,30 +36,30 @@
       <h2>Staff Portals</h2>
     </div>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="openCreateStaffPortal()">+ Create Staff Portal</button>
-    <button class="sp-icon-btn" title="Settings">⚙</button>
+    <a class="btn btn-primary" href="{{ route('hris.staff-portal.create') }}">+ Create Staff Portal</a>
+    {{-- <button class="sp-icon-btn" title="Settings">⚙</button> --}}
   </div>
 
   <div class="sp-toolbar">
     <div class="sp-search-wrap" style="position:relative">
-      <button class="sp-scope-btn" onclick="toggleScopeMenu(event)"><span id="spScopeLabel">All</span> ▾</button>
+      {{-- <button class="sp-scope-btn" onclick="toggleScopeMenu(event)"><span id="spScopeLabel">All</span> ▾</button> --}}
       <input id="spSearch" class="sp-search" type="text" placeholder="Search by name or email…" oninput="spDebouncedSearch()">
       <button class="sp-icon-btn" onclick="loadStaffPortals()" title="Search">🔍</button>
-      <button class="sp-icon-btn" title="More">⋮</button>
+      {{-- <button class="sp-icon-btn" title="More">⋮</button> --}}
       <button class="sp-icon-btn" onclick="clearSpFilters()" title="Clear">✕</button>
-      <div id="spScopeMenu" class="sp-scope-menu" style="top:38px;left:0">
+      {{-- <div id="spScopeMenu" class="sp-scope-menu" style="top:38px;left:0">
         <div class="item active" data-scope="all" onclick="setScope('all','All')">All</div>
         <div class="item" data-scope="my" onclick="setScope('my','Only my')">Only my</div>
         <div class="item" data-scope="followed" onclick="setScope('followed','Followed')">Followed</div>
         <div class="item" data-scope="shared" onclick="setScope('shared','Shared')">Shared</div>
-      </div>
+      </div> --}}
     </div>
-    <select id="spStatusFilter" onchange="spOnStatusChange(this.value)" style="font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:200px">
+    {{-- <select id="spStatusFilter" onchange="spOnStatusChange(this.value)" style="font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:200px">
       <option value="">All statuses</option>
       @foreach (\App\Enums\CandidateStatus::workflowOptions() as $opt)
         <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
       @endforeach
-    </select>
+    </select> --}}
     <div class="sp-pager">
       <span id="spPagerLabel">— / —</span>
       <button class="sp-icon-btn" onclick="spPagePrev()" title="Previous">‹</button>
@@ -86,50 +86,6 @@
   </table>
 </div>
 
-<!-- Create Staff Portal modal -->
-<div class="modal-overlay" id="modal-createStaffPortal" onclick="if(event.target===this)closeModal('createStaffPortal')">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <h3>Create Staff Portal</h3>
-      <button onclick="closeModal('createStaffPortal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>First Name *</label><input id="cspFirst" required></div>
-        <div class="form-group"><label>Last Name *</label><input id="cspLast" required></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Email</label><input id="cspEmail" type="email"></div>
-        <div class="form-group"><label>Phone</label><input id="cspPhone" type="tel"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Category</label><select id="cspCategory"><option value="">Select…</option></select></div>
-        <div class="form-group"><label>Source *</label>
-          <select id="cspSource">
-            <option>Indeed</option><option>LinkedIn</option><option>Referral</option>
-            <option>Website</option><option>Walk-in</option><option>Other</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Anticipated Start Date</label><input id="cspStart" type="date"></div>
-        <div class="form-group"><label>Clinical License Expiration</label><input id="cspLicense" type="date"></div>
-      </div>
-      <div class="form-group">
-        <label>Authorization for Background Check</label>
-        <input id="cspBgFile" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="cspNotes" rows="3" placeholder="Anything HR should know…"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('createStaffPortal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitCreateStaffPortal()">Create</button>
-    </div>
-  </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -203,8 +159,8 @@ async function loadStaffPortals(){
     var params = new URLSearchParams({
         page:     _spPage,
         per_page: _spPerPage,
-        sort:     'last_name',
-        direction:'asc',
+        sort:     'created_at',
+        direction:'desc',
         include:  'interviews'
     });
     var search = document.getElementById('spSearch').value.trim();
@@ -257,70 +213,6 @@ function formatShortDate(iso){
     if(isNaN(d.getTime())) return iso;
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-}
-
-/* ── Create Staff Portal modal ── */
-async function openCreateStaffPortal(){
-    // Load categories on first open
-    var sel = document.getElementById('cspCategory');
-    if(sel && sel.options.length <= 1){
-        var r = await apiFetch('/api/job-categories');
-        if(r){
-            var cats = await r.json();
-            (cats||[]).forEach(function(c){
-                var o = document.createElement('option');
-                o.value = c.id; o.textContent = c.name;
-                sel.appendChild(o);
-            });
-        }
-    }
-    ['cspFirst','cspLast','cspEmail','cspPhone','cspStart','cspLicense','cspNotes'].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.value = '';
-    });
-    document.getElementById('cspBgFile').value = '';
-    document.getElementById('cspSource').value = 'Indeed';
-    document.getElementById('cspCategory').value = '';
-    openModal('createStaffPortal');
-}
-
-async function submitCreateStaffPortal(){
-    var first = document.getElementById('cspFirst').value.trim();
-    var last  = document.getElementById('cspLast').value.trim();
-    if(!first || !last){ toast('First and last name are required','error'); return; }
-
-    var fd = new FormData();
-    fd.append('first_name', first);
-    fd.append('last_name',  last);
-    fd.append('source', document.getElementById('cspSource').value || 'Other');
-
-    var pairs = [
-        ['email',  'cspEmail'],
-        ['phone',  'cspPhone'],
-        ['earliest_start_date',          'cspStart'],
-        ['clinical_license_expires_at',  'cspLicense'],
-        ['notes',  'cspNotes'],
-    ];
-    pairs.forEach(function(p){
-        var v = (document.getElementById(p[1]).value || '').trim();
-        if(v) fd.append(p[0], v);
-    });
-
-    var cat = document.getElementById('cspCategory').value;
-    if(cat) fd.append('job_category_id', cat);
-
-    var bg = document.getElementById('cspBgFile').files[0];
-    if(bg) fd.append('authorization_background_check', bg);
-
-    var r = await apiFetch('/api/candidates', { method:'POST', body: fd });
-    if(!r) return;
-    if(!r.ok){
-        var e = await r.json().catch(function(){ return {}; });
-        toast(e.message || 'Failed to create staff portal','error');
-        return;
-    }
-    closeModal('createStaffPortal');
-    toast('✓ Staff portal created for '+first+' '+last);
-    loadStaffPortals();
 }
 
 document.addEventListener('DOMContentLoaded', loadStaffPortals);

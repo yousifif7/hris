@@ -27,7 +27,9 @@
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;animation-delay:.15s" class="animate-in">
   <div class="table-wrap">
-    <div class="table-header"><h3>Recent Candidates</h3><a href="{{ route('hris.review') }}" class="btn btn-secondary btn-sm">Review Queue →</a></div>
+    <div class="table-header"><h3>Recent Candidates</h3>
+      {{-- <a href="{{ route('hris.review') }}" class="btn btn-secondary btn-sm">Review Queue →</a> --}}
+    </div>
     <table><thead><tr><th>Candidate</th><th>Category</th><th>Status</th><th></th></tr></thead>
     <tbody id="recentTbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3)">Loading...</td></tr></tbody></table>
   </div>

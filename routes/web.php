@@ -22,7 +22,7 @@ Route::get('/schedule/{token}/confirmed', [PublicScheduleController::class, 'con
 
 // Public post-interview pre-screening form (candidate-facing, no auth)
 Route::get('/prescreen/{token}', [PublicPreScreeningController::class, 'show'])->name('public.prescreen');
-Route::post('/prescreen/{token}', [PublicPreScreeningController::class, 'submit'])->name('public.prescreen.submit');
+Route::post('/prescreen/{token}', [PublicPreScreeningController::class, 'submitEmploymentApplication'])->name('public.prescreen.submit');
 Route::get('/prescreen/{token}/application', [PublicPreScreeningController::class, 'showEmploymentApplication'])->name('public.prescreen.application');
 Route::post('/prescreen/{token}/application', [PublicPreScreeningController::class, 'submitEmploymentApplication'])->name('public.prescreen.application.submit');
 
@@ -57,10 +57,18 @@ Route::prefix('hris')->name('hris.')->group(function () {
     Route::get('/workflow/additional', [HrisWorkflowController::class, 'additional'])->name('workflow.additional');
     Route::view('/employee', 'hris.employee')->name('employees');
     Route::view('/staff-portals', 'hris.staff-portals')->name('staff-portals');
+    Route::get('/staff-portals/new', function () {
+        return view('hris.candidate-detail', [
+            'candidate'           => new \App\Models\Candidate(),
+            'positionDescription' => \App\Models\Setting::get('hiring_position_description', ''),
+            'isNew'               => true,
+        ]);
+    })->name('staff-portal.create');
     Route::get('/staff-portals/{candidate}', function (\App\Models\Candidate $candidate) {
         return view('hris.candidate-detail', [
-            'candidate'           => $candidate->load(['assignedTo', 'lastModifiedBy', 'category', 'preScreening']),
+            'candidate'           => $candidate->load(['assignedTo', 'lastModifiedBy', 'category', 'preScreening', 'collaborators']),
             'positionDescription' => \App\Models\Setting::get('hiring_position_description', ''),
+            'isNew'               => false,
         ]);
     })->name('staff-portal.show');
     Route::get('/staff-portals/{candidate}/print', function (\App\Models\Candidate $candidate) {

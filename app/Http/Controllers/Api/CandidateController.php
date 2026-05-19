@@ -98,6 +98,8 @@ class CandidateController extends Controller
             'availability'     => 'nullable|in:full_time,part_time,contract,temporary,internship,remote',
             'clinical_license_expires_at' => 'nullable|date',
             'authorization_background_check' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'assigned_to'     => 'nullable|exists:users,id',
+            'team'            => 'nullable|string|max:255',
         ]);
 
         $candidate = $this->service->create(
@@ -144,6 +146,7 @@ class CandidateController extends Controller
             'notes'           => 'sometimes|nullable|string',
             'resume_text'     => 'sometimes|nullable|string',
             'assigned_to'     => 'sometimes|nullable|exists:users,id',
+            'team'            => 'sometimes|nullable|string|max:255',
             'linkedin_url'    => 'sometimes|nullable|url|max:255',
             'years_experience' => 'sometimes|nullable|integer|min:0|max:60',
             'is_authorized_to_work' => 'sometimes|nullable|boolean',
@@ -498,7 +501,7 @@ class CandidateController extends Controller
     public function uploadDocument(Request $request, Candidate $candidate): JsonResponse
     {
         $data = $request->validate([
-            'field' => 'required|string|in:recipient_rights_training,annual_ceus,college_degree,college_transcripts,cpr_certification,child_registry_clearance,tb_test_results,dwihn_transcripts,i9_document',
+            'field' => 'required|string|in:recipient_rights_training,annual_ceus,college_degree,college_transcripts,cpr_certification,child_registry_clearance,tb_test_results,dwihn_transcripts,i9_document,background_check',
             'file'  => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
@@ -645,5 +648,42 @@ class CandidateController extends Controller
         $employee = $this->service->convertToEmployee($candidate, $data);
 
         return response()->json($employee, 201);
+    }
+
+    /**
+     * GET /api/candidates/{candidate}/collaborators
+     */
+    public function listCollaborators(Candidate $candidate): JsonResponse
+    {
+        return response()->json(
+            $candidate->collaborators()
+                ->select('users.id', 'users.first_name', 'users.last_name', 'users.email', 'users.role', 'users.department')
+                ->orderBy('users.first_name')
+                ->get()
+                ->map(fn ($u) => array_merge($u->toArray(), ['name' => trim($u->first_name.' '.$u->last_name)]))
+        );
+    }
+
+    /**
+     * POST /api/candidates/{candidate}/collaborators  body: { user_id }
+     */
+    public function addCollaborator(Request $request, Candidate $candidate): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $candidate->collaborators()->syncWithoutDetaching([$data['user_id']]);
+
+        return $this->listCollaborators($candidate);
+    }
+
+    /**
+     * DELETE /api/candidates/{candidate}/collaborators/{user}
+     */
+    public function removeCollaborator(Candidate $candidate, \App\Models\User $user): JsonResponse
+    {
+        $candidate->collaborators()->detach($user->id);
+        return $this->listCollaborators($candidate);
     }
 }

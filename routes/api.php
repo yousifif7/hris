@@ -90,6 +90,33 @@ Route::middleware(['auth:sanctum', 'hr'])->group(function () {
     Route::get('/candidates/{candidate}/tasks', [CandidateController::class, 'listTasks']);
     Route::post('/candidates/{candidate}/tasks', [CandidateController::class, 'addTask']);
 
+    // Users / Teams (for assignment + collaborator pickers)
+    Route::get('/users', function () {
+        return response()->json(
+            \App\Models\User::where('is_active', true)
+                ->select('id', 'first_name', 'last_name', 'email', 'role', 'department')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn ($u) => array_merge($u->toArray(), ['name' => trim($u->first_name.' '.$u->last_name)]))
+        );
+    });
+    Route::get('/teams', function () {
+        return response()->json(
+            \App\Models\User::where('is_active', true)
+                ->whereNotNull('department')
+                ->where('department', '!=', '')
+                ->distinct()
+                ->orderBy('department')
+                ->pluck('department')
+                ->values()
+        );
+    });
+
+    // Candidate collaborators (multi-user attach/detach)
+    Route::get('/candidates/{candidate}/collaborators', [CandidateController::class, 'listCollaborators']);
+    Route::post('/candidates/{candidate}/collaborators', [CandidateController::class, 'addCollaborator']);
+    Route::delete('/candidates/{candidate}/collaborators/{user}', [CandidateController::class, 'removeCollaborator']);
+
     // Candidate Tasks (CRM-style task records linked to a candidate)
     Route::get('/candidates/{candidate}/candidate-tasks', [CandidateTaskController::class, 'index']);
     Route::post('/candidates/{candidate}/candidate-tasks', [CandidateTaskController::class, 'store']);

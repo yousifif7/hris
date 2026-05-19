@@ -49,11 +49,12 @@ class PublicPreScreeningController extends Controller
     {
         $candidate = $this->resolveCandidateByPrescreenToken($token);
 
-        return view('public.prescreen', [
+        return view('public.prescreen-employment-application', [
             'candidate' => $candidate,
             'company' => Setting::get('company_name', 'McCrory Center'),
             'token' => $token,
-            'existing' => $candidate->preScreening,
+            'applicationData' => $candidate->preScreening?->employment_application_data ?? [],
+            'formAction' => route('public.prescreen.application.submit', ['token' => $token]),
         ]);
     }
 
@@ -210,7 +211,7 @@ class PublicPreScreeningController extends Controller
 
     public function showEmploymentApplication(string $token): RedirectResponse
     {
-        return redirect()->route('public.prescreen', ['token' => $token, 'step' => 2]);
+        return redirect()->route('public.prescreen', ['token' => $token]);
     }
 
     public function submitEmploymentApplication(StoreEmploymentApplicationRequest $request, string $token): RedirectResponse
@@ -252,7 +253,7 @@ class PublicPreScreeningController extends Controller
         );
 
         return redirect()
-            ->route('public.prescreen.application', ['token' => $token])
+            ->route('public.prescreen', ['token' => $token])
             ->with('submittedEmployment', true);
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\CandidateStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -30,7 +31,7 @@ class Candidate extends Model
         'background_check_expires_at', 'cpr_certification_expires_at', 'tb_expires_at',
         'pgl_insurance_expires_at', 'cmhp_hours_current_year', 'dwc_training_progress',
         // Verification & Review tab
-        'background_check_status', 'identification_expires_at',
+        'background_check_status', 'background_check_path', 'background_check_name', 'team', 'identification_expires_at',
         'i9_verification', 'onboarding_documents_checklist',
         'reference_1_name', 'reference_1_phone', 'reference_1_association',
         'reference_2_name', 'reference_2_phone', 'reference_2_association',
@@ -133,6 +134,11 @@ class Candidate extends Model
     public function lastModifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'last_modified_by');
+    }
+
+    public function collaborators(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'candidate_collaborators')->withTimestamps();
     }
 
     public function preScreening(): HasOne

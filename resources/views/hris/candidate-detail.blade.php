@@ -1,5 +1,6 @@
 @extends('layouts.app')
-@section('title','McCrory Center — '.$candidate->first_name.' '.$candidate->last_name)
+@php $isNew = $isNew ?? false; @endphp
+@section('title','McCrory Center — '.($isNew ? 'New Staff Portal' : trim($candidate->first_name.' '.$candidate->last_name)))
 @section('content')
 <style>
   .cd-wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
@@ -26,11 +27,21 @@
   .cd-field .value{color:var(--text);padding:4px 0;min-height:22px}
   .cd-field .value.empty{color:var(--text3)}
   .cd-field input, .cd-field textarea, .cd-field select{font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);width:100%}
+  .cd-field input[type=checkbox], .cd-field input[type=radio]{width:auto;padding:0;border:1px solid var(--border)}
   .cd-field textarea{resize:vertical;min-height:80px;font-family:inherit}
   .cd-field .pencil{font-size:11px;color:var(--text3);cursor:pointer;margin-left:6px}
   .cd-field .pencil:hover{color:var(--accent)}
-  .cd-checklist{display:flex;flex-direction:column;gap:4px;font-size:13px}
-  .cd-checklist label{display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer}
+  .cd-checklist{display:flex;flex-direction:column;gap:4px;font-size:13px;align-items:flex-start}
+  .cd-checklist label{display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;text-align:left;width:100%}
+  .cd-checklist input[type=checkbox]{margin:0;flex-shrink:0}
+
+  /* Stacked-list single-select (radio cards) — used in edit mode in place of <select> */
+  .cd-stacked{display:flex;flex-direction:column;gap:4px;font-size:13px;width:100%}
+  .cd-stacked-opt{padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text2);cursor:pointer;text-align:center;font-size:13px;transition:border-color .12s,color .12s,background .12s;user-select:none}
+  .cd-stacked-opt:hover{border-color:var(--accent);color:var(--text)}
+  .cd-stacked-opt.selected{border-color:var(--accent);color:var(--accent);font-weight:600;background:var(--surface)}
+  /* When a <select> has been mirrored by a stacked widget, hide it (it stays in DOM for value binding) */
+  select.cd-stacked-mirrored{display:none !important}
 
   .cd-desc{white-space:pre-wrap;line-height:1.7;font-size:13px;color:var(--text);max-height:340px;overflow:hidden;position:relative}
   .cd-desc.open{max-height:none}
@@ -62,6 +73,26 @@
   .cd-aside-row .value{color:var(--text);min-height:20px}
   .cd-aside-row .value.empty{color:var(--text3)}
   .cd-aside-row input, .cd-aside-row select{font-size:12px;padding:5px 7px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);width:100%}
+  .cd-aside-row input[type=checkbox], .cd-aside-row input[type=radio]{width:auto;padding:0}
+
+  /* Sidebar user/team picker (chips + searchable dropdown) */
+  .cd-picker{display:flex;flex-direction:column;gap:6px;width:100%;position:relative}
+  .cd-picker-chips{display:flex;flex-wrap:wrap;gap:4px}
+  .cd-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 4px;border:1px solid var(--border);border-radius:14px;font-size:12px;color:var(--text);max-width:100%}
+  .cd-chip-avatar{width:18px;height:18px;border-radius:50%;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cd-chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+  .cd-chip-x{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+  .cd-chip-x:hover{color:#e35454}
+  .cd-picker-input-wrap{position:relative;display:flex;align-items:center;border:1px solid var(--border);border-radius:5px;background:var(--surface)}
+  .cd-picker-input{flex:1;border:none !important;outline:none;background:transparent;color:var(--text);font-size:12px;padding:5px 7px;width:100%}
+  .cd-picker-toggle{background:transparent;border:none;color:var(--text3);font-size:10px;padding:0 8px;cursor:pointer}
+  .cd-picker-menu{position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--surface);border:1px solid var(--border);border-radius:5px;max-height:220px;overflow:auto;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.12);display:none}
+  .cd-picker-menu.open{display:block}
+  .cd-picker-opt{padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px}
+  .cd-picker-opt:hover{background:var(--surface2)}
+  .cd-picker-opt .cd-chip-avatar{width:20px;height:20px;font-size:10px}
+  .cd-picker-opt .cd-picker-opt-sub{color:var(--text3);font-size:11px;margin-left:auto}
+  .cd-picker-empty{padding:8px 10px;font-size:12px;color:var(--text3)}
 
   .cd-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px}
   .cd-section h3{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px}
@@ -77,11 +108,15 @@
     <a href="{{ route('hris.staff-portals') }}">Staff Portals</a>
     <span class="sep">›</span>
   </div>
-  <h2><span class="dot" style="width:8px;height:8px;background:var(--accent);border-radius:2px;display:inline-block"></span>{{ $candidate->first_name }} {{ $candidate->last_name }}</h2>
+  <h2><span class="dot" style="width:8px;height:8px;background:var(--accent);border-radius:2px;display:inline-block"></span>{{ $isNew ? 'New Staff Portal' : trim($candidate->first_name.' '.$candidate->last_name) }}</h2>
   <span style="flex:1"></span>
-  @if ($candidate->preScreening && $candidate->preScreening->employment_application_submitted_at)
+  @if (!$isNew && $candidate->preScreening && $candidate->preScreening->employment_application_submitted_at)
     <button class="btn btn-secondary" onclick="cdViewApplication()" title="View submitted application">📄 View Application</button>
   @endif
+  @if ($isNew)
+    <a class="btn btn-secondary" href="{{ route('hris.staff-portals') }}">Cancel</a>
+    <button class="btn btn-primary" onclick="cdSaveNew()">💾 Save</button>
+  @else
   <button class="btn btn-secondary" onclick="cdToggleEdit()">✏ <span id="cdEditLabel">Edit</span></button>
   <div style="position:relative">
     <button class="btn btn-secondary" title="More" onclick="cdToggleMore(event)">⋯</button>
@@ -97,6 +132,7 @@
       <a href="{{ route('hris.staff-portal.print', $candidate) }}" target="_blank" rel="noopener" class="cd-more-item">Print to PDF</a>
     </div>
   </div>
+  @endif
 </div>
 
 <style>
@@ -155,10 +191,26 @@
     {{-- ───────── Pre-Screening ───────── --}}
     <div class="cd-panel" data-tab-panel="pre-screening">
       <h3>Pre-Screening</h3>
+      @php
+        $candidateForOptions = collect(preg_split('/\r?\n/', (string) $positionDescription))
+            ->map(fn ($line) => trim(strtok($line, ':')))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        if ($candidate->candidate_for && ! in_array($candidate->candidate_for, $candidateForOptions, true)) {
+            array_unshift($candidateForOptions, $candidate->candidate_for);
+        }
+      @endphp
       <div class="cd-field" style="margin-bottom:14px">
         <label>Candidate For</label>
         <span class="cd-view value {{ $candidate->candidate_for ? '' : 'empty' }}">{{ $candidate->candidate_for ?: 'None' }}</span>
-        <input class="cd-edit" data-field="candidate_for" type="text" value="{{ $candidate->candidate_for }}" style="display:none">
+        <select class="cd-edit cd-no-stack" data-field="candidate_for" style="display:none">
+          <option value="">Select…</option>
+          @foreach ($candidateForOptions as $opt)
+            <option value="{{ $opt }}" @selected($candidate->candidate_for === $opt)>{{ $opt }}</option>
+          @endforeach
+        </select>
       </div>
       <div class="cd-grid">
         <div class="cd-field">
@@ -201,7 +253,7 @@
         <span class="cd-view value {{ $candidate->pre_screening_status ? '' : 'empty' }}">{{ $candidate->pre_screening_status ?: 'None' }}</span>
         <select class="cd-edit" data-field="pre_screening_status" style="display:none">
           <option value="">Select…</option>
-          @foreach (['Added to Database','Reviewed','Passed','Failed','On Hold'] as $opt)
+          @foreach (['Added to Database','Awaiting a response','Called','Declined','Email','No-Response','Reject','Responded','Scheduled for Interview','Texted'] as $opt)
             <option value="{{ $opt }}" @if($candidate->pre_screening_status===$opt) selected @endif>{{ $opt }}</option>
           @endforeach
         </select>
@@ -331,15 +383,19 @@
       <h3>Verification, References &amp; Background Check</h3>
 
       <div class="cd-grid">
-        <div class="cd-field">
+        <div class="cd-field cd-doc-field" data-doc-field="background_check">
           <label>Background Check</label>
-          <span class="cd-view value {{ $candidate->background_check_status ? '' : 'empty' }}">{{ $candidate->background_check_status ?: 'None' }}</span>
-          <select class="cd-edit" data-field="background_check_status" style="display:none">
-            <option value="">Select…</option>
-            @foreach (['Not Started','In Progress','Complete','Failed','Expired'] as $opt)
-              <option value="{{ $opt }}" @if($candidate->background_check_status===$opt) selected @endif>{{ $opt }}</option>
-            @endforeach
-          </select>
+          <div class="cd-doc-slot">
+            @if ($candidate->background_check_path)
+              <span class="cd-doc-chip">
+                <a href="/storage/{{ $candidate->background_check_path }}" target="_blank" class="cd-doc-link">📎 <span class="cd-doc-name">{{ $candidate->background_check_name ?: basename($candidate->background_check_path) }}</span></a>
+                <button type="button" class="cd-doc-remove" title="Remove" onclick="cdRemoveDoc('background_check')">×</button>
+              </span>
+            @else
+              <button type="button" class="cd-doc-upload-btn" onclick="document.getElementById('cd-doc-input-background_check').click()">📎 Upload file</button>
+            @endif
+            <input type="file" id="cd-doc-input-background_check" style="display:none" onchange="cdUploadDoc('background_check', this)">
+          </div>
         </div>
         <div class="cd-field">
           <label>Background Check Expiration Date</label>
@@ -773,7 +829,9 @@
       <div style="min-height:60px"></div>
     </div>
 
+
     {{-- ───────── Stream ───────── --}}
+    @if (!$isNew)
     <div class="cd-section">
       <h3>Stream</h3>
       <form class="cd-comment" id="cdCommentForm" style="margin-bottom:10px;display:flex;gap:8px;align-items:center" onsubmit="cdAddComment(event)">
@@ -785,11 +843,12 @@
           <div class="cd-stream-avatar">SY</div>
           <div>
             <div><strong style="color:var(--text)">System</strong> created this staff portal</div>
-            <div style="color:var(--text3);font-size:11px;margin-top:2px">{{ $candidate->created_at->format('M j') }}</div>
+            <div style="color:var(--text3);font-size:11px;margin-top:2px">{{ $candidate->created_at?->format('M j') }}</div>
           </div>
         </div>
       </div>
     </div>
+    @endif
   </div>
 
   {{-- ───────── Right column (metadata + activities + tasks) ───────── --}}
@@ -797,20 +856,66 @@
   <aside class="cd-aside">
     <div class="cd-aside-row">
       <label>Assigned Users</label>
-      <div class="value {{ $candidate->assignedTo ? '' : 'empty' }}">{{ $candidate->assignedTo?->full_name ?? 'None' }}</div>
+      <div class="cd-picker" data-picker="assigned" data-multi="0">
+        <div class="cd-picker-chips" id="cdAssignedChips">
+          @if ($candidate->assignedTo)
+            @php $u = $candidate->assignedTo; @endphp
+            <span class="cd-chip" data-id="{{ $u->id }}" style="background:{{ '#'.substr(md5($u->id), 0, 6) }}22;border-color:{{ '#'.substr(md5($u->id), 0, 6) }}55">
+              <span class="cd-chip-avatar" style="background:{{ '#'.substr(md5($u->id), 0, 6) }}">{{ strtoupper(substr($u->first_name, 0, 1).substr($u->last_name, 0, 1)) }}</span>
+              <span class="cd-chip-label">{{ trim($u->first_name.' '.$u->last_name) }}</span>
+              <button type="button" class="cd-chip-x">×</button>
+            </span>
+          @endif
+        </div>
+        <div class="cd-picker-input-wrap">
+          <input type="text" class="cd-picker-input" id="cdAssignedInput" placeholder="Select" onclick="cdPickerOpen('assigned')" oninput="cdPickerFilter('assigned')" autocomplete="off">
+          <button type="button" class="cd-picker-toggle" onclick="cdPickerToggle('assigned')" aria-label="Toggle">▴</button>
+          <div class="cd-picker-menu" id="cdAssignedMenu"></div>
+        </div>
+      </div>
     </div>
     <div class="cd-aside-row">
       <label>Teams</label>
-      <div class="value empty">None</div>
+      <div class="cd-picker" data-picker="team" data-multi="0">
+        <div class="cd-picker-chips" id="cdTeamChips">
+          @if ($candidate->team)
+            <span class="cd-chip" data-id="{{ $candidate->team }}" style="background:var(--accent-glow);border-color:var(--accent)">
+              <span class="cd-chip-label">{{ $candidate->team }}</span>
+              <button type="button" class="cd-chip-x">×</button>
+            </span>
+          @endif
+        </div>
+        <div class="cd-picker-input-wrap">
+          <input type="text" class="cd-picker-input" id="cdTeamInput" placeholder="Select" onclick="cdPickerOpen('team')" oninput="cdPickerFilter('team')" autocomplete="off">
+          <button type="button" class="cd-picker-toggle" onclick="cdPickerToggle('team')" aria-label="Toggle">▴</button>
+          <div class="cd-picker-menu" id="cdTeamMenu"></div>
+        </div>
+      </div>
     </div>
     <div class="cd-aside-row">
       <label>Collaborators</label>
-      <div class="value empty">None</div>
+      <div class="cd-picker" data-picker="collab" data-multi="1">
+        <div class="cd-picker-chips" id="cdCollabChips">
+          @foreach ($candidate->collaborators ?? [] as $u)
+            <span class="cd-chip" data-id="{{ $u->id }}" style="background:{{ '#'.substr(md5($u->id), 0, 6) }}22;border-color:{{ '#'.substr(md5($u->id), 0, 6) }}55">
+              <span class="cd-chip-avatar" style="background:{{ '#'.substr(md5($u->id), 0, 6) }}">{{ strtoupper(substr($u->first_name, 0, 1).substr($u->last_name, 0, 1)) }}</span>
+              <span class="cd-chip-label">{{ trim($u->first_name.' '.$u->last_name) }}</span>
+              <button type="button" class="cd-chip-x">×</button>
+            </span>
+          @endforeach
+        </div>
+        <div class="cd-picker-input-wrap">
+          <input type="text" class="cd-picker-input" id="cdCollabInput" placeholder="Select" onclick="cdPickerOpen('collab')" oninput="cdPickerFilter('collab')" autocomplete="off">
+          <button type="button" class="cd-picker-toggle" onclick="cdPickerToggle('collab')" aria-label="Toggle">▴</button>
+          <div class="cd-picker-menu" id="cdCollabMenu"></div>
+        </div>
+      </div>
     </div>
     <div class="cd-aside-row">
       <label>Applicant Status</label>
-      <select id="cdWorkflowStatus" onchange="cdChangeWorkflowStatus(this.value)" style="width:100%">
-        @php $current = $candidate->status?->value; @endphp
+      @php $current = $candidate->status?->value; @endphp
+      <div class="value cd-view {{ $current ? '' : 'empty' }}">{{ $candidate->status?->label() ?? 'None' }}</div>
+      <select class="cd-edit" id="cdWorkflowStatus" onchange="cdChangeWorkflowStatus(this.value)" style="display:none;width:100%">
         <option value="">— Select —</option>
         @foreach (\App\Enums\CandidateStatus::workflowOptions() as $opt)
           <option value="{{ $opt['value'] }}" @selected($current === $opt['value'])>{{ $opt['label'] }}</option>
@@ -852,11 +957,13 @@
       <div class="value cd-view">{{ (int) $candidate->dwc_training_progress }}</div>
       <input class="cd-edit" type="number" min="0" max="100" data-field="dwc_training_progress" value="{{ (int) $candidate->dwc_training_progress }}" style="display:none">
     </div>
+    @if (!$isNew)
     <div class="cd-aside-row">
       <label>Created</label>
       <div class="value">{{ $candidate->created_at->format('M d h:i a') }} · System</div>
     </div>
-    @if ($candidate->updated_at && $candidate->updated_at->ne($candidate->created_at))
+    @endif
+    @if (!$isNew && $candidate->updated_at && $candidate->updated_at->ne($candidate->created_at))
       <div class="cd-aside-row">
         <label>Modified</label>
         @php
@@ -872,6 +979,7 @@
     @endif
   </aside>
 
+  @if (!$isNew)
   {{-- ───────── Scheduled Interview ───────── --}}
   <div class="cd-side-card">
     <div class="cd-side-head">
@@ -966,6 +1074,7 @@
       <div class="cd-side-empty">No Data</div>
     </div>
   </div>
+  @endif
   </div>
 </div>
 
@@ -1155,6 +1264,7 @@
 @push('scripts')
 <script>
 var CD_CANDIDATE_ID = @json($candidate->id);
+var CD_IS_NEW = @json($isNew);
 var _cdEditing = false;
 
 /* ── Tabs ── */
@@ -1287,11 +1397,129 @@ document.addEventListener('DOMContentLoaded', function(){
         m.style.display = 'none';
         f.style.display = 'none';
     }
+    cdBuildStackedMirrors();
+    cdInitPickers();
+    if (CD_IS_NEW) {
+        // Create flow: open all edit inputs, auto-enter edit mode, skip side loads
+        cdEnterCreateMode();
+        return;
+    }
     cdLoadComments();
     caLoadScheduled();
     caLoadHistory();
     cdLoadInterviews();
 });
+
+/* ── Stacked-list mirror: turn every <select.cd-edit> into a vertical card picker ── */
+function cdBuildStackedMirrors(){
+    document.querySelectorAll('select.cd-edit').forEach(function(sel){
+        if (sel.classList.contains('cd-stacked-mirrored')) return;
+        if (sel.classList.contains('cd-no-stack')) return;
+        // Build mirror
+        var mirror = document.createElement('div');
+        mirror.className = 'cd-edit cd-stacked';
+        if (sel.dataset.field) mirror.dataset.mirrorFor = sel.dataset.field;
+        // Mirror starts hidden — cdToggleEdit / cdEnterCreateMode will show it via the standard .cd-edit toggle
+        mirror.style.display = sel.style.display || 'none';
+        var current = sel.value || '';
+        Array.prototype.forEach.call(sel.options, function(opt){
+            if (opt.value === '') return; // skip the empty "Select…" placeholder
+            var row = document.createElement('div');
+            row.className = 'cd-stacked-opt' + (opt.value === current ? ' selected' : '');
+            row.dataset.value = opt.value;
+            row.textContent = opt.textContent;
+            row.addEventListener('click', function(){
+                sel.value = opt.value;
+                mirror.querySelectorAll('.cd-stacked-opt').forEach(function(r){
+                    r.classList.toggle('selected', r === row);
+                });
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            mirror.appendChild(row);
+        });
+        sel.classList.add('cd-stacked-mirrored');
+        sel.parentNode.insertBefore(mirror, sel.nextSibling);
+    });
+}
+
+/* ── Create-new mode: reveal edit inputs and POST on save ── */
+function cdEnterCreateMode(){
+    _cdEditing = true;
+    document.querySelectorAll('.cd-view').forEach(function(el){ el.style.display = 'none'; });
+    document.querySelectorAll('.cd-edit').forEach(function(el){ el.style.display = ''; });
+    document.querySelectorAll('input[data-multi-field], input[data-bool-field]').forEach(function(el){ el.disabled = false; });
+    document.querySelectorAll('.cd-edit-only').forEach(function(el){ el.style.display = ''; });
+}
+
+async function cdSaveNew(){
+    var payload = {};
+    document.querySelectorAll('.cd-edit[data-field]').forEach(function(el){
+        var name = el.dataset.field;
+        var v;
+        if(el.type === 'number'){
+            v = el.value === '' ? null : Number(el.value);
+        } else if(el.type === 'date'){
+            v = el.value || null;
+        } else {
+            v = (el.value || '').trim();
+            if(v === '') v = null;
+        }
+        if (v !== null && v !== '') payload[name] = v;
+    });
+
+    var multiFields = {};
+    document.querySelectorAll('input[data-multi-field]').forEach(function(el){
+        var name = el.dataset.multiField;
+        if(!multiFields[name]) multiFields[name] = [];
+        if(el.checked) multiFields[name].push(el.value);
+    });
+    Object.keys(multiFields).forEach(function(k){
+        if (multiFields[k].length) payload[k] = multiFields[k];
+    });
+
+    document.querySelectorAll('input[data-bool-field]').forEach(function(el){
+        payload[el.dataset.boolField] = !!el.checked;
+    });
+
+    // Sidebar pickers: assigned user / team / collaborators (collaborators are attached after create)
+    var assignedChip = document.querySelector('#cdAssignedChips .cd-chip');
+    if (assignedChip && assignedChip.dataset.id) payload.assigned_to = Number(assignedChip.dataset.id);
+    var teamChip = document.querySelector('#cdTeamChips .cd-chip');
+    if (teamChip && teamChip.dataset.id) payload.team = teamChip.dataset.id;
+    var collabIds = Array.prototype.map.call(
+        document.querySelectorAll('#cdCollabChips .cd-chip'),
+        function(c){ return Number(c.dataset.id); }
+    ).filter(Boolean);
+
+    if (!payload.first_name || !payload.last_name) {
+        toast('First and last name are required','error');
+        return;
+    }
+    if (!payload.source) payload.source = 'Other';
+
+    var r = await apiFetch('/api/candidates', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+    if (!r) return;
+    if (!r.ok) {
+        var e = await r.json().catch(function(){ return {}; });
+        toast(e.message || 'Failed to create staff portal','error');
+        return;
+    }
+    var created = await r.json();
+
+    // Attach collaborators sequentially (small list, no perf concern)
+    for (var i = 0; i < collabIds.length; i++) {
+        await apiFetch('/api/candidates/'+created.id+'/collaborators', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: collabIds[i] })
+        });
+    }
+
+    toast('✓ Staff portal created');
+    window.location.href = '/hris/staff-portals/' + created.id;
+}
 
 /* ── Stream comments ─────────────────────────────────────── */
 function _cdFmtDate(iso){
@@ -1914,6 +2142,11 @@ async function caSubmit(){
 /* ── Pre-Onboard document upload chips ─────────────────── */
 async function cdUploadDoc(field, input){
     if(!input.files || !input.files.length) return;
+    if (CD_IS_NEW) {
+        toast('Save the staff portal first, then upload documents','error');
+        input.value = '';
+        return;
+    }
     var fd = new FormData();
     fd.append('field', field);
     fd.append('file', input.files[0]);
@@ -1936,6 +2169,10 @@ async function cdUploadDoc(field, input){
 
 async function cdChangeWorkflowStatus(value){
     if(!value) return;
+    if (CD_IS_NEW) {
+        toast('Status can be set after the staff portal is created','error');
+        return;
+    }
     var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/status', {
         method:'PATCH', body: JSON.stringify({status: value})
     });
@@ -1974,6 +2211,197 @@ async function caDelete(id){
         var parent = row.parentElement;
         row.remove();
         if(parent && !parent.children.length) parent.innerHTML = '<div class="cd-side-empty">No Data</div>';
+    }
+}
+
+/* ── Sidebar pickers: Assigned User, Teams, Collaborators ─────────────── */
+var _cdPickerData = { assigned: null, team: null, collab: null };
+var _cdPickerIds = {
+    assigned: { input:'cdAssignedInput', menu:'cdAssignedMenu', chips:'cdAssignedChips' },
+    team:     { input:'cdTeamInput',     menu:'cdTeamMenu',     chips:'cdTeamChips' },
+    collab:   { input:'cdCollabInput',   menu:'cdCollabMenu',   chips:'cdCollabChips' }
+};
+
+function _cdPickerColor(id){
+    // Reproduce the same color pattern used server-side (md5 → first 6 hex chars)
+    var s = String(id); var h = 0;
+    for (var i = 0; i < s.length; i++) { h = ((h<<5)-h) + s.charCodeAt(i); h |= 0; }
+    var c = (h & 0xffffff).toString(16); while (c.length < 6) c = '0'+c;
+    return '#' + c;
+}
+
+function _cdPickerInitials(name){
+    var parts = String(name||'').trim().split(/\s+/);
+    return ((parts[0]||'')[0]||'' ).toUpperCase() + ((parts[1]||'')[0]||'').toUpperCase();
+}
+
+async function cdInitPickers(){
+    // Fetch lookup data in parallel
+    try {
+        var [usersR, teamsR] = await Promise.all([
+            apiFetch('/api/users'),
+            apiFetch('/api/teams')
+        ]);
+        if (usersR && usersR.ok) {
+            var users = await usersR.json();
+            _cdPickerData.assigned = users;
+            _cdPickerData.collab   = users;
+        }
+        if (teamsR && teamsR.ok) {
+            var teams = await teamsR.json();
+            _cdPickerData.team = teams.map(function(t){ return { id: t, name: t }; });
+        }
+    } catch (e) {}
+
+    document.addEventListener('click', function(e){
+        // Close menus when clicking outside any picker
+        if (!e.target.closest('.cd-picker')) {
+            Object.keys(_cdPickerIds).forEach(function(k){
+                var m = document.getElementById(_cdPickerIds[k].menu);
+                if (m) m.classList.remove('open');
+            });
+        }
+        // Delegated chip-remove handler (works for both server-rendered and JS-built chips)
+        var xBtn = e.target.closest('.cd-chip-x');
+        if (xBtn) {
+            var chip = xBtn.closest('.cd-chip');
+            var pickerEl = xBtn.closest('.cd-picker');
+            if (chip && pickerEl) {
+                e.preventDefault();
+                var key = pickerEl.dataset.picker;
+                var id  = chip.dataset.id;
+                // Use numeric id for user-based pickers; team uses the string id
+                cdPickerRemove(key, key === 'team' ? id : Number(id));
+            }
+        }
+    });
+}
+
+function cdPickerOpen(key){
+    var menu = document.getElementById(_cdPickerIds[key].menu);
+    if (!menu) return;
+    Object.keys(_cdPickerIds).forEach(function(k){
+        if (k !== key) document.getElementById(_cdPickerIds[k].menu)?.classList.remove('open');
+    });
+    cdPickerFilter(key);
+    menu.classList.add('open');
+}
+function cdPickerToggle(key){
+    var menu = document.getElementById(_cdPickerIds[key].menu);
+    if (!menu) return;
+    if (menu.classList.contains('open')) menu.classList.remove('open');
+    else cdPickerOpen(key);
+}
+
+function cdPickerFilter(key){
+    var input = document.getElementById(_cdPickerIds[key].input);
+    var menu  = document.getElementById(_cdPickerIds[key].menu);
+    if (!menu) return;
+    var q = (input?.value || '').toLowerCase().trim();
+    var data = _cdPickerData[key] || [];
+    var selectedIds = Array.prototype.map.call(
+        document.getElementById(_cdPickerIds[key].chips).querySelectorAll('.cd-chip'),
+        function(c){ return c.dataset.id; }
+    );
+    var multi = document.querySelector('.cd-picker[data-picker="'+key+'"]').dataset.multi === '1';
+    var rows = data.filter(function(item){
+        if (multi && selectedIds.indexOf(String(item.id)) !== -1) return false;
+        if (!q) return true;
+        return String(item.name || '').toLowerCase().includes(q);
+    });
+    if (!rows.length) {
+        menu.innerHTML = '<div class="cd-picker-empty">No matches</div>';
+        return;
+    }
+    menu.innerHTML = '';
+    rows.forEach(function(item){
+        var color = _cdPickerColor(item.id);
+        var row = document.createElement('div');
+        row.className = 'cd-picker-opt';
+        var inner = '';
+        if (key !== 'team') {
+            inner += '<span class="cd-chip-avatar" style="background:'+color+'">'+esc(_cdPickerInitials(item.name))+'</span>';
+        }
+        inner += '<span>'+esc(item.name)+'</span>';
+        if ((key === 'collab' || key === 'assigned') && item.role) {
+            inner += '<span class="cd-picker-opt-sub">'+esc(item.role)+'</span>';
+        }
+        row.innerHTML = inner;
+        row.addEventListener('click', function(){ cdPickerPick(key, item.id, item.name); });
+        menu.appendChild(row);
+    });
+}
+
+function _cdBuildChip(key, id, name){
+    var color = _cdPickerColor(id);
+    var chip = document.createElement('span');
+    chip.className = 'cd-chip';
+    chip.dataset.id = String(id);
+    if (key === 'team') {
+        chip.style.background = 'var(--accent-glow)';
+        chip.style.borderColor = 'var(--accent)';
+        chip.innerHTML = '<span class="cd-chip-label"></span><button type="button" class="cd-chip-x">×</button>';
+        chip.querySelector('.cd-chip-label').textContent = name;
+    } else {
+        chip.style.background = color + '22';
+        chip.style.borderColor = color + '55';
+        chip.innerHTML = '<span class="cd-chip-avatar"></span><span class="cd-chip-label"></span><button type="button" class="cd-chip-x">×</button>';
+        var av = chip.querySelector('.cd-chip-avatar');
+        av.style.background = color;
+        av.textContent = _cdPickerInitials(name);
+        chip.querySelector('.cd-chip-label').textContent = name;
+    }
+    // Removal handled by delegated listener installed in cdInitPickers
+    return chip;
+}
+
+async function cdPickerPick(key, id, name){
+    var multi = document.querySelector('.cd-picker[data-picker="'+key+'"]').dataset.multi === '1';
+    var chips = document.getElementById(_cdPickerIds[key].chips);
+    if (!multi) chips.innerHTML = '';
+    chips.appendChild(_cdBuildChip(key, id, name));
+
+    var input = document.getElementById(_cdPickerIds[key].input);
+    if (input) input.value = '';
+    var menu = document.getElementById(_cdPickerIds[key].menu);
+    if (menu) menu.classList.remove('open');
+
+    await cdPickerPersist(key, 'add', id);
+}
+
+async function cdPickerRemove(key, id){
+    var chips = document.getElementById(_cdPickerIds[key].chips);
+    var sel = chips.querySelector('.cd-chip[data-id="'+CSS.escape(String(id))+'"]');
+    if (sel) sel.remove();
+    await cdPickerPersist(key, 'remove', id);
+}
+
+async function cdPickerPersist(key, op, id){
+    if (CD_IS_NEW) return; // create flow: chips are visual-only until POST
+    if (key === 'assigned') {
+        var payload = { assigned_to: op === 'remove' ? null : id };
+        var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID, { method:'PATCH', body: JSON.stringify(payload) });
+        if (!r || !r.ok) toast('Failed to update assigned user','error');
+        else toast('✓ Saved');
+        return;
+    }
+    if (key === 'team') {
+        var payload = { team: op === 'remove' ? null : String(id) };
+        var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID, { method:'PATCH', body: JSON.stringify(payload) });
+        if (!r || !r.ok) toast('Failed to update team','error');
+        else toast('✓ Saved');
+        return;
+    }
+    if (key === 'collab') {
+        if (op === 'add') {
+            var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/collaborators', { method:'POST', body: JSON.stringify({ user_id: id }) });
+            if (!r || !r.ok) toast('Failed to add collaborator','error');
+            else toast('✓ Saved');
+        } else {
+            var r = await apiFetch('/api/candidates/'+CD_CANDIDATE_ID+'/collaborators/'+id, { method:'DELETE' });
+            if (!r || !r.ok) toast('Failed to remove collaborator','error');
+            else toast('✓ Saved');
+        }
     }
 }
 </script>

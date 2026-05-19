@@ -27,7 +27,7 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:14px}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
 input,select,textarea,button{font-family:inherit;font-size:inherit}
 button{cursor:pointer;border:none;background:none;color:inherit}
 input,select,textarea{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;transition:border .2s}
@@ -61,10 +61,32 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 .sidebar-user .role{font-size:11px;color:var(--text3)}
 
 /* MAIN */
-.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.topbar{display:flex;align-items:center;gap:16px;padding:14px 28px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;width:100%;min-height:100vh}
+.topbar{display:flex;align-items:center;gap:18px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.03);position:sticky;top:0;z-index:50}
 .topbar h2{font-size:18px;font-weight:700;color:var(--text)}
 .topbar .spacer{flex:1}
+.topbar-logo{display:flex;align-items:center;flex-shrink:0;padding-right:8px;margin-right:4px;border-right:1px solid var(--border)}
+.topbar-logo img{height:34px;max-width:160px;display:block}
+.topbar-nav{display:flex;align-items:center;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.topbar-nav::-webkit-scrollbar{display:none}
+.topnav-item{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:var(--radius);color:var(--text2);font-weight:500;font-size:13px;white-space:nowrap;transition:all .15s;text-decoration:none}
+.topnav-item:hover{background:var(--surface2);color:var(--text)}
+.topnav-item.active{background:var(--accent-glow);color:var(--accent)}
+.topnav-item svg{width:17px;height:17px;flex-shrink:0}
+.topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;margin-left:auto;padding-left:12px;border-left:1px solid var(--border)}
+.topbar-user{display:flex;align-items:center;gap:9px}
+.topbar-user .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.topbar-user-meta{line-height:1.2}
+.topbar-user-meta .name{font-weight:600;font-size:13px;color:var(--text)}
+.topbar-user-meta .role{font-size:11px;color:var(--text3)}
+.topbar-logout{color:var(--text3);width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.topbar-logout:hover{background:var(--surface2);color:var(--text)}
+@media (max-width:900px){
+  .topbar{padding:8px 14px;gap:10px}
+  .topbar-user-meta{display:none}
+  .topnav-item span{display:none}
+  .topnav-item{padding:8px 10px}
+}
 .search-box{position:relative}
 .search-box input{padding-left:36px;width:240px;background:var(--surface2);border-color:transparent}
 .search-box input:focus{border-color:var(--accent);background:var(--surface)}
@@ -74,7 +96,7 @@ select{-webkit-appearance:none;appearance:none;background-image:url("data:image/
 .icon-btn:hover{background:var(--surface2)}
 .icon-btn svg{width:18px;height:18px;color:var(--text2)}
 .icon-btn .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface)}
-.content{flex:1;overflow-y:auto;padding:28px}
+.content{flex:1;padding:24px 28px;width:100%}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius);font-weight:600;font-size:13px;transition:all .15s}
@@ -282,7 +304,6 @@ tr:hover td{background:rgba(91,76,219,.03)}
     @stack('styles')
 </head>
 <body>
-    @include('partials.sidebar')
     <div class="main">
         @include('partials.topbar')
         <div class="content" id="contentArea">
