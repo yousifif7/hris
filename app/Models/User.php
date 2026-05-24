@@ -43,6 +43,11 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class);
     }
 
+    public function candidate()
+    {
+        return $this->hasOne(Candidate::class, 'user_id');
+    }
+
     public static function nextAssignee(): ?self
     {
         return static::where('role', 'hr_staff')

@@ -280,9 +280,17 @@ class CandidateService
     {
         $offer = $candidate->latestOffer;
 
+        // Sync any candidate-detail offer fields the Offers area also tracks, so the
+        // public offer page and any downstream code see the same numbers HR just typed.
+        $offerSync = array_filter([
+            'pay_rate'        => $candidate->offer_amount,
+            'start_date'      => $candidate->earliest_start_date,
+            'employment_type' => $candidate->full_or_part_time === 'Part Time' ? 'Part-Time' : ($candidate->full_or_part_time === 'Full Time' ? 'Full-Time' : null),
+        ], fn ($v) => $v !== null && $v !== '');
+
         // Auto-create a placeholder offer so it appears in the Offers area and is editable
         if (! $offer) {
-            $offer = Offer::create([
+            $offer = Offer::create(array_merge([
                 'candidate_id'    => $candidate->id,
                 'pay_rate'        => 0.00,
                 'pay_type'        => 'hourly',
@@ -292,7 +300,9 @@ class CandidateService
                 'created_by'      => auth()->id(),
                 'token'           => Str::uuid()->toString(),
                 'deadline_days'   => (int) \App\Models\Setting::get('offer_deadline', 20),
-            ]);
+            ], $offerSync));
+        } elseif (! empty($offerSync)) {
+            $offer->update($offerSync);
         }
 
         $extraVars = [];
@@ -306,6 +316,10 @@ class CandidateService
 
     protected function onPreOnboardDocuments(Candidate $candidate): void
     {
+        // The candidate just accepted the offer — provision their portal account so
+        // they can log in to upload onboarding docs / fill in personal info.
+        $this->ensureCandidatePortalAccount($candidate);
+
         SendCandidateEmail::dispatchSync($candidate, 'onboarding');
 
         if ($candidate->onboardingTasks()->count() === 0) {
@@ -321,6 +335,66 @@ class CandidateService
             $candidate,
             $actor
         );
+    }
+
+    /**
+     * Provision a Candidate Portal User account for a candidate who has accepted their
+     * offer. Idempotent: if a portal account already exists (linked via candidates.user_id
+     * or matching email) it is reused without emailing a new password.
+     */
+    public function ensureCandidatePortalAccount(Candidate $candidate): ?User
+    {
+        if (! $candidate->email) {
+            return null;
+        }
+
+        if ($candidate->user_id && $candidate->user) {
+            return $candidate->user;
+        }
+
+        $existing = User::where('email', $candidate->email)->first();
+        if ($existing) {
+            $candidate->update(['user_id' => $existing->id]);
+            return $existing;
+        }
+
+        $tempPassword = Str::random(10);
+
+        $user = User::create([
+            'first_name' => $candidate->first_name,
+            'last_name'  => $candidate->last_name,
+            'email'      => $candidate->email,
+            'password'   => Hash::make($tempPassword),
+            'role'       => 'candidate',
+            'is_active'  => true,
+        ]);
+
+        $candidate->update(['user_id' => $user->id]);
+
+        // Ensure the candidate portal credentials template exists (safe to call repeatedly)
+        EmailTemplate::firstOrCreate(
+            ['slug' => 'candidate_portal_credentials'],
+            [
+                'name'    => 'Candidate Portal Credentials',
+                'subject' => 'Your {{company_name}} Candidate Portal Access',
+                'body'    => "Dear {{candidate_first_name}},\n\nThank you for accepting your offer with {{company_name}}!\n\nWe've created your Candidate Portal so you can finish your onboarding paperwork online.\n\nLogin URL:          {{login_url}}\nEmail:              {{login_email}}\nTemporary Password: {{temp_password}}\n\nPlease log in and change your password on first sign-in.\n\nIf you have any questions, reach out to {{hr_name}}.\n\nBest regards,\n{{company_name}} HR Team",
+                'category' => 'onboarding',
+                'is_active' => true,
+            ]
+        );
+
+        SendCandidateEmail::dispatchSync($candidate, 'candidate_portal_credentials', [
+            'login_url'     => rtrim(Setting::get('app_url', config('app.url')), '/') . '/login',
+            'login_email'   => $candidate->email,
+            'temp_password' => $tempPassword,
+        ]);
+
+        $candidate->activityLogs()->create([
+            'action'      => 'portal_account_created',
+            'description' => 'Candidate Portal account created and credentials emailed.',
+        ]);
+
+        return $user;
     }
 
     protected function onRejected(Candidate $candidate): void
@@ -350,19 +424,31 @@ class CandidateService
 
         if (! $candidate->email) return;
 
-        $tempPassword = Str::random(10);
-        $offer        = $candidate->latestOffer;
+        $offer = $candidate->latestOffer;
 
-        $user = User::updateOrCreate(
-            ['email' => $candidate->email],
-            [
+        // Reuse the candidate's existing portal user if they already accepted their offer;
+        // just promote them to 'employee' role. Otherwise create a fresh user and email creds.
+        $existingUser = $candidate->user ?? User::where('email', $candidate->email)->first();
+        $tempPassword = null;
+
+        if ($existingUser) {
+            $existingUser->update(['role' => 'employee', 'is_active' => true]);
+            $user = $existingUser;
+        } else {
+            $tempPassword = Str::random(10);
+            $user = User::create([
                 'first_name' => $candidate->first_name,
                 'last_name'  => $candidate->last_name,
+                'email'      => $candidate->email,
                 'password'   => Hash::make($tempPassword),
                 'role'       => 'employee',
                 'is_active'  => true,
-            ]
-        );
+            ]);
+        }
+
+        if ($candidate->user_id !== $user->id) {
+            $candidate->update(['user_id' => $user->id]);
+        }
 
         \App\Models\Employee::create([
             'candidate_id'    => $candidate->id,
@@ -380,13 +466,15 @@ class CandidateService
             'is_active'       => true,
         ]);
 
-        SendCandidateEmail::dispatchSync($candidate, 'portal_credentials', [
-            'login_url'     => config('app.url') . '/login',
-            'login_email'   => $candidate->email,
-            'temp_password' => $tempPassword,
-            'door_code'     => \App\Models\Setting::get('door_code', 'See HR for details'),
-            'wifi_password' => \App\Models\Setting::get('wifi_password', 'See HR for details'),
-        ]);
+        if ($tempPassword) {
+            SendCandidateEmail::dispatchSync($candidate, 'portal_credentials', [
+                'login_url'     => config('app.url') . '/login',
+                'login_email'   => $candidate->email,
+                'temp_password' => $tempPassword,
+                'door_code'     => \App\Models\Setting::get('door_code', 'See HR for details'),
+                'wifi_password' => \App\Models\Setting::get('wifi_password', 'See HR for details'),
+            ]);
+        }
     }
 
     /**

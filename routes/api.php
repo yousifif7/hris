@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackgroundCheckController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\CandidateActivityController;
+use App\Http\Controllers\Api\CandidatePortalController;
 use App\Http\Controllers\Api\CandidateTaskController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
@@ -289,4 +290,17 @@ Route::middleware(['auth:sanctum', 'employee'])->prefix('portal')->group(functio
     // Own documents
     Route::get('/documents',  [DocumentController::class, 'portalIndex']);
     Route::post('/documents', [DocumentController::class, 'upload']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Candidate portal (role = candidate)
+| Scoped strictly to the logged-in user's own candidate record.
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'candidate'])->prefix('candidate-portal')->group(function () {
+    Route::get('/me',            [CandidatePortalController::class, 'me']);
+    Route::put('/me',            [CandidatePortalController::class, 'update']);
+    Route::post('/upload',       [CandidatePortalController::class, 'upload']);
+    Route::post('/change-password', [CandidatePortalController::class, 'changePassword']);
 });

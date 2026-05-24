@@ -33,6 +33,9 @@ Route::view('/login', 'auth.login')->name('login');
 // Employee portal (employees land here after login)
 Route::view('/portal', 'hris.portal')->name('portal');
 
+// Candidate portal (candidates land here after offer-accept login)
+Route::view('/candidate-portal', 'candidate-portal.index')->name('candidate-portal');
+
 Route::prefix('hris')->name('hris.')->group(function () {
     Route::view('/', 'hris.dashboard')->name('dashboard');
     Route::view('/intake', 'hris.intake')->name('intake');

@@ -168,7 +168,6 @@
   <button class="cd-tab" data-tab="post-offer">Post-Offer Documents</button>
   <button class="cd-tab" data-tab="dwc">DWC Trainings</button>
   <button class="cd-tab" data-tab="additional">Additional</button>
-  <button class="cd-tab" data-tab="job-description">Job Description Letter</button>
 </div>
 
 <div class="cd-wrap">
@@ -557,6 +556,7 @@
           <input class="cd-edit" type="date" data-field="offer_deadline_date" value="{{ optional($candidate->offer_deadline_date)->format('Y-m-d') }}" style="display:none">
         </div>
       </div>
+
     </div>
 
     {{-- ───────── Pre-Onboard Documents ───────── --}}
@@ -822,13 +822,6 @@
         </div>
       </div>
     </div>
-
-    {{-- ───────── Job Description Letter (reserved/empty) ───────── --}}
-    <div class="cd-panel" data-tab-panel="job-description">
-      <h3>Job Description Letter</h3>
-      <div style="min-height:60px"></div>
-    </div>
-
 
     {{-- ───────── Stream ───────── --}}
     @if (!$isNew)

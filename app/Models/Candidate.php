@@ -39,6 +39,8 @@ class Candidate extends Model
         'offer_date', 'offer_mccrory_center', 'operations_manager',
         'clinical_supervisor', 'offer_amount', 'payment_frequency',
         'company_representative', 'offer_deadline_date',
+        // Candidate Portal account link
+        'user_id',
         // Pre-Onboard Documents tab
         'college_degree', 'college_degree_name',
         'college_transcripts', 'college_transcripts_name',
@@ -144,6 +146,11 @@ class Candidate extends Model
     public function preScreening(): HasOne
     {
         return $this->hasOne(PreScreening::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function interviews(): HasMany

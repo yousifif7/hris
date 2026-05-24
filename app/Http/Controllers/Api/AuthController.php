@@ -28,12 +28,18 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => ['This account has been deactivated.']]);
         }
 
-        $user->load('employee');
+        $user->load('employee', 'candidate');
+
+        $redirect = match ($user->role) {
+            'admin', 'hr_staff' => '/hris',
+            'candidate'         => '/candidate-portal',
+            default             => '/portal',
+        };
 
         return response()->json([
             'user'     => $user,
             'token'    => $user->createToken('hris')->plainTextToken,
-            'redirect' => in_array($user->role, ['admin', 'hr_staff']) ? '/hris' : '/portal',
+            'redirect' => $redirect,
         ]);
     }
 

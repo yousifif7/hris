@@ -27,7 +27,10 @@ class SendCandidateEmail implements ShouldQueue
         if (! $this->candidate->email) return;
 
         $template = EmailTemplate::where('slug', $this->templateSlug)->first();
-        if (! $template) return;
+        if (! $template) {
+            \Illuminate\Support\Facades\Log::warning("SendCandidateEmail: template '{$this->templateSlug}' not found for candidate {$this->candidate->id}; email skipped.");
+            return;
+        }
 
         $offer = $this->candidate->latestOffer;
 

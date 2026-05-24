@@ -13,8 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'hr'       => \App\Http\Middleware\EnsureHrStaff::class,
-            'employee' => \App\Http\Middleware\EnsureEmployee::class,
+            'hr'        => \App\Http\Middleware\EnsureHrStaff::class,
+            'employee'  => \App\Http\Middleware\EnsureEmployee::class,
+            'candidate' => \App\Http\Middleware\EnsureCandidate::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

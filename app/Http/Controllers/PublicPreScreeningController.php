@@ -177,6 +177,26 @@ class PublicPreScreeningController extends Controller
             $candidate->preScreening()->create($payload);
         }
 
+        // Mirror overlapping form fields onto the Candidate row so the candidate-detail
+        // Pre-Interview tab reflects what was submitted without HR re-typing it.
+        $candidateMirror = array_filter([
+            'years_experience'    => $data['years_experience'] ?? null,
+            'education_level'     => $data['education_level'] ?? null,
+            'availability'        => $data['availability'] ?? null,
+            'earliest_start_date' => $data['earliest_start_date'] ?? null,
+            'clinical_licenses'   => $data['licenses'] ?? null,
+            'street_address'      => $data['address_street'] ?? null,
+            'city'                => $data['address_city'] ?? null,
+            'state'               => $data['address_state'] ?? null,
+            'postal_code'         => $data['address_zip'] ?? null,
+            'phone'               => $data['phone_main'] ?? $candidate->phone,
+            'email'               => $data['email'] ?? $candidate->email,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        if (! empty($candidateMirror)) {
+            $candidate->fill($candidateMirror)->save();
+        }
+
         $candidate->activityLogs()->create([
             'action' => 'pre_screening_submitted',
             'description' => 'Candidate submitted post-interview application form.',
