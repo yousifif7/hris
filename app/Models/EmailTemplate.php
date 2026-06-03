@@ -15,6 +15,11 @@ class EmailTemplate extends Model
         return ['is_active' => 'boolean'];
     }
 
+    public function messages()
+    {
+        return $this->hasMany(Message::class, 'template_id');
+    }
+
     public function render(array $vars): array
     {
         $subject  = $this->subject;

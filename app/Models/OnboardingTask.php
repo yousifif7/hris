@@ -20,4 +20,9 @@ class OnboardingTask extends Model
     {
         return $this->belongsTo(Candidate::class);
     }
+
+    public function template()
+    {
+        return $this->belongsTo(OnboardingTemplate::class, 'template_id');
+    }
 }
