@@ -118,6 +118,7 @@ class Candidate extends Model
             'dwc_medicare_fraud_expires_at'        => 'date',
             'dwc_person_centered_expires_at'       => 'date',
             'dwc_recipient_rights_expires_at'      => 'date',
+            'desired_pay'                          => 'decimal:2',
         ];
     }
 

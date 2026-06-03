@@ -12,4 +12,9 @@ class OnboardingTemplate extends Model
     {
         return ['is_active' => 'boolean'];
     }
+
+    public function tasks()
+    {
+        return $this->hasMany(OnboardingTask::class, 'template_id');
+    }
 }

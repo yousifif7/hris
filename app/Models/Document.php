@@ -11,6 +11,11 @@ class Document extends Model
         'file_path', 'mime_type', 'file_size', 'uploaded_by',
     ];
 
+    protected function casts(): array
+    {
+        return ['file_size' => 'integer'];
+    }
+
     public function documentable() { return $this->morphTo(); }
     public function uploadedBy()   { return $this->belongsTo(User::class, 'uploaded_by'); }
 }
